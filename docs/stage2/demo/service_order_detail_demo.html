@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爱团-非外卖订单详情</title>
+  <link rel="stylesheet" href="./demo.css" />
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="topbar"><div class="row"><a class="back-btn" href="./orders_demo.html">‹</a><div class="topbar-title">订单详情</div><span></span></div></div>
+      <div class="content no-tab">
+        <div class="segment"><button class="btn btn-light state-btn" data-state="unpaid">未支付</button><button class="btn btn-primary state-btn" data-state="unused">未使用</button><button class="btn btn-light state-btn" data-state="used">已使用</button></div>
+        <div class="card" style="background:var(--bg-brand-soft); border-color:var(--brand-line);"><div class="row"><div><div class="card-title" id="status-title">未使用</div><div class="subline" id="status-desc">支付成功，请到店出示二维码或券码完成核销。</div></div><span class="tag green" id="status-tag">待核销</span></div></div>
+        <div class="card" id="voucher-card">
+          <div class="card-title">核销凭证</div>
+          <div class="voucher-box"><div class="qr-box">AT</div><div class="title" style="letter-spacing:2px;">AT-8392-5518</div><div class="subline">向商家出示二维码或券码号</div></div>
+          <div class="kv"><span>有效期</span><span>2026-05-14 至 2026-06-13</span></div>
+          <div class="kv"><span>核销状态</span><span id="voucher-status">未使用</span></div>
+        </div>
+        <a class="card row" href="./service_merchant_demo.html"><div><div class="card-title" style="margin-bottom:4px;">商家信息</div><div class="title" style="font-size:14px;">江南小馆（学院路店）</div><div class="subline">学院路 37 号商业街 2 层</div></div><span class="link-text">进店</span></a>
+        <div class="card"><div class="card-title">商品/服务明细</div><div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">江南小馆双人套餐</div><div class="subline">到店核销 · 周末可用</div><div class="row" style="margin-top:8px;"><div class="price"><small>￥</small>98</div><span class="small muted">x1</span></div></div></div></div>
+        <div class="card"><div class="card-title">使用规则</div><div class="kv"><span>使用时间</span><span>11:00-21:00</span></div><div class="kv"><span>退款规则</span><span>未使用可退</span></div><div class="kv"><span>预约要求</span><span>无需预约，高峰建议电话确认</span></div></div>
+        <div class="card"><div class="card-title">金额明细</div><div class="kv"><span>商品金额</span><span>￥138</span></div><div class="kv"><span>优惠</span><span>-￥40</span></div><div class="kv" style="font-weight:800;"><span>实付</span><span>￥98</span></div></div>
+        <div class="card"><div class="card-title">支付信息</div><div class="kv"><span>支付方式</span><span id="pay-method">模拟支付</span></div><div class="kv"><span>订单编号</span><span class="small">AT202605140088</span></div><div class="kv"><span>下单时间</span><span class="small">2026-05-14 18:20</span></div></div>
+      </div>
+      <div class="bottom-bar"><div class="row" id="action-bar"><a class="btn btn-light" href="./message_demo.html">联系客服</a><a class="btn btn-primary" href="./service_merchant_demo.html">查看商家</a></div></div>
+    </div>
+  </div>
+  <script>
+    const states = {
+      unpaid: { title:'未支付', desc:'订单已创建，请在 15 分钟内完成支付。', tag:'等待付款', cls:'tag red', voucher:'none', voucherStatus:'未生成', pay:'未支付', actions:'<a class="btn btn-light" href="./orders_demo.html">取消订单</a><a class="btn btn-primary" href="./orders_demo.html">模拟支付</a>' },
+      unused: { title:'未使用', desc:'支付成功，请到店出示二维码或券码完成核销。', tag:'待核销', cls:'tag green', voucher:'block', voucherStatus:'未使用', pay:'模拟支付', actions:'<a class="btn btn-light" href="./message_demo.html">联系客服</a><a class="btn btn-primary" href="./service_merchant_demo.html">查看商家</a>' },
+      used: { title:'已使用', desc:'券码已由商家核销，可以发布评价。', tag:'可评价', cls:'tag gray', voucher:'block', voucherStatus:'已核销', pay:'模拟支付', actions:'<a class="btn btn-light" href="./service_merchant_demo.html">再买一次</a><a class="btn btn-primary" href="./review_publish_demo.html">去评价</a>' }
+    };
+    const title = document.getElementById('status-title');
+    const desc = document.getElementById('status-desc');
+    const tag = document.getElementById('status-tag');
+    const voucher = document.getElementById('voucher-card');
+    const voucherStatus = document.getElementById('voucher-status');
+    const pay = document.getElementById('pay-method');
+    const actions = document.getElementById('action-bar');
+    document.querySelectorAll('.state-btn').forEach(btn => btn.addEventListener('click', () => {
+      const state = states[btn.dataset.state];
+      title.textContent = state.title; desc.textContent = state.desc; tag.textContent = state.tag; tag.className = state.cls; voucher.style.display = state.voucher; voucherStatus.textContent = state.voucherStatus; pay.textContent = state.pay; actions.innerHTML = state.actions;
+      document.querySelectorAll('.state-btn').forEach(item => item.className = item === btn ? 'btn btn-primary state-btn' : 'btn btn-light state-btn');
+    }));
+  </script>
+</body>
+</html>

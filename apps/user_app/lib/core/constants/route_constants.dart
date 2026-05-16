@@ -1,0 +1,20 @@
+class Routes {
+  const Routes._();
+
+  static const splash = '/splash';
+  static const login = '/login';
+  static const main = '/main';
+  static const home = '/home';
+  static const module = '/module';
+  static const search = '/search';
+  static const searchResult = '/search/result';
+  static const merchantDetail = '/merchant/detail';
+  static const itemDetail = '/item/detail';
+  static const checkout = '/checkout/confirm';
+  static const orders = '/orders';
+  static const orderDetail = '/order/detail';
+  static const message = '/message/list';
+  static const favorite = '/favorite';
+  static const profile = '/profile';
+  static const reviewPublish = '/review/publish';
+}

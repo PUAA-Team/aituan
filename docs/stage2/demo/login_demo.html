@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爱团-登录注册</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style>
+    .brand-area { padding: 42px 18px 22px; text-align: center; background: var(--bg-brand-soft); }
+    .logo { width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 20px; background: var(--brand); border: 1px solid var(--brand-strong); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #fff; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .field { margin-bottom: 12px; }
+    .field-label { margin-bottom: 8px; font-size: 13px; font-weight: 800; }
+    .code-row { display: grid; grid-template-columns: 1fr 106px; gap: 10px; }
+    .link-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--text-sub); }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="brand-area">
+        <div class="logo">爱</div>
+        <div class="topbar-title" style="font-size: 28px;">爱团</div>
+      </div>
+      <div class="content no-tab">
+        <div id="login" class="panel active card">
+          <div class="card-title">账号登录</div>
+          <div class="field"><div class="field-label">账号</div><div class="input-box">手机号或邮箱</div></div>
+          <div class="field"><div class="field-label">密码</div><div class="input-box">请输入密码</div></div>
+          <a class="btn btn-primary" href="./home_demo.html" style="width: 100%;">登录</a>
+          <div class="link-row"><a href="#" data-panel="register">前往注册</a><a href="#" data-panel="reset">忘记密码</a></div>
+        </div>
+        <div id="register" class="panel card">
+          <div class="card-title">注册账号</div>
+          <div class="field"><div class="field-label">手机号</div><div class="input-box">11 位手机号，不接短信验证码</div></div>
+          <div class="field"><div class="field-label">邮箱</div><div class="input-box">请输入邮箱地址</div></div>
+          <div class="field"><div class="field-label">邮箱验证码</div><div class="code-row"><div class="input-box">请输入验证码</div><button class="btn btn-secondary">发送</button></div></div>
+          <div class="field"><div class="field-label">密码</div><div class="input-box">设置登录密码</div></div>
+          <a class="btn btn-primary" href="./home_demo.html" style="width: 100%;">注册并登录</a>
+          <div class="link-row"><a href="#" data-panel="login">返回登录</a><span></span></div>
+        </div>
+        <div id="reset" class="panel card">
+          <div class="card-title">找回密码</div>
+          <div class="field"><div class="field-label">邮箱</div><div class="input-box">请输入绑定邮箱</div></div>
+          <div class="field"><div class="field-label">邮箱验证码</div><div class="code-row"><div class="input-box">请输入验证码</div><button class="btn btn-secondary">发送</button></div></div>
+          <div class="field"><div class="field-label">新密码</div><div class="input-box">请输入新密码</div></div>
+          <button class="btn btn-primary" style="width: 100%;">重置密码</button>
+          <div class="link-row"><a href="#" data-panel="login">返回登录</a><span></span></div>
+        </div>
+        <a class="btn btn-light" href="./home_demo.html" style="width: 100%; margin-top: 10px;">游客进入首页</a>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll('[data-panel]').forEach(link => {
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.toggle('active', panel.id === link.dataset.panel));
+      });
+    });
+  </script>
+</body>
+</html>

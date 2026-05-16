@@ -1,0 +1,124 @@
+import 'package:flutter/material.dart';
+
+import '../core/constants/route_constants.dart';
+import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/splash_page.dart';
+import '../features/checkout/presentation/checkout_page.dart';
+import '../features/favorite/presentation/favorite_page.dart';
+import '../features/home/data/mock_data.dart';
+import '../features/home/presentation/module_page.dart';
+import '../features/merchant/presentation/item_detail_page.dart';
+import '../features/merchant/presentation/service_merchant_page.dart';
+import '../features/merchant/presentation/takeaway_merchant_page.dart';
+import '../features/order/presentation/service_order_detail_page.dart';
+import '../features/order/presentation/takeaway_order_detail_page.dart';
+import '../features/review/presentation/review_publish_page.dart';
+import '../features/search/presentation/search_page.dart';
+import '../features/search/presentation/search_result_page.dart';
+import '../shared/enums/business_type.dart';
+import '../shared/models/item_model.dart';
+import '../shared/models/module_entry.dart';
+import 'app_state.dart';
+import 'main_shell.dart';
+import 'route_args.dart';
+
+class AppRouter {
+  const AppRouter._();
+
+  static final _protected = <String>{
+    Routes.checkout,
+    Routes.orders,
+    Routes.orderDetail,
+    Routes.message,
+    Routes.favorite,
+    Routes.profile,
+    Routes.reviewPublish,
+  };
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    if (_protected.contains(settings.name) && !appState.isLoggedIn) {
+      return _page(const LoginPage(showNotice: true), settings);
+    }
+    return switch (settings.name) {
+      Routes.splash => _page(const SplashPage(), settings),
+      Routes.login => _page(const LoginPage(), settings),
+      Routes.main || Routes.home => _page(const MainShell(), settings),
+      Routes.message => _page(const MainShell(initialIndex: 1), settings),
+      Routes.orders => _page(const MainShell(initialIndex: 2), settings),
+      Routes.profile => _page(const MainShell(initialIndex: 3), settings),
+      Routes.module => _page(
+        ModulePage(module: _module(settings.arguments)),
+        settings,
+      ),
+      Routes.search => _page(const SearchPage(), settings),
+      Routes.searchResult => _page(
+        SearchResultPage(keyword: _searchKeyword(settings.arguments)),
+        settings,
+      ),
+      Routes.merchantDetail => _merchant(settings),
+      Routes.itemDetail => _page(
+        ItemDetailPage(item: _item(settings.arguments)),
+        settings,
+      ),
+      Routes.checkout => _page(
+        CheckoutPage(args: _checkout(settings.arguments)),
+        settings,
+      ),
+      Routes.orderDetail => _orderDetail(settings),
+      Routes.favorite => _page(const FavoritePage(), settings),
+      Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
+      _ => _page(const SplashPage(), settings),
+    };
+  }
+
+  static MaterialPageRoute<dynamic> _merchant(RouteSettings settings) {
+    final args = settings.arguments;
+    final data = args is MerchantArgs
+        ? args
+        : MerchantArgs(type: BusinessType.takeaway, merchant: merchants.first);
+    final merchant = data.merchant ?? merchantById(null);
+    if (data.type.isTakeaway) {
+      return _page(TakeawayMerchantPage(merchant: merchant), settings);
+    }
+    return _page(ServiceMerchantPage(merchant: merchant), settings);
+  }
+
+  static MaterialPageRoute<dynamic> _orderDetail(RouteSettings settings) {
+    final args = settings.arguments;
+    final data = args is OrderDetailArgs
+        ? args
+        : const OrderDetailArgs(
+            kind: OrderKind.takeaway,
+            status: OrderStatus.pending,
+          );
+    if (data.kind == OrderKind.takeaway) {
+      return _page(TakeawayOrderDetailPage(status: data.status), settings);
+    }
+    return _page(ServiceOrderDetailPage(status: data.status), settings);
+  }
+
+  static MaterialPageRoute<dynamic> _page(
+    Widget child,
+    RouteSettings settings,
+  ) => MaterialPageRoute(builder: (_) => child, settings: settings);
+
+  static ModuleEntry _module(Object? args) =>
+      args is ModuleEntry ? args : modules.first;
+
+  static CheckoutArgs _checkout(Object? args) => args is CheckoutArgs
+      ? args
+      : const CheckoutArgs(
+          kind: OrderKind.takeaway,
+          title: '招牌中国汉堡',
+          amount: 39.7,
+        );
+
+  static String _searchKeyword(Object? args) => switch (args) {
+    SearchArgs(:final keyword) => keyword,
+    String keyword => keyword,
+    _ => '',
+  };
+
+  static ItemModel _item(Object? args) =>
+      args is ItemArgs ? args.item : serviceItems.first;
+}
