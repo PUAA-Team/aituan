@@ -49,3 +49,13 @@
 `./docs/stage3/APP打包说明.md`
 
 `./docs/stage3/APP前端真实化迭代需求.md`
+
+### 4. Stage 4 后端规划文档
+
+`./docs/stage4/后端实施计划.md`
+
+`./docs/stage4/后端部署与联调说明.md`
+
+### 5. 长期待办文档
+
+`./docs/后续功能待办.md`
