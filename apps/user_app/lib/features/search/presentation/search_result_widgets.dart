@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_search_box.dart';
 import '../../../core/widgets/brand_tag.dart';
-import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/merchant_model.dart';
 import '../../merchant/presentation/merchant_category_widgets.dart';
 
@@ -83,13 +82,11 @@ class MerchantResultCard extends StatelessWidget {
   Widget build(BuildContext context) => MerchantAggregateCard(
     merchant: merchant,
     onMerchantTap: () => _openMerchant(context),
-    onItemTap: (item) => item.type.isTakeaway
-        ? _openMerchant(context)
-        : Navigator.pushNamed(
-            context,
-            Routes.itemDetail,
-            arguments: ItemArgs(item),
-          ),
+    onItemTap: (item) => Navigator.pushNamed(
+      context,
+      Routes.itemDetail,
+      arguments: ItemArgs(item),
+    ),
   );
 
   void _openMerchant(BuildContext context) => Navigator.pushNamed(

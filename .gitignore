@@ -1,1 +1,7 @@
 .claude/
+
+# Backend build outputs
+services/backend/target/
+
+# Local runtime/build handoff directories
+.aituan-local/

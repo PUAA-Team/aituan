@@ -9,6 +9,33 @@ enum BusinessType {
   massage,
 }
 
+BusinessType businessTypeFromApi(String? code) {
+  return switch ((code ?? '').toLowerCase()) {
+    'takeaway' => BusinessType.takeaway,
+    'group' || 'group_buy' || 'groupbuy' => BusinessType.groupBuy,
+    'hotel' => BusinessType.hotel,
+    'fun' || 'entertainment' => BusinessType.entertainment,
+    'movie' => BusinessType.movie,
+    'beauty' => BusinessType.beauty,
+    'ticket' => BusinessType.ticket,
+    'massage' => BusinessType.massage,
+    _ => BusinessType.takeaway,
+  };
+}
+
+String businessTypeApiCode(BusinessType type) {
+  return switch (type) {
+    BusinessType.takeaway => 'takeaway',
+    BusinessType.groupBuy => 'group_buy',
+    BusinessType.hotel => 'hotel',
+    BusinessType.entertainment => 'entertainment',
+    BusinessType.movie => 'movie',
+    BusinessType.beauty => 'beauty',
+    BusinessType.ticket => 'ticket',
+    BusinessType.massage => 'massage',
+  };
+}
+
 extension BusinessTypeText on BusinessType {
   String get label {
     return switch (this) {
@@ -28,7 +55,41 @@ extension BusinessTypeText on BusinessType {
 
 enum OrderKind { takeaway, service }
 
+OrderKind orderKindFromApi(String? code) {
+  return switch ((code ?? '').toLowerCase()) {
+    'takeaway' => OrderKind.takeaway,
+    'service' => OrderKind.service,
+    _ => OrderKind.service,
+  };
+}
+
+String orderKindApiCode(OrderKind kind) {
+  return switch (kind) {
+    OrderKind.takeaway => 'takeaway',
+    OrderKind.service => 'service',
+  };
+}
+
 enum OrderStatus { unpaid, pending, unused, used }
+
+OrderStatus orderStatusFromApi(String? code) {
+  return switch ((code ?? '').toLowerCase()) {
+    'unpaid' => OrderStatus.unpaid,
+    'pending' => OrderStatus.pending,
+    'unused' => OrderStatus.unused,
+    'used' => OrderStatus.used,
+    _ => OrderStatus.unpaid,
+  };
+}
+
+String orderStatusApiCode(OrderStatus status) {
+  return switch (status) {
+    OrderStatus.unpaid => 'unpaid',
+    OrderStatus.pending => 'pending',
+    OrderStatus.unused => 'unused',
+    OrderStatus.used => 'used',
+  };
+}
 
 extension OrderStatusText on OrderStatus {
   String get label {

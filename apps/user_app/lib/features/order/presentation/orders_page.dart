@@ -8,7 +8,7 @@ import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/order_model.dart';
-import '../../home/data/mock_data.dart';
+import '../../home/data/backend_app_repository.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -19,13 +19,20 @@ class OrdersPage extends StatefulWidget {
 
 class _OrdersPageState extends State<OrdersPage> {
   OrderStatus? _filter;
+  bool _loading = true;
+  Object? _error;
+  List<OrderModel> _orders = const [];
 
   @override
-  Widget build(BuildContext context) {
-    final list = _filter == null
-        ? orders
-        : orders.where((order) => order.status == _filter).toList();
-    return SafeArea(
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: RefreshIndicator(
+      onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -38,22 +45,58 @@ class _OrdersPageState extends State<OrdersPage> {
                 _StatusChip(
                   label: '全部',
                   active: _filter == null,
-                  onTap: () => setState(() => _filter = null),
+                  onTap: () => _changeFilter(null),
                 ),
                 for (final status in OrderStatus.values)
                   _StatusChip(
                     label: status.label,
                     active: _filter == status,
-                    onTap: () => setState(() => _filter = status),
+                    onTap: () => _changeFilter(status),
                   ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          for (final order in list) _OrderCard(order: order),
+          if (_loading)
+            const AppCard(child: Center(child: CircularProgressIndicator()))
+          else if (_error != null)
+            _ErrorCard(message: _error.toString(), onRetry: _load)
+          else if (_orders.isEmpty)
+            const AppCard(child: Text('暂无订单'))
+          else
+            for (final order in _orders) _OrderCard(order: order),
         ],
       ),
-    );
+    ),
+  );
+
+  void _changeFilter(OrderStatus? status) {
+    if (_filter == status) return;
+    setState(() => _filter = status);
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+      final orders = await backendRepository.fetchOrders(
+        displayStatus: _filter == null ? null : orderStatusApiCode(_filter!),
+      );
+      if (!mounted) return;
+      setState(() {
+        _orders = orders;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _loading = false;
+      });
+    }
   }
 }
 
@@ -89,7 +132,11 @@ class _OrderCard extends StatelessWidget {
     onTap: () => Navigator.pushNamed(
       context,
       Routes.orderDetail,
-      arguments: OrderDetailArgs(kind: order.kind, status: order.status),
+      arguments: OrderDetailArgs(
+        kind: order.kind,
+        status: order.status,
+        orderId: order.id,
+      ),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,8 +160,8 @@ class _OrderCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          order.desc,
-          maxLines: 2,
+          order.storeName,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall,
         ),
@@ -141,4 +188,25 @@ class _OrderCard extends StatelessWidget {
     OrderStatus.unused => '待核销 ›',
     OrderStatus.used => '去评价 ›',
   };
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('订单加载失败', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text(message, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 10),
+        FilledButton(onPressed: onRetry, child: const Text('重试')),
+      ],
+    ),
+  );
 }

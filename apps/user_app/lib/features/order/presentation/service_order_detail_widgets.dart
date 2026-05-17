@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../shared/enums/business_type.dart';
+import '../../home/data/backend_app_repository.dart';
 
 class ServiceOrderStatusCard extends StatelessWidget {
   const ServiceOrderStatusCard({
@@ -42,8 +43,13 @@ class ServiceOrderStatusCard extends StatelessWidget {
 }
 
 class ServiceVoucherCard extends StatelessWidget {
-  const ServiceVoucherCard({super.key, required this.used});
+  const ServiceVoucherCard({
+    super.key,
+    required this.voucher,
+    required this.used,
+  });
 
+  final VoucherData? voucher;
   final bool used;
 
   @override
@@ -74,14 +80,23 @@ class ServiceVoucherCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'AT-8392-5518',
-          style: TextStyle(
+        Text(
+          voucher?.voucherCode ?? '暂无券码',
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            letterSpacing: 2,
+            letterSpacing: 1.6,
           ),
         ),
+        if ((voucher?.qrPayload ?? '').isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            voucher!.qrPayload,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+          ),
+        ],
         Text(
           used ? '券码已核销' : '向商家出示二维码或券码号',
           style: const TextStyle(fontSize: 13, color: AppColors.textSub),

@@ -92,9 +92,9 @@ class AppRouter {
             status: OrderStatus.pending,
           );
     if (data.kind == OrderKind.takeaway) {
-      return _page(TakeawayOrderDetailPage(status: data.status), settings);
+      return _page(TakeawayOrderDetailPage(args: data), settings);
     }
-    return _page(ServiceOrderDetailPage(status: data.status), settings);
+    return _page(ServiceOrderDetailPage(args: data), settings);
   }
 
   static MaterialPageRoute<dynamic> _page(
