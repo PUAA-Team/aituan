@@ -34,6 +34,7 @@ class _OrdersPageState extends State<OrdersPage> {
     child: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
           Text('我的订单', style: Theme.of(context).textTheme.headlineMedium),
@@ -64,7 +65,8 @@ class _OrdersPageState extends State<OrdersPage> {
           else if (_orders.isEmpty)
             const AppCard(child: Text('暂无订单'))
           else
-            for (final order in _orders) _OrderCard(order: order),
+            for (final order in _orders)
+              _OrderCard(order: order, onReturned: _load),
         ],
       ),
     ),
@@ -123,21 +125,25 @@ class _StatusChip extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order});
+  const _OrderCard({required this.order, required this.onReturned});
 
   final OrderModel order;
+  final Future<void> Function() onReturned;
 
   @override
   Widget build(BuildContext context) => AppCard(
-    onTap: () => Navigator.pushNamed(
-      context,
-      Routes.orderDetail,
-      arguments: OrderDetailArgs(
-        kind: order.kind,
-        status: order.status,
-        orderId: order.id,
-      ),
-    ),
+    onTap: () async {
+      await Navigator.pushNamed(
+        context,
+        Routes.orderDetail,
+        arguments: OrderDetailArgs(
+          kind: order.kind,
+          status: order.status,
+          orderId: order.id,
+        ),
+      );
+      await onReturned();
+    },
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -152,7 +158,7 @@ class _OrderCard extends StatelessWidget {
               ),
             ),
             BrandTag(
-              order.status.label,
+              order.status.labelForKind(order.kind),
               emphasis: order.status == OrderStatus.unpaid,
               green: order.status == OrderStatus.unused,
             ),
@@ -171,7 +177,7 @@ class _OrderCard extends StatelessWidget {
             BrandTag(order.businessType.label),
             const Spacer(),
             Text(
-              _hint(order.status),
+              _hint(order.status, order.kind),
               style: const TextStyle(fontSize: 12, color: AppColors.textSub),
             ),
             const SizedBox(width: 8),
@@ -182,9 +188,9 @@ class _OrderCard extends StatelessWidget {
     ),
   );
 
-  String _hint(OrderStatus status) => switch (status) {
+  String _hint(OrderStatus status, OrderKind kind) => switch (status) {
     OrderStatus.unpaid => '等待付款 ›',
-    OrderStatus.pending => '正在进行 ›',
+    OrderStatus.pending => kind == OrderKind.takeaway ? '配送进度 ›' : '正在处理 ›',
     OrderStatus.unused => '待核销 ›',
     OrderStatus.used => '去评价 ›',
   };

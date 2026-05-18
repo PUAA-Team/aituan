@@ -100,4 +100,20 @@ extension OrderStatusText on OrderStatus {
       OrderStatus.used => '已使用',
     };
   }
+
+  String labelForKind(OrderKind kind) {
+    if (kind == OrderKind.takeaway) {
+      return switch (this) {
+        OrderStatus.unpaid => '待付款',
+        OrderStatus.pending => '配送中',
+        OrderStatus.unused || OrderStatus.used => '已完成',
+      };
+    }
+    return switch (this) {
+      OrderStatus.unpaid => '待付款',
+      OrderStatus.pending => '处理中',
+      OrderStatus.unused => '待使用',
+      OrderStatus.used => '已使用',
+    };
+  }
 }

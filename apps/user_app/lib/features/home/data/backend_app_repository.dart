@@ -204,12 +204,42 @@ class BackendAppRepository {
     return ProfileData.fromApi(_map(json['data']));
   }
 
-  Future<List<FavoriteEntry>> fetchFavorites() async {
-    final json = await _get('/api/app/account/favorites?page=1&pageSize=20');
+  Future<List<FavoriteEntry>> fetchFavorites({String? favoriteType}) async {
+    final typeQuery = favoriteType == null || favoriteType.isEmpty
+        ? ''
+        : 'favoriteType=${Uri.encodeQueryComponent(favoriteType)}&';
+    final json = await _get(
+      '/api/app/account/favorites?${typeQuery}page=1&pageSize=20',
+    );
     final page = _map(json['data']);
     return _list(
       page['list'],
     ).map((entry) => FavoriteEntry.fromApi(_map(entry))).toList();
+  }
+
+  Future<void> saveFavorite({
+    required String favoriteType,
+    required int targetId,
+    required String targetName,
+    String? coverUrl,
+    String? subtitle,
+  }) async {
+    await _post('/api/app/account/favorites', {
+      'favoriteType': favoriteType,
+      'targetId': targetId,
+      'targetName': targetName,
+      'coverUrl': coverUrl,
+      'subtitle': subtitle,
+    });
+  }
+
+  Future<void> deleteFavorite({
+    required String favoriteType,
+    required int targetId,
+  }) async {
+    await _delete(
+      '/api/app/account/favorites/${Uri.encodeComponent(favoriteType)}/$targetId',
+    );
   }
 
   Future<void> logout() async {
@@ -220,6 +250,8 @@ class BackendAppRepository {
 
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) =>
       _client.post(path, body);
+
+  Future<Map<String, dynamic>> _delete(String path) => _client.delete(path);
 }
 
 class AuthSession {

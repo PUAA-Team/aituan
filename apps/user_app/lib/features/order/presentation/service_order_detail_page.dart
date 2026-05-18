@@ -39,40 +39,43 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     final detail = _detail;
     return Scaffold(
       appBar: AppBar(title: const Text('订单详情')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_orderId == null)
-            const AppCard(child: Text('订单信息缺失，请从订单列表重新进入。'))
-          else if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _load)
-          else if (detail != null) ...[
-            ServiceOrderStatusCard(status: detail.status, desc: _desc(detail)),
-            if (detail.status != OrderStatus.unpaid)
-              ServiceVoucherCard(
-                voucher: detail.voucher,
-                used: detail.status == OrderStatus.used,
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_orderId == null)
+              const AppCard(child: Text('订单信息缺失，请从订单列表重新进入。'))
+            else if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else if (detail != null) ...[
+              ServiceOrderStatusCard(
+                status: detail.status,
+                desc: _desc(detail),
               ),
-            _StoreCard(detail: detail),
-            _GoodsCard(detail: detail),
-            _RuleCard(detail: detail),
+              if (detail.status != OrderStatus.unpaid)
+                ServiceVoucherCard(
+                  voucher: detail.voucher,
+                  used: detail.status == OrderStatus.used,
+                ),
+              _StoreCard(detail: detail),
+              _GoodsCard(detail: detail),
+              _RuleCard(detail: detail),
+            ],
+            const SizedBox(height: 80),
           ],
-          const SizedBox(height: 80),
-        ],
+        ),
       ),
       bottomNavigationBar: detail == null
           ? null
           : AppBottomActionBar(
               primaryText: _primaryText(detail.status),
               onPrimary: _paying ? null : () => _primaryAction(detail),
-              secondaryText: '查看商家',
-              onSecondary: () => Navigator.pushNamed(
-                context,
-                Routes.searchResult,
-                arguments: SearchArgs(detail.storeName),
-              ),
+              secondaryText: _secondaryText(detail.status),
+              onSecondary: () => _secondaryAction(detail),
             ),
     );
   }
@@ -134,6 +137,19 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
       );
       return;
     }
+    _openStore(detail);
+  }
+
+  void _secondaryAction(OrderDetailData detail) {
+    if (detail.status == OrderStatus.unpaid ||
+        detail.status == OrderStatus.used) {
+      _openStore(detail);
+      return;
+    }
+    _load();
+  }
+
+  void _openStore(OrderDetailData detail) {
     Navigator.pushNamed(
       context,
       Routes.searchResult,
@@ -145,6 +161,11 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     OrderStatus.unpaid => _paying ? '支付中' : '模拟支付',
     OrderStatus.used => '去评价',
     _ => '查看商家',
+  };
+
+  String _secondaryText(OrderStatus status) => switch (status) {
+    OrderStatus.unpaid || OrderStatus.used => '查看商家',
+    _ => '刷新状态',
   };
 
   String _desc(OrderDetailData detail) => switch (detail.status) {

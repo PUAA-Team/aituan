@@ -26,20 +26,30 @@ class ServiceOrderStatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(status.label, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                status.labelForKind(OrderKind.service),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 6),
               Text(desc, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
         BrandTag(
-          status == OrderStatus.unused ? '待核销' : '可评价',
+          _tagText(status),
           green: status == OrderStatus.unused,
           selected: true,
         ),
       ],
     ),
   );
+
+  String _tagText(OrderStatus status) => switch (status) {
+    OrderStatus.unpaid => '待付款',
+    OrderStatus.pending => '处理中',
+    OrderStatus.unused => '待核销',
+    OrderStatus.used => '可评价',
+  };
 }
 
 class ServiceVoucherCard extends StatelessWidget {

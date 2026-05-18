@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../shared/enums/business_type.dart';
@@ -9,6 +8,7 @@ import '../../../shared/models/merchant_model.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'merchant_category_widgets.dart';
 import 'service_merchant_widgets.dart';
+import 'takeaway_merchant_sections.dart';
 
 class ServiceMerchantPage extends StatefulWidget {
   const ServiceMerchantPage({super.key, required this.merchant});
@@ -23,6 +23,7 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
   MerchantModel? _merchant;
   Object? _error;
   bool _loading = true;
+  int _tab = 0;
   String? _selectedCategory;
 
   String? get _storeId =>
@@ -42,30 +43,42 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
     final active = _activeCategory(groups);
     return Scaffold(
       appBar: AppBar(title: const Text('商家详情')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _load)
-          else ...[
-            ServiceMerchantHero(merchant: merchant),
-            SectionHeader(title: '${merchant.type.label}服务', action: '到店核销'),
-            ServiceCategoryPanel(
-              groups: groups,
-              activeCategory: active,
-              onSelected: (value) => setState(() => _selectedCategory = value),
-            ),
-            const SectionHeader(title: '用户评价', action: '真实反馈'),
-            const AppCard(
-              child: Text(
-                '环境干净，核销顺利，适合周末和朋友一起到店。',
-                style: TextStyle(fontSize: 13, color: AppColors.textSub),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else ...[
+              ServiceMerchantHero(merchant: merchant),
+              TakeawayMerchantTabs(
+                value: _tab,
+                onChanged: (value) => setState(() => _tab = value),
               ),
-            ),
+              const SizedBox(height: 10),
+              if (_tab == 0) ...[
+                SectionHeader(
+                  title: '${merchant.type.label}服务',
+                  action: '到店核销',
+                ),
+                ServiceCategoryPanel(
+                  groups: groups,
+                  activeCategory: active,
+                  onSelected: (value) =>
+                      setState(() => _selectedCategory = value),
+                ),
+              ] else if (_tab == 1)
+                const ServiceReviewPanel()
+              else
+                ServiceMerchantInfoPanel(merchant: merchant),
+              const SizedBox(height: 24),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

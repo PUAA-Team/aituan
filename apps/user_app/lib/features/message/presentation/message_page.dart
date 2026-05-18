@@ -28,6 +28,7 @@ class _MessagePageState extends State<MessagePage> {
     child: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         children: [
           Text('消息', style: Theme.of(context).textTheme.headlineMedium),

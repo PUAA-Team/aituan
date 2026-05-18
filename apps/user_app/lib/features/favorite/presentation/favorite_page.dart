@@ -32,6 +32,7 @@ class _FavoritePageState extends State<FavoritePage> {
     body: RefreshIndicator(
       onRefresh: _load,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
           const SectionHeader(title: '收藏列表'),
@@ -87,29 +88,32 @@ class _FavoritePageState extends State<FavoritePage> {
       if (_looksLikeMerchant(type)) {
         final merchant = await backendRepository.fetchStore(id);
         if (!mounted) return;
-        Navigator.pushNamed(
+        await Navigator.pushNamed(
           context,
           Routes.merchantDetail,
           arguments: MerchantArgs(type: merchant.type, merchant: merchant),
         );
+        if (mounted) _load();
         return;
       }
       final detail = await backendRepository.fetchItem(id);
       if (!mounted) return;
-      Navigator.pushNamed(
+      await Navigator.pushNamed(
         context,
         Routes.itemDetail,
         arguments: ItemArgs(detail.item),
       );
+      if (mounted) _load();
     } catch (_) {
       try {
         final merchant = await backendRepository.fetchStore(id);
         if (!mounted) return;
-        Navigator.pushNamed(
+        await Navigator.pushNamed(
           context,
           Routes.merchantDetail,
           arguments: MerchantArgs(type: merchant.type, merchant: merchant),
         );
+        if (mounted) _load();
       } catch (error) {
         if (!mounted) return;
         ScaffoldMessenger.of(

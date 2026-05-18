@@ -28,6 +28,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   ItemDetailData? _detail;
   Object? _error;
   bool _loading = true;
+  bool _favorited = false;
+  bool _favoriteBusy = false;
 
   bool get _canLoad => int.tryParse(widget.item.id) != null;
 
@@ -50,41 +52,47 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               .toList();
     return Scaffold(
       appBar: AppBar(title: const Text('商品/服务详情')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (!_canLoad)
-            const AppCard(child: Text('商品信息不完整，请从搜索或商家页重新进入。'))
-          else if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _load)
-          else if (detail != null) ...[
-            MockThumb(
-              width: double.infinity,
-              height: 190,
-              icon: businessIcon(item.type),
-              label: item.category,
-            ),
-            const SizedBox(height: 10),
-            _InfoCard(item: item, categories: detail.categories),
-            _MerchantCard(detail: detail),
-            const SectionHeader(title: '同店推荐', action: '更多选择'),
-            if (related.isEmpty)
-              const AppCard(child: Text('暂无更多推荐'))
-            else
-              MerchantItemCarousel(items: related, onTap: _openItem),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (!_canLoad)
+              const AppCard(child: Text('商品信息不完整，请从搜索或商家页重新进入。'))
+            else if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else if (detail != null) ...[
+              MockThumb(
+                width: double.infinity,
+                height: 190,
+                icon: businessIcon(item.type),
+                label: item.category,
+              ),
+              const SizedBox(height: 10),
+              _InfoCard(item: item, categories: detail.categories),
+              _MerchantCard(detail: detail),
+              const SectionHeader(title: '同店推荐', action: '更多选择'),
+              if (related.isEmpty)
+                const AppCard(child: Text('暂无更多推荐'))
+              else
+                MerchantItemCarousel(items: related, onTap: _openItem),
+            ],
+            const SizedBox(height: 80),
           ],
-          const SizedBox(height: 80),
-        ],
+        ),
       ),
       bottomNavigationBar: detail == null
           ? null
           : AppBottomActionBar(
               primaryText: '立即购买',
               onPrimary: () => _buy(context, detail),
-              secondaryText: '收藏',
-              onSecondary: () => AppScope.of(context).requireLogin(context),
+              secondaryText: _favoriteBusy
+                  ? '处理中'
+                  : (_favorited ? '取消收藏' : '收藏'),
+              onSecondary: _favoriteBusy ? null : () => _toggleFavorite(detail),
               price: item.price,
             ),
     );
@@ -103,9 +111,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       final detail = await backendRepository.fetchItem(
         int.parse(widget.item.id),
       );
+      final favorited = await _loadFavoriteState(detail.item.id);
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _favorited = favorited;
         _loading = false;
       });
     } catch (error) {
@@ -114,6 +124,57 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         _error = error;
         _loading = false;
       });
+    }
+  }
+
+  Future<bool> _loadFavoriteState(String itemId) async {
+    if (!appState.isLoggedIn) return false;
+    try {
+      final favorites = await backendRepository.fetchFavorites(
+        favoriteType: 'item',
+      );
+      return favorites.any(
+        (favorite) =>
+            favorite.favoriteType.toLowerCase() == 'item' &&
+            favorite.targetId == itemId,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _toggleFavorite(ItemDetailData detail) async {
+    if (!AppScope.of(context).requireLogin(context)) return;
+    final targetId = int.parse(detail.item.id);
+    try {
+      setState(() => _favoriteBusy = true);
+      if (_favorited) {
+        await backendRepository.deleteFavorite(
+          favoriteType: 'item',
+          targetId: targetId,
+        );
+      } else {
+        await backendRepository.saveFavorite(
+          favoriteType: 'item',
+          targetId: targetId,
+          targetName: detail.item.title,
+          subtitle: detail.item.subtitle,
+        );
+      }
+      if (!mounted) return;
+      setState(() {
+        _favorited = !_favorited;
+        _favoriteBusy = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_favorited ? '已加入收藏' : '已取消收藏')));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _favoriteBusy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('收藏操作失败：$error')));
     }
   }
 

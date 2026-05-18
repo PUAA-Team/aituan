@@ -40,29 +40,33 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     final detail = _detail;
     return Scaffold(
       appBar: AppBar(title: const Text('外卖订单详情')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_orderId == null)
-            const AppCard(child: Text('订单信息缺失，请从订单列表重新进入。'))
-          else if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _load)
-          else if (detail != null) ...[
-            _StatusCard(
-              status: detail.status,
-              desc: _desc(detail),
-              tag: _tag(detail.status),
-            ),
-            if (detail.deliveryTimeline.isNotEmpty)
-              _ProgressCard(nodes: detail.deliveryTimeline),
-            _StoreCard(detail: detail),
-            _GoodsCard(detail: detail),
-            _FeeCard(detail: detail),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_orderId == null)
+              const AppCard(child: Text('订单信息缺失，请从订单列表重新进入。'))
+            else if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else if (detail != null) ...[
+              _StatusCard(
+                status: detail.status,
+                desc: _desc(detail),
+                tag: _tag(detail.status),
+              ),
+              if (detail.deliveryTimeline.isNotEmpty)
+                _ProgressCard(nodes: detail.deliveryTimeline),
+              _StoreCard(detail: detail),
+              _GoodsCard(detail: detail),
+              _FeeCard(detail: detail),
+            ],
+            const SizedBox(height: 80),
           ],
-          const SizedBox(height: 80),
-        ],
+        ),
       ),
       bottomNavigationBar: detail == null
           ? null
@@ -157,7 +161,7 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   String _tag(OrderStatus status) => switch (status) {
     OrderStatus.unpaid => '等待付款',
     OrderStatus.pending => '配送中',
-    _ => '可评价',
+    _ => '已完成',
   };
 }
 
@@ -182,7 +186,10 @@ class _StatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(status.label, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                status.labelForKind(OrderKind.takeaway),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 6),
               Text(desc, style: Theme.of(context).textTheme.bodySmall),
             ],

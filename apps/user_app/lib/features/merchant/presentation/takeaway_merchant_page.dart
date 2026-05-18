@@ -48,31 +48,35 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
     final active = _activeCategory(groups);
     return Scaffold(
       appBar: AppBar(title: const Text('外卖点单')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TakeawayMerchantHeader(merchant: merchant),
-          TakeawayMerchantTabs(
-            value: _tab,
-            onChanged: (value) => setState(() => _tab = value),
-          ),
-          const SizedBox(height: 10),
-          if (_tab == 0)
-            TakeawayOrderPanel(
-              groups: groups,
-              activeCategory: active,
-              cart: _cart,
-              onSelected: (category) =>
-                  setState(() => _selectedCategory = category),
-              onAdd: _add,
-              onRemove: _remove,
-            )
-          else if (_tab == 1)
-            const TakeawayReviewPanel()
-          else
-            TakeawayMerchantInfoPanel(merchant: merchant),
-          const SizedBox(height: 90),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadMerchant,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            TakeawayMerchantHeader(merchant: merchant),
+            TakeawayMerchantTabs(
+              value: _tab,
+              onChanged: (value) => setState(() => _tab = value),
+            ),
+            const SizedBox(height: 10),
+            if (_tab == 0)
+              TakeawayOrderPanel(
+                groups: groups,
+                activeCategory: active,
+                cart: _cart,
+                onSelected: (category) =>
+                    setState(() => _selectedCategory = category),
+                onAdd: _add,
+                onRemove: _remove,
+              )
+            else if (_tab == 1)
+              const TakeawayReviewPanel()
+            else
+              TakeawayMerchantInfoPanel(merchant: merchant),
+            const SizedBox(height: 90),
+          ],
+        ),
       ),
       bottomNavigationBar: _tab == 0
           ? TakeawayCartBar(

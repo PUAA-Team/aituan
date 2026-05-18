@@ -34,7 +34,12 @@ INSERT INTO merchant_profile (id, merchant_no, account_id, merchant_name, contac
   (6, 'MCH006', NULL, '光影剧场', '周经理', '18810000006', 'L006', 'normal', 'approved', CURRENT_TIMESTAMP),
   (7, 'MCH007', NULL, '轻颜护理', '吴经理', '18810000007', 'L007', 'normal', 'approved', CURRENT_TIMESTAMP),
   (8, 'MCH008', NULL, '城市观景', '郑经理', '18810000008', 'L008', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (9, 'MCH009', NULL, '雅境足道', '冯经理', '18810000009', 'L009', 'normal', 'approved', CURRENT_TIMESTAMP)
+  (9, 'MCH009', NULL, '雅境足道', '冯经理', '18810000009', 'L009', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (10, 'MCH010', NULL, '米村拌饭', '刘店长', '18810000010', 'L010', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (11, 'MCH011', NULL, '琥珀烤肉', '许经理', '18810000011', 'L011', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (12, 'MCH012', NULL, '曼居影院酒店', '钱经理', '18810000012', 'L012', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (13, 'MCH013', NULL, '趣动电玩城', '马经理', '18810000013', 'L013', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (14, 'MCH014', NULL, '悦己SPA', '林经理', '18810000014', 'L014', 'normal', 'approved', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE merchant_name = VALUES(merchant_name), status = VALUES(status);
 
 INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary, address, distance_text, rating, monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url) VALUES
@@ -46,12 +51,18 @@ INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary,
   (6, 6, '光影剧场', 'movie', '热门电影演出优惠票', '时代中心 6 层', '1.5km', 4.7, 1420, 46.00, 'open', '10:00-24:00', '电影演出,优惠票,可核销', ''),
   (7, 7, '轻颜护理', 'beauty', '皮肤护理和基础医美咨询', '望京街 66 号', '3.1km', 4.8, 760, 198.00, 'open', '10:00-21:00', '丽人医美,护理,到店核销', ''),
   (8, 8, '城市观景', 'ticket', '城市地标观景门票', '中央公园南门', '4.5km', 4.6, 1680, 59.00, 'open', '09:00-20:00', '景点门票,亲子,电子券', ''),
-  (9, 9, '雅境足道', 'massage', '足疗按摩，环境安静', '湖畔路 9 号 3 层', '1.6km', 4.8, 1320, 128.00, 'open', '11:00-02:00', '洗脚,按摩,到店核销', '')
+  (9, 9, '雅境足道', 'massage', '足疗按摩，环境安静', '湖畔路 9 号 3 层', '1.6km', 4.8, 1320, 128.00, 'open', '11:00-02:00', '洗脚,按摩,到店核销', ''),
+  (10, 10, '米村拌饭', 'takeaway', '热气石锅拌饭，工作日晚餐热门', '时代里 B1 层', '1.1km', 4.7, 2410, 31.00, 'open', '10:00-21:30', '35分钟送达,拌饭,套餐', ''),
+  (11, 11, '琥珀烤肉', 'group_buy', '烤肉双人餐和家庭聚会套餐', '悦街 3 层 302', '2.2km', 4.8, 1120, 138.00, 'open', '11:00-22:30', '团购,烤肉,多人餐', ''),
+  (12, 12, '曼居影院酒店', 'hotel', '影音房和商旅房可在线购买到店核销', '新城路 16 号', '3.6km', 4.7, 690, 358.00, 'open', '全天营业', '酒店,影音房,可核销', ''),
+  (13, 13, '趣动电玩城', 'entertainment', '电玩城代币、VR 和双人畅玩套餐', '活力中心 4 层', '1.7km', 4.6, 980, 88.00, 'open', '10:00-23:00', '休闲娱乐,电玩城,朋友聚会', ''),
+  (14, 14, '悦己SPA', 'beauty', '身体护理和肩颈放松项目', '林荫路 12 号 2 层', '2.4km', 4.9, 540, 268.00, 'open', '10:00-22:00', '丽人医美,SPA,预约优先', '')
 ON DUPLICATE KEY UPDATE summary = VALUES(summary), business_type = VALUES(business_type), tag_text = VALUES(tag_text);
 
 INSERT INTO merchant_delivery_rule (id, store_id, delivery_fee, start_price, estimated_minutes, delivery_text) VALUES
   (1, 1, 4.00, 20.00, 35, '骑手模拟配送，预计 35 分钟送达'),
-  (2, 2, 3.00, 18.00, 32, '骑手模拟配送，预计 32 分钟送达')
+  (2, 2, 3.00, 18.00, 32, '骑手模拟配送，预计 32 分钟送达'),
+  (3, 10, 4.00, 22.00, 36, '骑手模拟配送，预计 36 分钟送达')
 ON DUPLICATE KEY UPDATE delivery_fee = VALUES(delivery_fee), estimated_minutes = VALUES(estimated_minutes);
 
 INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_name, business_type, category_level, sort_order, status) VALUES
@@ -74,8 +85,17 @@ INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_n
   (401, 4, 5, 'xh_escape', '密室套餐', 'entertainment', 'store_item', 1, 'normal'),
   (501, 5, 6, 'gy_ticket', '电影票', 'movie', 'store_item', 1, 'normal'),
   (601, 6, 7, 'qy_care', '基础护理', 'beauty', 'store_item', 1, 'normal'),
+  (602, 6, 14, 'yj_spa', 'SPA护理', 'beauty', 'store_item', 1, 'normal'),
+  (603, 6, 14, 'yj_relax', '肩颈放松', 'beauty', 'store_item', 2, 'normal'),
   (701, 7, 8, 'cg_ticket', '观景门票', 'ticket', 'store_item', 1, 'normal'),
-  (801, 8, 9, 'yj_foot', '足疗按摩', 'massage', 'store_item', 1, 'normal')
+  (801, 8, 9, 'yj_foot', '足疗按摩', 'massage', 'store_item', 1, 'normal'),
+  (106, 1, 10, 'mc_rice', '石锅拌饭', 'takeaway', 'store_item', 1, 'normal'),
+  (107, 1, 10, 'mc_combo', '套餐小食', 'takeaway', 'store_item', 2, 'normal'),
+  (203, 2, 11, 'hp_bbq', '烤肉套餐', 'group_buy', 'store_item', 1, 'normal'),
+  (204, 2, 11, 'hp_family', '家庭聚会', 'group_buy', 'store_item', 2, 'normal'),
+  (302, 3, 12, 'mj_room', '影音房', 'hotel', 'store_item', 1, 'normal'),
+  (303, 3, 12, 'mj_business', '商旅房', 'hotel', 'store_item', 2, 'normal'),
+  (402, 4, 13, 'qd_arcade', '电玩城套餐', 'entertainment', 'store_item', 1, 'normal')
 ON DUPLICATE KEY UPDATE category_name = VALUES(category_name), sort_order = VALUES(sort_order);
 
 INSERT INTO catalog_item (id, store_id, business_type, category_id, item_name, subtitle, price, original_price, cover_url, rule_text, sales_count, status, item_kind, tag_text, sort_order) VALUES
@@ -93,7 +113,19 @@ INSERT INTO catalog_item (id, store_id, business_type, category_id, item_name, s
   (6001, 7, 'beauty', 601, '基础皮肤护理', '清洁补水护理，到店核销', 168.00, 238.00, '', '使用前建议电话确认档期', 360, 'on_sale', 'service', '护理,补水', 1),
   (7001, 8, 'ticket', 701, '城市观景成人票', '地标观景台成人票，电子券核销', 59.00, 88.00, '', '首包不做日期票，按券码核销', 1220, 'on_sale', 'service', '门票,亲子', 1),
   (8001, 9, 'massage', 801, '经典足疗 60 分钟', '足浴放松，含肩颈舒缓', 118.00, 168.00, '', '到店出示券码核销', 1080, 'on_sale', 'service', '洗脚,放松', 1),
-  (8002, 9, 'massage', 801, '肩颈舒缓 45 分钟', '适合久坐人群，到店核销', 98.00, 138.00, '', '到店出示券码核销', 760, 'on_sale', 'service', '按摩,肩颈', 2)
+  (8002, 9, 'massage', 801, '肩颈舒缓 45 分钟', '适合久坐人群，到店核销', 98.00, 138.00, '', '到店出示券码核销', 760, 'on_sale', 'service', '按摩,肩颈', 2),
+  (1201, 10, 'takeaway', 106, '招牌石锅拌饭', '牛肉、蔬菜和溏心蛋热拌', 29.80, 36.00, '', '外卖商品不单独进入详情页', 1460, 'on_sale', 'takeaway', '热卖,拌饭', 1),
+  (1202, 10, 'takeaway', 106, '肥牛泡菜拌饭', '肥牛片搭配泡菜和海苔碎', 32.80, 39.00, '', '外卖商品不单独进入详情页', 980, 'on_sale', 'takeaway', '肥牛,微辣', 2),
+  (1203, 10, 'takeaway', 107, '双人拌饭套餐', '两份拌饭 + 小食 + 饮品', 68.00, 82.00, '', '外卖商品不单独进入详情页', 720, 'on_sale', 'takeaway', '双人,套餐', 1),
+  (1204, 10, 'takeaway', 107, '冰粉小食组合', '冰粉、薯角和饮品任选', 16.80, 22.00, '', '外卖商品不单独进入详情页', 540, 'on_sale', 'takeaway', '小食,加购', 2),
+  (2101, 11, 'group_buy', 203, '琥珀烤肉双人餐', '精选牛五花、梅花肉和蔬菜拼盘', 158.00, 218.00, '', '到店出示券码核销，周末通用', 620, 'on_sale', 'service', '烤肉,双人', 1),
+  (2102, 11, 'group_buy', 204, '烤肉家庭 4 人餐', '多肉拼盘 + 主食 + 饮品', 298.00, 388.00, '', '到店出示券码核销', 420, 'on_sale', 'service', '多人餐,聚会', 1),
+  (3101, 12, 'hotel', 302, '影音大床房券', '百寸投影影音房一晚，需预约', 339.00, 438.00, '', '入住前电话确认房态，到店核销', 360, 'on_sale', 'service', '影音房,大床', 1),
+  (3102, 12, 'hotel', 303, '商旅双床房券', '双床房一晚，含双早', 368.00, 468.00, '', '入住前电话确认房态，到店核销', 280, 'on_sale', 'service', '商旅,双床', 1),
+  (4101, 13, 'entertainment', 402, '电玩城 120 币套餐', '游戏币 120 枚，适合双人游玩', 79.00, 120.00, '', '到店前台核销后取币', 880, 'on_sale', 'service', '电玩城,双人', 1),
+  (4102, 13, 'entertainment', 402, 'VR 双人畅玩票', 'VR 项目双人体验，节假日可用', 128.00, 168.00, '', '到店核销后排队体验', 510, 'on_sale', 'service', 'VR,朋友聚会', 2),
+  (6101, 14, 'beauty', 602, '全身舒缓 SPA', '90 分钟身体护理，预约优先', 298.00, 398.00, '', '使用前建议电话预约', 260, 'on_sale', 'service', 'SPA,护理', 1),
+  (6102, 14, 'beauty', 603, '肩颈放松 45 分钟', '肩颈舒缓和热敷护理', 168.00, 238.00, '', '使用前建议电话预约', 330, 'on_sale', 'service', '肩颈,放松', 1)
 ON DUPLICATE KEY UPDATE item_name = VALUES(item_name), price = VALUES(price), tag_text = VALUES(tag_text);
 
 INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
@@ -111,7 +143,19 @@ INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
   (12, 6001, '默认', 168.00, 80, 'on_sale'),
   (13, 7001, '默认', 59.00, 300, 'on_sale'),
   (14, 8001, '默认', 118.00, 150, 'on_sale'),
-  (15, 8002, '默认', 98.00, 150, 'on_sale')
+  (15, 8002, '默认', 98.00, 150, 'on_sale'),
+  (16, 1201, '默认', 29.80, 500, 'on_sale'),
+  (17, 1202, '默认', 32.80, 500, 'on_sale'),
+  (18, 1203, '默认', 68.00, 300, 'on_sale'),
+  (19, 1204, '默认', 16.80, 300, 'on_sale'),
+  (20, 2101, '默认', 158.00, 120, 'on_sale'),
+  (21, 2102, '默认', 298.00, 80, 'on_sale'),
+  (22, 3101, '默认', 339.00, 60, 'on_sale'),
+  (23, 3102, '默认', 368.00, 60, 'on_sale'),
+  (24, 4101, '默认', 79.00, 200, 'on_sale'),
+  (25, 4102, '默认', 128.00, 120, 'on_sale'),
+  (26, 6101, '默认', 298.00, 80, 'on_sale'),
+  (27, 6102, '默认', 168.00, 80, 'on_sale')
 ON DUPLICATE KEY UPDATE price = VALUES(price), stock = VALUES(stock);
 
 INSERT INTO member_recommend_config (id, scene, business_type, store_id, item_id, sort_order, status) VALUES
@@ -123,14 +167,26 @@ INSERT INTO member_recommend_config (id, scene, business_type, store_id, item_id
   (6, 'home_recommend', 'movie', 6, 5001, 6, 'normal'),
   (7, 'home_recommend', 'beauty', 7, 6001, 7, 'normal'),
   (8, 'home_recommend', 'ticket', 8, 7001, 8, 'normal'),
-  (9, 'home_recommend', 'massage', 9, 8001, 9, 'normal')
+  (9, 'home_recommend', 'massage', 9, 8001, 9, 'normal'),
+  (10, 'home_recommend', 'takeaway', 10, 1201, 10, 'normal'),
+  (11, 'home_recommend', 'group_buy', 11, 2101, 11, 'normal'),
+  (12, 'home_recommend', 'hotel', 12, 3101, 12, 'normal'),
+  (13, 'home_recommend', 'entertainment', 13, 4101, 13, 'normal'),
+  (14, 'home_recommend', 'beauty', 14, 6101, 14, 'normal'),
+  (15, 'home_recommend', 'takeaway', 10, 1203, 15, 'normal')
 ON DUPLICATE KEY UPDATE sort_order = VALUES(sort_order), status = VALUES(status);
 
 INSERT INTO order_main (id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status, fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount, address_snapshot, voucher_summary, paid_at, completed_at, created_at) VALUES
   (1, 'AT202605170001', 1, 3, '江南小馆', 'group_buy', '江南小馆 双人餐', 'unpaid', 'unpaid', 'created', NULL, 98.00, 0.00, 0.00, 98.00, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP),
   (2, 'AT202605170002', 1, 1, '塔斯汀中国汉堡', 'takeaway', '招牌中国汉堡等2件', 'pending', 'paid', 'delivering', 'mock', 32.70, 4.00, 0.00, 36.70, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (3, 'AT202605170003', 1, 3, '江南小馆', 'group_buy', '江南小馆 3-4 人餐', 'unused', 'paid', 'voucher_unused', 'mock', 168.00, 0.00, 0.00, 168.00, NULL, '券码 88001234', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
-  (4, 'AT202605170004', 1, 9, '雅境足道', 'massage', '经典足疗 60 分钟', 'used', 'paid', 'voucher_used', 'mock', 118.00, 0.00, 0.00, 118.00, NULL, '券码 88005678', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  (4, 'AT202605170004', 1, 9, '雅境足道', 'massage', '经典足疗 60 分钟', 'used', 'paid', 'voucher_used', 'mock', 118.00, 0.00, 0.00, 118.00, NULL, '券码 88005678', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (9005, 'AT202605179005', 1, 10, '米村拌饭', 'takeaway', '肥牛泡菜拌饭等2件', 'used', 'paid', 'delivered', 'mock', 49.60, 4.00, 3.00, 50.60, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (9006, 'AT202605179006', 1, 12, '曼居影院酒店', 'hotel', '影音大床房券', 'unused', 'paid', 'voucher_unused', 'mock', 339.00, 0.00, 0.00, 339.00, NULL, '券码 88009006', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9007, 'AT202605179007', 1, 6, '光影剧场', 'movie', '电影通兑票', 'unpaid', 'unpaid', 'created', NULL, 39.90, 0.00, 0.00, 39.90, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP),
+  (9008, 'AT202605179008', 1, 14, '悦己SPA', 'beauty', '全身舒缓 SPA', 'unused', 'paid', 'voucher_unused', 'mock', 298.00, 0.00, 20.00, 278.00, NULL, '券码 88009008', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9009, 'AT202605179009', 1, 11, '琥珀烤肉', 'group_buy', '琥珀烤肉双人餐', 'used', 'paid', 'voucher_used', 'mock', 158.00, 0.00, 0.00, 158.00, NULL, '券码 88009009', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (9010, 'AT202605179010', 1, 2, '松记炸鸡饭', 'takeaway', '鸡排饭双拼套餐', 'unpaid', 'unpaid', 'created', NULL, 35.80, 3.00, 0.00, 38.80, '北京市海淀区城市广场 A 座 1208', NULL, NULL, NULL, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE display_status = VALUES(display_status), payment_status = VALUES(payment_status);
 
 INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, business_type, category_id, quantity, unit_price, total_price, cover_url, is_reviewed) VALUES
@@ -138,40 +194,75 @@ INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, busines
   (2, 2, 1001, '招牌中国汉堡', '现烤胚皮 · 酱香鸡腿排', 'takeaway', 101, 1, 18.80, 18.80, '', 0),
   (3, 2, 1004, '香辣鸡翅', '外酥里嫩，适合加购', 'takeaway', 103, 1, 13.90, 13.90, '', 0),
   (4, 3, 2001, '江南小馆 3-4 人餐', '招牌鱼头、东坡肉、时蔬组合', 'group_buy', 201, 1, 168.00, 168.00, '', 0),
-  (5, 4, 8001, '经典足疗 60 分钟', '足浴放松，含肩颈舒缓', 'massage', 801, 1, 118.00, 118.00, '', 1)
+  (5, 4, 8001, '经典足疗 60 分钟', '足浴放松，含肩颈舒缓', 'massage', 801, 1, 118.00, 118.00, '', 1),
+  (9005, 9005, 1202, '肥牛泡菜拌饭', '肥牛片搭配泡菜和海苔碎', 'takeaway', 106, 1, 32.80, 32.80, '', 1),
+  (9006, 9005, 1204, '冰粉小食组合', '冰粉、薯角和饮品任选', 'takeaway', 107, 1, 16.80, 16.80, '', 1),
+  (9007, 9006, 3101, '影音大床房券', '百寸投影影音房一晚，需预约', 'hotel', 302, 1, 339.00, 339.00, '', 0),
+  (9008, 9007, 5001, '电影通兑票', '2D/3D 普通厅通兑，特殊厅补差', 'movie', 501, 1, 39.90, 39.90, '', 0),
+  (9009, 9008, 6101, '全身舒缓 SPA', '90 分钟身体护理，预约优先', 'beauty', 602, 1, 298.00, 298.00, '', 0),
+  (9010, 9009, 2101, '琥珀烤肉双人餐', '精选牛五花、梅花肉和蔬菜拼盘', 'group_buy', 203, 1, 158.00, 158.00, '', 1),
+  (9011, 9010, 1102, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 'takeaway', 105, 1, 35.80, 35.80, '', 0)
 ON DUPLICATE KEY UPDATE total_price = VALUES(total_price), is_reviewed = VALUES(is_reviewed);
 
 INSERT INTO order_payment_record (id, order_id, payment_no, payment_method, amount, status, provider_trade_no, paid_at) VALUES
   (1, 2, 'PAY202605170002', 'mock', 36.70, 'paid', 'MOCK202605170002', CURRENT_TIMESTAMP),
   (2, 3, 'PAY202605170003', 'mock', 168.00, 'paid', 'MOCK202605170003', CURRENT_TIMESTAMP),
-  (3, 4, 'PAY202605170004', 'mock', 118.00, 'paid', 'MOCK202605170004', CURRENT_TIMESTAMP)
+  (3, 4, 'PAY202605170004', 'mock', 118.00, 'paid', 'MOCK202605170004', CURRENT_TIMESTAMP),
+  (9005, 9005, 'PAY202605179005', 'mock', 50.60, 'paid', 'MOCK202605179005', CURRENT_TIMESTAMP),
+  (9006, 9006, 'PAY202605179006', 'mock', 339.00, 'paid', 'MOCK202605179006', CURRENT_TIMESTAMP),
+  (9008, 9008, 'PAY202605179008', 'mock', 278.00, 'paid', 'MOCK202605179008', CURRENT_TIMESTAMP),
+  (9009, 9009, 'PAY202605179009', 'mock', 158.00, 'paid', 'MOCK202605179009', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount);
 
 INSERT INTO order_voucher (id, order_id, voucher_code, qr_payload, status, effective_to, verified_at, verified_by) VALUES
   (1, 3, '88001234', 'AITUAN:VOUCHER:88001234', 'unused', '2026-12-31 23:59:59', NULL, NULL),
-  (2, 4, '88005678', 'AITUAN:VOUCHER:88005678', 'used', '2026-12-31 23:59:59', CURRENT_TIMESTAMP, 2)
+  (2, 4, '88005678', 'AITUAN:VOUCHER:88005678', 'used', '2026-12-31 23:59:59', CURRENT_TIMESTAMP, 2),
+  (9006, 9006, '88009006', 'AITUAN:VOUCHER:88009006', 'unused', '2026-12-31 23:59:59', NULL, NULL),
+  (9008, 9008, '88009008', 'AITUAN:VOUCHER:88009008', 'unused', '2026-12-31 23:59:59', NULL, NULL),
+  (9009, 9009, '88009009', 'AITUAN:VOUCHER:88009009', 'used', '2026-12-31 23:59:59', CURRENT_TIMESTAMP, 2)
 ON DUPLICATE KEY UPDATE status = VALUES(status), qr_payload = VALUES(qr_payload);
 
 INSERT INTO delivery_task (id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at) VALUES
-  (1, 2, 'delivering', '骑手正在配送', 18, CURRENT_TIMESTAMP)
+  (1, 2, 'delivering', '骑手正在配送', 18, CURRENT_TIMESTAMP),
+  (9005, 9005, 'delivered', '订单已送达', 0, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE current_stage = VALUES(current_stage), current_stage_text = VALUES(current_stage_text);
 
 INSERT INTO delivery_track_node (id, delivery_task_id, node_order, node_code, node_text, reached_at) VALUES
   (1, 1, 1, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
   (2, 1, 2, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
   (3, 1, 3, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
-  (4, 1, 4, 'delivered', '订单已送达', NULL)
+  (4, 1, 4, 'delivered', '订单已送达', NULL),
+  (9005, 9005, 1, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (9006, 9005, 2, 'preparing', '商家已完成备餐', CURRENT_TIMESTAMP),
+  (9007, 9005, 3, 'delivering', '骑手配送中', CURRENT_TIMESTAMP),
+  (9008, 9005, 4, 'delivered', '订单已送达', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE reached_at = VALUES(reached_at);
 
 INSERT INTO review_record (id, order_id, store_id, user_id, rating, content, labels, status, replied) VALUES
-  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'published', 0)
+  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'published', 0),
+  (9005, 9005, 10, 1, 5, '拌饭送到还是热的，配菜足，适合工作日晚餐。', '送达快,份量足', 'published', 0),
+  (9009, 9009, 11, 1, 5, '双人餐肉量不错，核销顺利，店员会主动确认券码。', '核销快,适合聚会', 'published', 0)
 ON DUPLICATE KEY UPDATE content = VALUES(content), rating = VALUES(rating);
 
 INSERT INTO support_station_message (id, user_id, message_type, title, content, badge_text, read_status, related_order_id) VALUES
   (1, 1, 'order', '外卖订单配送中', '塔斯汀中国汉堡订单正在配送，请留意电话。', '配送', 'unread', 2),
   (2, 1, 'order', '团购券待使用', '江南小馆 3-4 人餐券码已生成，可到店核销。', '券码', 'unread', 3),
-  (3, 1, 'system', '欢迎使用爱团', '本地生活服务、外卖、团购和到店核销能力已准备好。', '系统', 'read', NULL)
+  (3, 1, 'system', '欢迎使用爱团', '本地生活服务、外卖、团购和到店核销能力已准备好。', '系统', 'read', NULL),
+  (9005, 1, 'order', '外卖订单已完成', '米村拌饭订单已送达，欢迎对本次配送进行评价。', '完成', 'read', 9005),
+  (9006, 1, 'order', '酒店券待使用', '曼居影院酒店影音大床房券码已生成，请入住前电话确认房态。', '酒店', 'unread', 9006),
+  (9007, 1, 'order', '电影票待付款', '光影剧场电影通兑票订单尚未支付，完成支付后可获得券码。', '待付款', 'unread', 9007),
+  (9008, 1, 'order', 'SPA券待预约', '悦己SPA券码已生成，建议提前电话预约到店时间。', '预约', 'read', 9008),
+  (9009, 1, 'promotion', '周末到店精选', '烤肉、酒店、电玩城等到店套餐已补充，可在各模块页查看。', '精选', 'unread', NULL)
 ON DUPLICATE KEY UPDATE content = VALUES(content), read_status = VALUES(read_status);
+
+INSERT INTO user_favorite (id, user_id, favorite_type, target_id, target_name, cover_url, subtitle) VALUES
+  (9001, 1, 'store', 1, '塔斯汀中国汉堡', '', '现烤汉堡，附近高复购外卖'),
+  (9002, 1, 'item', 2001, '江南小馆 3-4 人餐', '', '招牌鱼头、东坡肉、时蔬组合'),
+  (9003, 1, 'store', 9, '雅境足道', '', '足疗按摩，环境安静'),
+  (9004, 1, 'item', 8001, '经典足疗 60 分钟', '', '足浴放松，含肩颈舒缓'),
+  (9005, 1, 'store', 10, '米村拌饭', '', '热气石锅拌饭，工作日晚餐热门'),
+  (9006, 1, 'item', 6101, '全身舒缓 SPA', '', '90 分钟身体护理，预约优先')
+ON DUPLICATE KEY UPDATE target_name = VALUES(target_name), subtitle = VALUES(subtitle), is_deleted = 0;
 
 INSERT INTO sys_config (id, config_key, config_value, remark) VALUES
   (1, 'mock_payment_enabled', 'true', '首包只开放模拟支付'),

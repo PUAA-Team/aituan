@@ -71,36 +71,40 @@ class _HomePageState extends State<HomePage> {
     final data = _data!;
     final items = data.recommendations.take(_visible).toList();
     return SafeArea(
-      child: ListView(
-        controller: _controller,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        children: [
-          const HomeHeroHeader(),
-          HomeModuleGrid(modules: data.modules),
-          HomeRecommendSection(
-            items: items,
-            onTap: (item) => _openItem(context, item),
-          ),
-          if (_visible >= data.recommendations.length &&
-              data.recommendations.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 10),
-              child: Text(
-                '已展示更多附近好店',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+      child: RefreshIndicator(
+        onRefresh: _loadHome,
+        child: ListView(
+          controller: _controller,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          children: [
+            const HomeHeroHeader(),
+            HomeModuleGrid(modules: data.modules),
+            HomeRecommendSection(
+              items: items,
+              onTap: (item) => _openItem(context, item),
             ),
-          if (data.recommendations.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                '暂无推荐内容',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
+            if (_visible >= data.recommendations.length &&
+                data.recommendations.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 10),
+                child: Text(
+                  '已展示更多附近好店',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
-            ),
-        ],
+            if (data.recommendations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '暂无推荐内容',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

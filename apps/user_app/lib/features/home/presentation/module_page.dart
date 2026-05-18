@@ -71,27 +71,37 @@ class _ModulePageState extends State<ModulePage> {
     final itemsByStore = _itemsByStore(data.featuredItems);
     return Scaffold(
       appBar: AppBar(title: Text(widget.module.title)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          AppSearchBox(
-            hint: '搜索${widget.module.title}商家和服务',
-            onTap: () => Navigator.pushNamed(context, Routes.search),
-          ),
-          const SizedBox(height: 6),
-          const SectionHeader(title: '热门推荐', action: '爱团优选'),
-          _HotRow(items: data.featuredItems.take(3).toList()),
-          SectionHeader(title: '${widget.module.title}精选', action: '附近好店'),
-          for (final merchant in data.merchants)
-            MerchantAggregateCard(
-              merchant: _decorateMerchant(merchant, itemsByStore[merchant.id]),
-              onMerchantTap: () => _openMerchant(
-                context,
-                _decorateMerchant(merchant, itemsByStore[merchant.id]),
-              ),
-              onItemTap: (item) => _openItem(context, item),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            AppSearchBox(
+              hint: '搜索${widget.module.title}商家和服务',
+              onTap: () => Navigator.pushNamed(context, Routes.search),
             ),
-        ],
+            const SizedBox(height: 6),
+            const SectionHeader(title: '热门推荐', action: '爱团优选'),
+            _HotRow(
+              items: data.featuredItems.take(3).toList(),
+              onTap: (item) => _openItem(context, item),
+            ),
+            SectionHeader(title: '${widget.module.title}精选', action: '附近好店'),
+            for (final merchant in data.merchants)
+              MerchantAggregateCard(
+                merchant: _decorateMerchant(
+                  merchant,
+                  itemsByStore[merchant.id],
+                ),
+                onMerchantTap: () => _openMerchant(
+                  context,
+                  _decorateMerchant(merchant, itemsByStore[merchant.id]),
+                ),
+                onItemTap: (item) => _openItem(context, item),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -156,9 +166,10 @@ class _ModulePageState extends State<ModulePage> {
 }
 
 class _HotRow extends StatelessWidget {
-  const _HotRow({required this.items});
+  const _HotRow({required this.items, required this.onTap});
 
   final List<ItemModel> items;
+  final ValueChanged<ItemModel> onTap;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -167,7 +178,7 @@ class _HotRow extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: i == items.length - 1 ? 0 : 8),
-            child: _HotCard(item: items[i]),
+            child: _HotCard(item: items[i], onTap: () => onTap(items[i])),
           ),
         ),
     ],
@@ -175,12 +186,14 @@ class _HotRow extends StatelessWidget {
 }
 
 class _HotCard extends StatelessWidget {
-  const _HotCard({required this.item});
+  const _HotCard({required this.item, required this.onTap});
 
   final ItemModel item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
     margin: EdgeInsets.zero,
     padding: const EdgeInsets.all(8),
     child: Column(

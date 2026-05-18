@@ -104,6 +104,76 @@ class ServiceCategoryPanel extends StatelessWidget {
   );
 }
 
+class ServiceReviewPanel extends StatelessWidget {
+  const ServiceReviewPanel({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Column(
+    children: [
+      AppCard(
+        child: Text(
+          '4.7 分 · 核销顺利 · 环境稳定 · 服务态度好',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      AppCard(
+        child: Text(
+          '预约后到店很顺畅，服务项目说明清楚，券码核销也很快。',
+          style: TextStyle(color: AppColors.textSub),
+        ),
+      ),
+      AppCard(
+        child: Text(
+          '门店位置好找，适合周末和朋友一起到店体验。',
+          style: TextStyle(color: AppColors.textSub),
+        ),
+      ),
+    ],
+  );
+}
+
+class ServiceMerchantInfoPanel extends StatelessWidget {
+  const ServiceMerchantInfoPanel({super.key, required this.merchant});
+
+  final MerchantModel merchant;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ServiceInfoLine(icon: Icons.place_outlined, text: merchant.address),
+        const _ServiceInfoLine(icon: Icons.schedule, text: '营业时间 10:00-22:00'),
+        const _ServiceInfoLine(
+          icon: Icons.confirmation_number_outlined,
+          text: '购买后到店出示券码或二维码核销，部分项目建议提前预约',
+        ),
+        const SizedBox(height: 8),
+        Text(merchant.summary, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    ),
+  );
+}
+
+class _ServiceInfoLine extends StatelessWidget {
+  const _ServiceInfoLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.textSub),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text)),
+      ],
+    ),
+  );
+}
+
 class _ServiceItem extends StatelessWidget {
   const _ServiceItem({required this.item});
 

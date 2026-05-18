@@ -27,13 +27,16 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
-    final profile = _profile;
-    final name = profile?.nickname ?? state.displayName;
+    final profile = state.isLoggedIn ? _profile : null;
+    final name = state.isLoggedIn
+        ? (profile?.nickname ?? state.displayName)
+        : '游客';
     final member = profile?.memberLevelName ?? state.memberLevelName;
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _loadProfile,
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           children: [
             AppCard(
@@ -53,20 +56,25 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _memberLine(profile, member),
+                          _memberLine(profile, member, state.isLoggedIn),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _contactLine(profile, state),
+                          _contactLine(profile, state, state.isLoggedIn),
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ],
                     ),
                   ),
                   TextButton(
-                    onPressed: () => _logout(state),
-                    child: const Text('退出'),
+                    onPressed: state.isLoggedIn
+                        ? () => _logout(state)
+                        : () async {
+                            await Navigator.pushNamed(context, Routes.login);
+                            if (mounted) _loadProfile();
+                          },
+                    child: Text(state.isLoggedIn ? '退出' : '登录'),
                   ),
                 ],
               ),
@@ -104,6 +112,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadProfile() async {
+    if (!appState.isLoggedIn) {
+      setState(() {
+        _profile = null;
+        _error = null;
+        _loading = false;
+      });
+      return;
+    }
     try {
       setState(() {
         _loading = true;
@@ -136,14 +152,22 @@ class _ProfilePageState extends State<ProfilePage> {
       await backendRepository.logout();
     } catch (_) {}
     state.logout();
+    if (!mounted) return;
+    setState(() {
+      _profile = null;
+      _error = null;
+      _loading = false;
+    });
   }
 
-  String _memberLine(ProfileData? profile, String member) {
+  String _memberLine(ProfileData? profile, String member, bool loggedIn) {
+    if (!loggedIn) return '登录后查看会员权益和订单提醒';
     if (profile == null) return '$member · 爱团本地生活会员';
     return '$member · 成长值 ${profile.growthValue}';
   }
 
-  String _contactLine(ProfileData? profile, AppState state) {
+  String _contactLine(ProfileData? profile, AppState state, bool loggedIn) {
+    if (!loggedIn) return '登录后可同步手机号、邮箱和会员信息';
     final phone = profile?.phone ?? state.phone;
     final email = profile?.email ?? state.email;
     if (phone != null && email != null) return '$phone · $email';

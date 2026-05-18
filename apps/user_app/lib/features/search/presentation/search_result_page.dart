@@ -31,22 +31,26 @@ class _SearchResultPageState extends State<SearchResultPage> {
     appBar: AppBar(title: const Text('搜索结果')),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
-        : ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              SearchResultBox(keyword: widget.keyword),
-              const SizedBox(height: 10),
-              const SearchCategoryRow(),
-              const SizedBox(height: 8),
-              const SearchFilterRow(),
-              const SizedBox(height: 12),
-              if (_error != null)
-                _ErrorHint(message: _error.toString(), onRetry: _load),
-              if (_usingFallback) const _EmptyResultHint(),
-              for (final merchant in _merchants)
-                MerchantResultCard(merchant: merchant),
-              if (_merchants.isEmpty && _error == null) const _NoResult(),
-            ],
+        : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                SearchResultBox(keyword: widget.keyword),
+                const SizedBox(height: 10),
+                const SearchCategoryRow(),
+                const SizedBox(height: 8),
+                const SearchFilterRow(),
+                const SizedBox(height: 12),
+                if (_error != null)
+                  _ErrorHint(message: _error.toString(), onRetry: _load),
+                if (_usingFallback) const _EmptyResultHint(),
+                for (final merchant in _merchants)
+                  MerchantResultCard(merchant: merchant, onReturned: _load),
+                if (_merchants.isEmpty && _error == null) const _NoResult(),
+              ],
+            ),
           ),
   );
 
