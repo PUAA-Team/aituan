@@ -1,0 +1,221 @@
+CREATE TABLE IF NOT EXISTS cart (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_cart_user_store (user_id, store_id)
+);
+
+CREATE TABLE IF NOT EXISTS cart_item (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  cart_id BIGINT NOT NULL,
+  item_id BIGINT NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_cart_item (cart_id, item_id)
+);
+
+CREATE TABLE IF NOT EXISTS order_main (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_no VARCHAR(40) NOT NULL,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT NOT NULL,
+  store_name VARCHAR(120) NOT NULL,
+  order_type VARCHAR(40) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  display_status VARCHAR(30) NOT NULL,
+  payment_status VARCHAR(30) NOT NULL,
+  fulfillment_status VARCHAR(40) NOT NULL DEFAULT 'created',
+  payment_method VARCHAR(30),
+  amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0,
+  discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  payable_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  address_snapshot VARCHAR(500),
+  voucher_summary VARCHAR(255),
+  remark VARCHAR(255),
+  idempotency_key VARCHAR(120),
+  paid_at DATETIME,
+  completed_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_order_no (order_no),
+  UNIQUE KEY uk_order_idempotency (user_id, idempotency_key)
+);
+
+CREATE TABLE IF NOT EXISTS order_item (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  item_id BIGINT NOT NULL,
+  item_name VARCHAR(120) NOT NULL,
+  item_subtitle VARCHAR(255),
+  business_type VARCHAR(40) NOT NULL,
+  category_id BIGINT,
+  quantity INT NOT NULL DEFAULT 1,
+  unit_price DECIMAL(10,2) NOT NULL,
+  total_price DECIMAL(10,2) NOT NULL,
+  cover_url VARCHAR(255),
+  is_reviewed TINYINT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS order_payment_record (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  payment_no VARCHAR(40) NOT NULL,
+  payment_method VARCHAR(30) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status VARCHAR(30) NOT NULL,
+  provider_trade_no VARCHAR(120),
+  paid_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_payment_no (payment_no)
+);
+
+CREATE TABLE IF NOT EXISTS order_voucher (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  voucher_code VARCHAR(40) NOT NULL,
+  qr_payload VARCHAR(255) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'unused',
+  effective_from DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  effective_to DATETIME,
+  verified_at DATETIME,
+  verified_by BIGINT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_voucher_code (voucher_code)
+);
+
+CREATE TABLE IF NOT EXISTS delivery_task (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  current_stage VARCHAR(40) NOT NULL DEFAULT 'accepted',
+  current_stage_text VARCHAR(120) NOT NULL DEFAULT '商家已接单',
+  eta_minutes INT NOT NULL DEFAULT 35,
+  next_tick_at DATETIME,
+  completed_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_delivery_task_order (order_id)
+);
+
+CREATE TABLE IF NOT EXISTS delivery_track_node (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  delivery_task_id BIGINT NOT NULL,
+  node_order INT NOT NULL,
+  node_code VARCHAR(40) NOT NULL,
+  node_text VARCHAR(120) NOT NULL,
+  reached_at DATETIME,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_delivery_node (delivery_task_id, node_code)
+);
+
+CREATE TABLE IF NOT EXISTS order_state_log (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  from_status VARCHAR(40),
+  to_status VARCHAR(40) NOT NULL,
+  action_type VARCHAR(40) NOT NULL,
+  operator_type VARCHAR(40) NOT NULL,
+  operator_id BIGINT,
+  remark VARCHAR(255),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS review_record (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  store_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  rating INT NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  labels VARCHAR(255),
+  status VARCHAR(30) NOT NULL DEFAULT 'published',
+  replied TINYINT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_review_order (order_id)
+);
+
+CREATE TABLE IF NOT EXISTS review_reply (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  review_id BIGINT NOT NULL,
+  merchant_id BIGINT NOT NULL,
+  reply_content VARCHAR(500) NOT NULL,
+  replied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS support_station_message (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  message_type VARCHAR(40) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  badge_text VARCHAR(40),
+  read_status VARCHAR(20) NOT NULL DEFAULT 'unread',
+  related_order_id BIGINT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS sys_config (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  config_key VARCHAR(80) NOT NULL,
+  config_value VARCHAR(500) NOT NULL,
+  remark VARCHAR(255),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_config_key (config_key)
+);
+
+CREATE TABLE IF NOT EXISTS sys_dict (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  dict_type VARCHAR(80) NOT NULL,
+  dict_key VARCHAR(80) NOT NULL,
+  dict_value VARCHAR(120) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'normal',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_dict (dict_type, dict_key)
+);
+
+CREATE TABLE IF NOT EXISTS sys_request_log (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  request_id VARCHAR(80) NOT NULL,
+  path VARCHAR(255) NOT NULL,
+  method VARCHAR(20) NOT NULL,
+  status_code INT,
+  cost_ms INT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sys_audit_log (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  actor_type VARCHAR(40) NOT NULL,
+  actor_id BIGINT,
+  action_type VARCHAR(80) NOT NULL,
+  target_type VARCHAR(80),
+  target_id BIGINT,
+  detail VARCHAR(500),
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

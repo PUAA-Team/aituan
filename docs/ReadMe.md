@@ -24,6 +24,8 @@
 
 `./docs/爱团本地生活服务综合平台-软件需求规格说明书(2).markdown`
 
+`./docs/2组-软件概要设计说明书.md`
+
 `./docs/stage1/代码架构设计.md`
 
 `./docs/stage1/数据库表设计.md`
@@ -49,3 +51,17 @@
 `./docs/stage3/APP打包说明.md`
 
 `./docs/stage3/APP前端真实化迭代需求.md`
+
+### 4. Stage 4 后端规划文档
+
+`./docs/stage4/后端实施计划.md`
+
+`./docs/stage4/后端部署与联调说明.md`
+
+`./docs/stage4/联调问题修复清单.md`
+
+### 5. 后续计划与长期待办
+
+`./docs/后续阶段五人模块分工计划.md`
+
+`./docs/后续功能待办.md`

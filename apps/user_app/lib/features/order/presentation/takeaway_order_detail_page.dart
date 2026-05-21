@@ -9,85 +9,159 @@ import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
-import '../../home/data/mock_data.dart';
+import '../../home/data/backend_app_repository.dart';
 
-class TakeawayOrderDetailPage extends StatelessWidget {
-  const TakeawayOrderDetailPage({super.key, required this.status});
+class TakeawayOrderDetailPage extends StatefulWidget {
+  const TakeawayOrderDetailPage({super.key, required this.args});
 
-  final OrderStatus status;
+  final OrderDetailArgs args;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('外卖订单详情')),
-    body: ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _StatusCard(status: status, desc: _desc, tag: _tag),
-        if (status == OrderStatus.pending) const _ProgressCard(),
-        _storeCard(),
-        _goodsCard(),
-        const AppCard(
-          child: Column(
-            children: [
-              _Kv('商品金额', '￥43.7'),
-              _Kv('配送费', '￥4.0'),
-              _Kv('优惠', '-￥8.0'),
-              Divider(),
-              _Kv('实付', '￥39.7', strong: true),
+  State<TakeawayOrderDetailPage> createState() =>
+      _TakeawayOrderDetailPageState();
+}
+
+class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
+  OrderDetailData? _detail;
+  Object? _error;
+  bool _loading = true;
+  bool _paying = false;
+
+  String? get _orderId => widget.args.orderId;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = _detail;
+    return Scaffold(
+      appBar: AppBar(title: const Text('外卖订单详情')),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (_orderId == null)
+              const AppCard(child: Text('订单信息缺失，请从订单列表重新进入。'))
+            else if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else if (detail != null) ...[
+              _StatusCard(
+                status: detail.status,
+                desc: _desc(detail),
+                tag: _tag(detail.status),
+              ),
+              if (detail.deliveryTimeline.isNotEmpty)
+                _ProgressCard(nodes: detail.deliveryTimeline),
+              _StoreCard(detail: detail),
+              _GoodsCard(detail: detail),
+              _FeeCard(detail: detail),
             ],
-          ),
+            const SizedBox(height: 80),
+          ],
         ),
-        const SizedBox(height: 80),
-      ],
-    ),
-    bottomNavigationBar: AppBottomActionBar(
-      primaryText: _primary,
-      onPrimary: _primaryAction(context),
-      secondaryText: '联系客服',
-      onSecondary: () {},
-    ),
-  );
+      ),
+      bottomNavigationBar: detail == null
+          ? null
+          : AppBottomActionBar(
+              primaryText: _primaryText(detail.status),
+              onPrimary: _paying ? null : () => _primaryAction(detail),
+              secondaryText: '刷新状态',
+              onSecondary: _load,
+            ),
+    );
+  }
 
-  String get _desc => switch (status) {
-    OrderStatus.unpaid => '订单已创建，请在 15 分钟内完成支付。',
-    OrderStatus.pending => '商家已接单，正在准备餐品，预计 35 分钟送达。',
-    _ => '订单已完成，可对本次服务进行评价。',
-  };
+  Future<void> _load() async {
+    final orderId = _orderId;
+    if (orderId == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    try {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+      final detail = await backendRepository.fetchOrderDetail(orderId);
+      if (!mounted) return;
+      setState(() {
+        _detail = detail;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _loading = false;
+      });
+    }
+  }
 
-  String get _tag => switch (status) {
-    OrderStatus.unpaid => '等待付款',
-    OrderStatus.pending => '配送中',
-    _ => '可评价',
-  };
+  Future<void> _pay(OrderDetailData detail) async {
+    try {
+      setState(() => _paying = true);
+      final paid = await backendRepository.payOrder(detail.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = paid;
+        _paying = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _paying = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('支付失败：$error')));
+    }
+  }
 
-  String get _primary => switch (status) {
+  void _primaryAction(OrderDetailData detail) {
+    if (detail.status == OrderStatus.unpaid) {
+      _pay(detail);
+      return;
+    }
+    if (detail.status == OrderStatus.used) {
+      Navigator.pushNamed(
+        context,
+        Routes.reviewPublish,
+        arguments: ReviewArgs(title: detail.title, orderId: detail.id),
+      );
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      Routes.searchResult,
+      arguments: SearchArgs(detail.storeName),
+    );
+  }
+
+  String _primaryText(OrderStatus status) => switch (status) {
+    OrderStatus.unpaid => _paying ? '支付中' : '模拟支付',
     OrderStatus.used => '去评价',
-    OrderStatus.unpaid => '模拟支付',
     _ => '查看商家',
   };
 
-  VoidCallback _primaryAction(BuildContext context) => switch (status) {
-    OrderStatus.used => () => Navigator.pushNamed(
-      context,
-      Routes.reviewPublish,
-    ),
-    OrderStatus.unpaid => () => Navigator.pushNamed(
-      context,
-      Routes.checkout,
-      arguments: const CheckoutArgs(
-        kind: OrderKind.takeaway,
-        title: '塔斯汀中国汉堡外卖',
-        amount: 39.7,
-      ),
-    ),
-    _ => () {
-      final merchant = merchantById('m1');
-      Navigator.pushNamed(
-        context,
-        Routes.merchantDetail,
-        arguments: MerchantArgs(type: merchant.type, merchant: merchant),
-      );
-    },
+  String _desc(OrderDetailData detail) => switch (detail.status) {
+    OrderStatus.unpaid => '订单已创建，请尽快完成支付。',
+    OrderStatus.pending =>
+      detail.fulfillmentStatus.isEmpty
+          ? '商家已接单，订单正在履约中。'
+          : '当前履约状态：${detail.fulfillmentStatus}',
+    _ => '订单已完成，可对本次服务进行评价。',
+  };
+
+  String _tag(OrderStatus status) => switch (status) {
+    OrderStatus.unpaid => '等待付款',
+    OrderStatus.pending => '配送中',
+    _ => '已完成',
   };
 }
 
@@ -112,7 +186,10 @@ class _StatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(status.label, style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                status.labelForKind(OrderKind.takeaway),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 6),
               Text(desc, style: Theme.of(context).textTheme.bodySmall),
             ],
@@ -125,51 +202,116 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard();
+  const _ProgressCard({required this.nodes});
+
+  final List<TimelineNodeData> nodes;
 
   @override
-  Widget build(BuildContext context) => const AppCard(
+  Widget build(BuildContext context) => AppCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           '配送履约',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
-        SizedBox(height: 8),
-        Text('18:12 商家已接单', style: TextStyle(color: AppColors.textMain)),
-        SizedBox(height: 4),
-        Text('18:18 备餐中', style: TextStyle(color: AppColors.textMain)),
-        SizedBox(height: 4),
-        Text('预计 18:45 送达', style: TextStyle(color: AppColors.textSub)),
+        const SizedBox(height: 8),
+        for (final node in nodes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              _timelineText(node),
+              style: const TextStyle(color: AppColors.textMain),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  String _timelineText(TimelineNodeData node) {
+    final time = node.reachedAt == null
+        ? ''
+        : '${node.reachedAt!.hour.toString().padLeft(2, '0')}:${node.reachedAt!.minute.toString().padLeft(2, '0')} ';
+    return '$time${node.text}';
+  }
+}
+
+class _StoreCard extends StatelessWidget {
+  const _StoreCard({required this.detail});
+
+  final OrderDetailData detail;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: () => Navigator.pushNamed(
+      context,
+      Routes.searchResult,
+      arguments: SearchArgs(detail.storeName),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.storefront, color: AppColors.brand),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            detail.storeName,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        const Text('进店'),
       ],
     ),
   );
 }
 
-Widget _storeCard() => const AppCard(
-  child: Row(
-    children: [
-      Icon(Icons.storefront, color: AppColors.brand),
-      SizedBox(width: 8),
-      Expanded(
-        child: Text('塔斯汀中国汉堡', style: TextStyle(fontWeight: FontWeight.w700)),
-      ),
-      Text('进店'),
-    ],
-  ),
-);
+class _GoodsCard extends StatelessWidget {
+  const _GoodsCard({required this.detail});
 
-Widget _goodsCard() => const AppCard(
-  child: Row(
-    children: [
-      MockThumb(size: 72),
-      SizedBox(width: 10),
-      Expanded(child: Text('招牌中国汉堡 + 单人随心配')),
-      PriceText(39.7, size: 18),
-    ],
-  ),
-);
+  final OrderDetailData detail;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      children: [
+        for (final item in detail.items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                MockThumb(size: 72, label: item.categoryName),
+                const SizedBox(width: 10),
+                Expanded(child: Text('${item.itemName} ×${item.quantity}')),
+                PriceText(item.totalPrice, size: 18),
+              ],
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _FeeCard extends StatelessWidget {
+  const _FeeCard({required this.detail});
+
+  final OrderDetailData detail;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      children: [
+        _Kv('商品金额', _money(detail.amount)),
+        if (detail.deliveryFee > 0) _Kv('配送费', _money(detail.deliveryFee)),
+        if (detail.discountAmount > 0)
+          _Kv('优惠', '-${_money(detail.discountAmount)}'),
+        const Divider(),
+        _Kv('实付', _money(detail.payableAmount), strong: true),
+      ],
+    ),
+  );
+
+  String _money(double value) =>
+      '￥${value % 1 == 0 ? value.toInt() : value.toStringAsFixed(1)}';
+}
 
 class _Kv extends StatelessWidget {
   const _Kv(this.k, this.v, {this.strong = false});
@@ -192,6 +334,27 @@ class _Kv extends StatelessWidget {
             color: strong ? AppColors.brand : AppColors.textMain,
           ),
         ),
+      ],
+    ),
+  );
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('订单详情加载失败', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 6),
+        Text(message, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 10),
+        FilledButton(onPressed: onRetry, child: const Text('重试')),
       ],
     ),
   );

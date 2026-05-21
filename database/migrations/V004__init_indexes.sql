@@ -1,0 +1,10 @@
+CREATE INDEX idx_merchant_store_type_status ON merchant_store (business_type, status, is_deleted);
+CREATE INDEX idx_catalog_item_store_type ON catalog_item (store_id, business_type, status, is_deleted);
+CREATE INDEX idx_catalog_item_category ON catalog_item (category_id, sort_order);
+CREATE INDEX idx_catalog_category_store ON catalog_category (store_id, business_type, category_level, sort_order);
+CREATE INDEX idx_member_recommend_scene ON member_recommend_config (scene, business_type, sort_order);
+CREATE INDEX idx_order_main_user_status ON order_main (user_id, display_status, created_at);
+CREATE INDEX idx_order_item_order ON order_item (order_id);
+CREATE INDEX idx_delivery_task_tick ON delivery_task (current_stage, next_tick_at, is_deleted);
+CREATE INDEX idx_message_user_read ON support_station_message (user_id, read_status, created_at);
+CREATE INDEX idx_review_store ON review_record (store_id, status, created_at);

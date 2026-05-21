@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_search_box.dart';
 import '../../../core/widgets/brand_tag.dart';
-import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/merchant_model.dart';
 import '../../merchant/presentation/merchant_category_widgets.dart';
 
@@ -75,28 +74,37 @@ class SearchFilterRow extends StatelessWidget {
 }
 
 class MerchantResultCard extends StatelessWidget {
-  const MerchantResultCard({super.key, required this.merchant});
+  const MerchantResultCard({
+    super.key,
+    required this.merchant,
+    this.onReturned,
+  });
 
   final MerchantModel merchant;
+  final Future<void> Function()? onReturned;
 
   @override
   Widget build(BuildContext context) => MerchantAggregateCard(
     merchant: merchant,
     onMerchantTap: () => _openMerchant(context),
-    onItemTap: (item) => item.type.isTakeaway
-        ? _openMerchant(context)
-        : Navigator.pushNamed(
-            context,
-            Routes.itemDetail,
-            arguments: ItemArgs(item),
-          ),
+    onItemTap: (item) async {
+      await Navigator.pushNamed(
+        context,
+        Routes.itemDetail,
+        arguments: ItemArgs(item),
+      );
+      await onReturned?.call();
+    },
   );
 
-  void _openMerchant(BuildContext context) => Navigator.pushNamed(
-    context,
-    Routes.merchantDetail,
-    arguments: MerchantArgs(type: merchant.type, merchant: merchant),
-  );
+  Future<void> _openMerchant(BuildContext context) async {
+    await Navigator.pushNamed(
+      context,
+      Routes.merchantDetail,
+      arguments: MerchantArgs(type: merchant.type, merchant: merchant),
+    );
+    await onReturned?.call();
+  }
 }
 
 class _FilterChip extends StatelessWidget {

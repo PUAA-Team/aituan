@@ -5,10 +5,11 @@ import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../shared/models/module_entry.dart';
-import '../../data/mock_data.dart';
 
 class HomeModuleGrid extends StatelessWidget {
-  const HomeModuleGrid({super.key});
+  const HomeModuleGrid({super.key, required this.modules});
+
+  final List<ModuleEntry> modules;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -86,7 +87,7 @@ IconData _icon(String code) => switch (code) {
   'massage' => Icons.spa,
   'beauty' => Icons.face_retouching_natural,
   'ticket' => Icons.confirmation_number,
-  'entertainment' => Icons.sports_esports,
+  'fun' || 'entertainment' => Icons.sports_esports,
   _ => Icons.local_activity,
 };
 

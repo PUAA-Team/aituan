@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:aituan_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    baseline-on-migrate: true
+
+logging:
+  level:
+    com.aituan: WARN

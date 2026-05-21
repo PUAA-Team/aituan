@@ -6,7 +6,7 @@ import '../../../core/constants/route_constants.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
-import '../../home/data/mock_data.dart';
+import '../../home/data/backend_app_repository.dart';
 import 'merchant_category_widgets.dart';
 import 'takeaway_cart_sheet.dart';
 import 'takeaway_merchant_sections.dart';
@@ -25,8 +25,9 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
   final Map<String, int> _cart = {};
   int _tab = 0;
   String? _selectedCategory;
+  MerchantModel? _merchant;
 
-  List<ItemModel> get _items => itemsForMerchant(widget.merchant);
+  List<ItemModel> get _items => (_merchant ?? widget.merchant).items;
 
   double get _total =>
       _items.fold(0, (sum, item) => sum + item.price * (_cart[item.id] ?? 0));
@@ -34,36 +35,48 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
   int get _count => _cart.values.fold(0, (a, b) => a + b);
 
   @override
+  void initState() {
+    super.initState();
+    _merchant = widget.merchant;
+    _loadMerchant();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final merchant = _merchant ?? widget.merchant;
     final groups = groupItemsByCategory(_items);
     final active = _activeCategory(groups);
     return Scaffold(
       appBar: AppBar(title: const Text('外卖点单')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TakeawayMerchantHeader(merchant: widget.merchant),
-          TakeawayMerchantTabs(
-            value: _tab,
-            onChanged: (value) => setState(() => _tab = value),
-          ),
-          const SizedBox(height: 10),
-          if (_tab == 0)
-            TakeawayOrderPanel(
-              groups: groups,
-              activeCategory: active,
-              cart: _cart,
-              onSelected: (category) =>
-                  setState(() => _selectedCategory = category),
-              onAdd: _add,
-              onRemove: _remove,
-            )
-          else if (_tab == 1)
-            const TakeawayReviewPanel()
-          else
-            TakeawayMerchantInfoPanel(merchant: widget.merchant),
-          const SizedBox(height: 90),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadMerchant,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            TakeawayMerchantHeader(merchant: merchant),
+            TakeawayMerchantTabs(
+              value: _tab,
+              onChanged: (value) => setState(() => _tab = value),
+            ),
+            const SizedBox(height: 10),
+            if (_tab == 0)
+              TakeawayOrderPanel(
+                groups: groups,
+                activeCategory: active,
+                cart: _cart,
+                onSelected: (category) =>
+                    setState(() => _selectedCategory = category),
+                onAdd: _add,
+                onRemove: _remove,
+              )
+            else if (_tab == 1)
+              const TakeawayReviewPanel()
+            else
+              TakeawayMerchantInfoPanel(merchant: merchant),
+            const SizedBox(height: 90),
+          ],
+        ),
       ),
       bottomNavigationBar: _tab == 0
           ? TakeawayCartBar(
@@ -74,6 +87,18 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
             )
           : null,
     );
+  }
+
+  Future<void> _loadMerchant() async {
+    final merchantId = int.tryParse(widget.merchant.id);
+    if (merchantId == null) return;
+    try {
+      final merchant = await backendRepository.fetchStore(merchantId);
+      if (!mounted) return;
+      setState(() => _merchant = merchant);
+    } catch (_) {
+      if (!mounted) return;
+    }
   }
 
   String _activeCategory(Map<String, List<ItemModel>> groups) {
@@ -110,13 +135,29 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
 
   void _submit() {
     if (_total <= 0 || !AppScope.of(context).requireLogin(context)) return;
+    final merchant = _merchant ?? widget.merchant;
     Navigator.pushNamed(
       context,
       Routes.checkout,
       arguments: CheckoutArgs(
         kind: OrderKind.takeaway,
-        title: widget.merchant.name,
+        title: merchant.name,
         amount: _total,
+        storeId: merchant.id,
+        businessType: merchant.type,
+        lines: _items
+            .where((item) => (_cart[item.id] ?? 0) > 0)
+            .map(
+              (item) => CheckoutLineArg(
+                itemId: item.id,
+                quantity: _cart[item.id] ?? 0,
+                title: item.title,
+                subtitle: item.subtitle,
+                unitPrice: item.price,
+                categoryName: item.category,
+              ),
+            )
+            .toList(),
       ),
     );
   }
