@@ -19,7 +19,9 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final _remarkController = TextEditingController();
   CheckoutPreviewData? _preview;
+  List<PaymentMethodData> _paymentMethods = const [];
   Object? _error;
   bool _loading = true;
   bool _submitting = false;
@@ -39,6 +41,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     _loadPreview();
+  }
+
+  @override
+  void dispose() {
+    _remarkController.dispose();
+    super.dispose();
   }
 
   @override
@@ -80,17 +88,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
               preview: preview,
               args: widget.args,
             ),
-            AppCard(
-              child: Row(
-                children: const [
-                  Icon(Icons.payments_outlined, color: AppColors.brand),
-                  SizedBox(width: 8),
-                  Text('模拟支付', style: TextStyle(fontWeight: FontWeight.w700)),
-                  Spacer(),
-                  Icon(Icons.check_circle, color: AppColors.brand),
-                ],
-              ),
-            ),
+            _RemarkCard(controller: _remarkController),
+            _PaymentMethodCard(methods: _paymentMethods),
             _FeeCard(preview: preview, fallbackAmount: widget.args.amount),
           ],
           const SizedBox(height: 90),
@@ -123,9 +122,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
         addressId: null,
         lines: widget.args.lines,
       );
+      final paymentMethods = await backendRepository.fetchPaymentMethods();
       if (!mounted) return;
       setState(() {
         _preview = preview;
+        _paymentMethods = paymentMethods;
         _loading = false;
       });
     } catch (error) {
@@ -145,7 +146,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         businessType: _businessType,
         addressId: null,
         lines: widget.args.lines,
-        remark: '',
+        remark: _remarkController.text.trim(),
         idempotencyKey: DateTime.now().microsecondsSinceEpoch.toString(),
       );
       final paid = await backendRepository.payOrder(order.id);
@@ -228,6 +229,84 @@ class _ArgLine extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _RemarkCard extends StatelessWidget {
+  const _RemarkCard({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('订单备注', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: '口味偏好、餐具数量、配送说明等',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PaymentMethodCard extends StatelessWidget {
+  const _PaymentMethodCard({required this.methods});
+
+  final List<PaymentMethodData> methods;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = methods.isEmpty
+        ? const [PaymentMethodData(code: 'mock', name: '模拟支付', enabled: true)]
+        : methods;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('支付方式', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          for (final method in display)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  Icon(
+                    method.enabled
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: method.enabled
+                        ? AppColors.brand
+                        : AppColors.textLight,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    method.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: method.enabled
+                          ? AppColors.textMain
+                          : AppColors.textSub,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    method.enabled ? '当前可用' : '后续开放',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _FeeCard extends StatelessWidget {

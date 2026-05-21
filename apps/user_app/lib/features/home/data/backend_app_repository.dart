@@ -704,6 +704,7 @@ List<MerchantModel> _merchants(dynamic value) => _list(value)
 MerchantModel _merchantFromStoreCard(
   Map<String, dynamic> json, {
   List<ItemModel> items = const [],
+  DeliveryRuleModel deliveryRule = const DeliveryRuleModel(),
 }) => MerchantModel(
   id: _string(json['id']),
   name: _string(json['name']),
@@ -714,6 +715,11 @@ MerchantModel _merchantFromStoreCard(
   address: _string(json['address']),
   tags: _strings(json['tags']),
   items: items,
+  status: _string(json['status'], fallback: 'open'),
+  businessHours: _string(json['businessHoursText'], fallback: '10:00-22:00'),
+  monthlySales: _int(json['monthlySales']),
+  avgPrice: _double(json['avgPrice']),
+  deliveryRule: deliveryRule,
 );
 
 MerchantModel _merchantFromStoreDetail(Map<String, dynamic> json) {
@@ -726,6 +732,18 @@ MerchantModel _merchantFromStoreDetail(Map<String, dynamic> json) {
   return _merchantFromStoreCard(
     store,
     items: items.isEmpty ? _items(store['matchedItems']) : items,
+    deliveryRule: _deliveryRule(json['deliveryRule']),
+  );
+}
+
+DeliveryRuleModel _deliveryRule(dynamic value) {
+  final json = _map(value);
+  if (json.isEmpty) return const DeliveryRuleModel();
+  return DeliveryRuleModel(
+    deliveryFee: _double(json['deliveryFee']),
+    estimatedMinutes: _int(json['estimatedMinutes']),
+    startPrice: _double(json['startPrice']),
+    deliveryText: _string(json['deliveryText']),
   );
 }
 

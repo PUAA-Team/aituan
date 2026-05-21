@@ -42,6 +42,10 @@ INSERT INTO merchant_profile (id, merchant_no, account_id, merchant_name, contac
   (14, 'MCH014', NULL, '悦己SPA', '林经理', '18810000014', 'L014', 'normal', 'approved', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE merchant_name = VALUES(merchant_name), status = VALUES(status);
 
+UPDATE merchant_profile
+SET account_id = 2, updated_at = CURRENT_TIMESTAMP
+WHERE id IN (2, 10) AND (account_id IS NULL OR account_id = 2);
+
 INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary, address, distance_text, rating, monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url) VALUES
   (1, 1, '塔斯汀中国汉堡', 'takeaway', '现烤汉堡，附近高复购外卖', '城市广场 1 层', '900m', 4.8, 3290, 28.00, 'open', '09:30-22:30', '35分钟送达,配送费¥4,满减', ''),
   (2, 2, '松记炸鸡饭', 'takeaway', '热卖炸鸡饭和能量套餐', '湖畔商业街 2 层', '1.2km', 4.7, 2180, 24.00, 'open', '10:00-21:30', '出餐快,套餐多,免预约', ''),
@@ -64,6 +68,12 @@ INSERT INTO merchant_delivery_rule (id, store_id, delivery_fee, start_price, est
   (2, 2, 3.00, 18.00, 32, '骑手模拟配送，预计 32 分钟送达'),
   (3, 10, 4.00, 22.00, 36, '骑手模拟配送，预计 36 分钟送达')
 ON DUPLICATE KEY UPDATE delivery_fee = VALUES(delivery_fee), estimated_minutes = VALUES(estimated_minutes);
+
+INSERT INTO merchant_takeaway_setting (id, store_id, accept_mode, updated_by) VALUES
+  (1, 1, 'manual', 2),
+  (2, 2, 'auto', 2),
+  (3, 10, 'manual', 2)
+ON DUPLICATE KEY UPDATE accept_mode = VALUES(accept_mode), updated_by = VALUES(updated_by), is_deleted = 0;
 
 INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_name, business_type, category_level, sort_order, status) VALUES
   (1, NULL, NULL, 'takeaway', '外卖', 'takeaway', 'module', 1, 'normal'),
@@ -134,7 +144,7 @@ INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
   (3, 1003, '默认', 42.80, 300, 'on_sale'),
   (4, 1004, '默认', 13.90, 500, 'on_sale'),
   (5, 1101, '默认', 23.80, 500, 'on_sale'),
-  (6, 1102, '默认', 35.80, 300, 'on_sale'),
+  (6, 1102, '默认', 35.80, 3, 'on_sale'),
   (7, 2001, '默认', 168.00, 100, 'on_sale'),
   (8, 2002, '默认', 98.00, 100, 'on_sale'),
   (9, 3001, '默认', 299.00, 80, 'on_sale'),
@@ -147,7 +157,7 @@ INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
   (16, 1201, '默认', 29.80, 500, 'on_sale'),
   (17, 1202, '默认', 32.80, 500, 'on_sale'),
   (18, 1203, '默认', 68.00, 300, 'on_sale'),
-  (19, 1204, '默认', 16.80, 300, 'on_sale'),
+  (19, 1204, '默认', 16.80, 0, 'on_sale'),
   (20, 2101, '默认', 158.00, 120, 'on_sale'),
   (21, 2102, '默认', 298.00, 80, 'on_sale'),
   (22, 3101, '默认', 339.00, 60, 'on_sale'),
@@ -181,13 +191,20 @@ INSERT INTO order_main (id, order_no, user_id, store_id, store_name, order_type,
   (2, 'AT202605170002', 1, 1, '塔斯汀中国汉堡', 'takeaway', '招牌中国汉堡等2件', 'pending', 'paid', 'delivering', 'mock', 32.70, 4.00, 0.00, 36.70, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (3, 'AT202605170003', 1, 3, '江南小馆', 'group_buy', '江南小馆 3-4 人餐', 'unused', 'paid', 'voucher_unused', 'mock', 168.00, 0.00, 0.00, 168.00, NULL, '券码 88001234', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (4, 'AT202605170004', 1, 9, '雅境足道', 'massage', '经典足疗 60 分钟', 'used', 'paid', 'voucher_used', 'mock', 118.00, 0.00, 0.00, 118.00, NULL, '券码 88005678', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (9005, 'AT202605179005', 1, 10, '米村拌饭', 'takeaway', '肥牛泡菜拌饭等2件', 'used', 'paid', 'delivered', 'mock', 49.60, 4.00, 3.00, 50.60, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (9005, 'AT202605179005', 1, 10, '米村拌饭', 'takeaway', '肥牛泡菜拌饭等2件', 'used', 'paid', 'completed', 'mock', 49.60, 4.00, 3.00, 50.60, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   (9006, 'AT202605179006', 1, 12, '曼居影院酒店', 'hotel', '影音大床房券', 'unused', 'paid', 'voucher_unused', 'mock', 339.00, 0.00, 0.00, 339.00, NULL, '券码 88009006', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (9007, 'AT202605179007', 1, 6, '光影剧场', 'movie', '电影通兑票', 'unpaid', 'unpaid', 'created', NULL, 39.90, 0.00, 0.00, 39.90, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP),
   (9008, 'AT202605179008', 1, 14, '悦己SPA', 'beauty', '全身舒缓 SPA', 'unused', 'paid', 'voucher_unused', 'mock', 298.00, 0.00, 20.00, 278.00, NULL, '券码 88009008', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (9009, 'AT202605179009', 1, 11, '琥珀烤肉', 'group_buy', '琥珀烤肉双人餐', 'used', 'paid', 'voucher_used', 'mock', 158.00, 0.00, 0.00, 158.00, NULL, '券码 88009009', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (9010, 'AT202605179010', 1, 2, '松记炸鸡饭', 'takeaway', '鸡排饭双拼套餐', 'unpaid', 'unpaid', 'created', NULL, 35.80, 3.00, 0.00, 38.80, '北京市海淀区城市广场 A 座 1208', NULL, NULL, NULL, CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE display_status = VALUES(display_status), payment_status = VALUES(payment_status);
+  (9010, 'AT202605179010', 1, 2, '松记炸鸡饭', 'takeaway', '鸡排饭双拼套餐', 'unpaid', 'unpaid', 'created', NULL, 35.80, 3.00, 0.00, 38.80, '北京市海淀区城市广场 A 座 1208', NULL, NULL, NULL, CURRENT_TIMESTAMP),
+  (9011, 'AT202605179011', 1, 1, '塔斯汀中国汉堡', 'takeaway', '藤椒鸡腿堡等2件', 'pending', 'paid', 'merchant_pending', 'mock', 33.80, 4.00, 0.00, 37.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9012, 'AT202605179012', 1, 2, '松记炸鸡饭', 'takeaway', '招牌炸鸡饭', 'pending', 'paid', 'accepted', 'mock', 23.80, 3.00, 0.00, 26.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9013, 'AT202605179013', 1, 1, '塔斯汀中国汉堡', 'takeaway', '双人汉堡套餐', 'pending', 'paid', 'preparing', 'mock', 42.80, 4.00, 4.00, 42.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9014, 'AT202605179014', 1, 10, '米村拌饭', 'takeaway', '双人拌饭套餐', 'pending', 'paid', 'ready_for_delivery', 'mock', 68.00, 4.00, 6.00, 66.00, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9015, 'AT202605179015', 1, 2, '松记炸鸡饭', 'takeaway', '招牌炸鸡饭等2件', 'pending', 'paid', 'delivering', 'mock', 59.60, 3.00, 5.00, 57.60, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9016, 'AT202605179016', 1, 10, '米村拌饭', 'takeaway', '招牌石锅拌饭', 'pending', 'paid', 'delivered', 'mock', 29.80, 4.00, 0.00, 33.80, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (9017, 'AT202605179017', 1, 1, '塔斯汀中国汉堡', 'takeaway', '招牌中国汉堡', 'used', 'paid', 'completed', 'mock', 18.80, 4.00, 0.00, 22.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE display_status = VALUES(display_status), payment_status = VALUES(payment_status), fulfillment_status = VALUES(fulfillment_status);
 
 INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, business_type, category_id, quantity, unit_price, total_price, cover_url, is_reviewed) VALUES
   (1, 1, 2002, '江南小馆 双人餐', '双人精选菜品，适合工作日晚餐', 'group_buy', 202, 1, 98.00, 98.00, '', 0),
@@ -201,7 +218,16 @@ INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, busines
   (9008, 9007, 5001, '电影通兑票', '2D/3D 普通厅通兑，特殊厅补差', 'movie', 501, 1, 39.90, 39.90, '', 0),
   (9009, 9008, 6101, '全身舒缓 SPA', '90 分钟身体护理，预约优先', 'beauty', 602, 1, 298.00, 298.00, '', 0),
   (9010, 9009, 2101, '琥珀烤肉双人餐', '精选牛五花、梅花肉和蔬菜拼盘', 'group_buy', 203, 1, 158.00, 158.00, '', 1),
-  (9011, 9010, 1102, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 'takeaway', 105, 1, 35.80, 35.80, '', 0)
+  (9011, 9010, 1102, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 'takeaway', 105, 1, 35.80, 35.80, '', 0),
+  (9012, 9011, 1002, '藤椒鸡腿堡', '微麻藤椒风味，搭配脆生菜', 'takeaway', 101, 1, 19.90, 19.90, '', 0),
+  (9013, 9011, 1004, '香辣鸡翅', '外酥里嫩，适合加购', 'takeaway', 103, 1, 13.90, 13.90, '', 0),
+  (9014, 9012, 1101, '招牌炸鸡饭', '整块炸鸡排 + 米饭 + 小菜', 'takeaway', 104, 1, 23.80, 23.80, '', 0),
+  (9015, 9013, 1003, '双人汉堡套餐', '双堡 + 小食 + 饮品', 'takeaway', 102, 1, 42.80, 42.80, '', 0),
+  (9016, 9014, 1203, '双人拌饭套餐', '两份拌饭 + 小食 + 饮品', 'takeaway', 107, 1, 68.00, 68.00, '', 0),
+  (9017, 9015, 1101, '招牌炸鸡饭', '整块炸鸡排 + 米饭 + 小菜', 'takeaway', 104, 1, 23.80, 23.80, '', 0),
+  (9018, 9015, 1102, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 'takeaway', 105, 1, 35.80, 35.80, '', 0),
+  (9019, 9016, 1201, '招牌石锅拌饭', '牛肉、蔬菜和溏心蛋热拌', 'takeaway', 106, 1, 29.80, 29.80, '', 0),
+  (9020, 9017, 1001, '招牌中国汉堡', '现烤胚皮 · 酱香鸡腿排', 'takeaway', 101, 1, 18.80, 18.80, '', 1)
 ON DUPLICATE KEY UPDATE total_price = VALUES(total_price), is_reviewed = VALUES(is_reviewed);
 
 INSERT INTO order_payment_record (id, order_id, payment_no, payment_method, amount, status, provider_trade_no, paid_at) VALUES
@@ -211,7 +237,14 @@ INSERT INTO order_payment_record (id, order_id, payment_no, payment_method, amou
   (9005, 9005, 'PAY202605179005', 'mock', 50.60, 'paid', 'MOCK202605179005', CURRENT_TIMESTAMP),
   (9006, 9006, 'PAY202605179006', 'mock', 339.00, 'paid', 'MOCK202605179006', CURRENT_TIMESTAMP),
   (9008, 9008, 'PAY202605179008', 'mock', 278.00, 'paid', 'MOCK202605179008', CURRENT_TIMESTAMP),
-  (9009, 9009, 'PAY202605179009', 'mock', 158.00, 'paid', 'MOCK202605179009', CURRENT_TIMESTAMP)
+  (9009, 9009, 'PAY202605179009', 'mock', 158.00, 'paid', 'MOCK202605179009', CURRENT_TIMESTAMP),
+  (9011, 9011, 'PAY202605179011', 'mock', 37.80, 'paid', 'MOCK202605179011', CURRENT_TIMESTAMP),
+  (9012, 9012, 'PAY202605179012', 'mock', 26.80, 'paid', 'MOCK202605179012', CURRENT_TIMESTAMP),
+  (9013, 9013, 'PAY202605179013', 'mock', 42.80, 'paid', 'MOCK202605179013', CURRENT_TIMESTAMP),
+  (9014, 9014, 'PAY202605179014', 'mock', 66.00, 'paid', 'MOCK202605179014', CURRENT_TIMESTAMP),
+  (9015, 9015, 'PAY202605179015', 'mock', 57.60, 'paid', 'MOCK202605179015', CURRENT_TIMESTAMP),
+  (9016, 9016, 'PAY202605179016', 'mock', 33.80, 'paid', 'MOCK202605179016', CURRENT_TIMESTAMP),
+  (9017, 9017, 'PAY202605179017', 'mock', 22.80, 'paid', 'MOCK202605179017', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount);
 
 INSERT INTO order_voucher (id, order_id, voucher_code, qr_payload, status, effective_to, verified_at, verified_by) VALUES
@@ -222,21 +255,83 @@ INSERT INTO order_voucher (id, order_id, voucher_code, qr_payload, status, effec
   (9009, 9009, '88009009', 'AITUAN:VOUCHER:88009009', 'used', '2026-12-31 23:59:59', CURRENT_TIMESTAMP, 2)
 ON DUPLICATE KEY UPDATE status = VALUES(status), qr_payload = VALUES(qr_payload);
 
-INSERT INTO delivery_task (id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at) VALUES
-  (1, 2, 'delivering', '骑手正在配送', 18, CURRENT_TIMESTAMP),
-  (9005, 9005, 'delivered', '订单已送达', 0, CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE current_stage = VALUES(current_stage), current_stage_text = VALUES(current_stage_text);
+INSERT INTO delivery_task (id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at) VALUES
+  (1, 2, 'delivering', '骑手正在配送', 18, NULL, NULL),
+  (9005, 9005, 'completed', '订单已完成', 0, NULL, CURRENT_TIMESTAMP),
+  (9011, 9011, 'merchant_pending', '待商家接单', 35, NULL, NULL),
+  (9012, 9012, 'accepted', '商家已接单', 32, NULL, NULL),
+  (9013, 9013, 'preparing', '商家正在备餐', 28, NULL, NULL),
+  (9014, 9014, 'ready_for_delivery', '餐品已出餐，待配送', 22, NULL, NULL),
+  (9015, 9015, 'delivering', '骑手正在配送', 16, NULL, NULL),
+  (9016, 9016, 'delivered', '订单已送达', 0, NULL, NULL),
+  (9017, 9017, 'completed', '订单已完成', 0, NULL, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE current_stage = VALUES(current_stage), current_stage_text = VALUES(current_stage_text), completed_at = VALUES(completed_at);
 
 INSERT INTO delivery_track_node (id, delivery_task_id, node_order, node_code, node_text, reached_at) VALUES
-  (1, 1, 1, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
-  (2, 1, 2, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
-  (3, 1, 3, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
-  (4, 1, 4, 'delivered', '订单已送达', NULL),
-  (9005, 9005, 1, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
-  (9006, 9005, 2, 'preparing', '商家已完成备餐', CURRENT_TIMESTAMP),
-  (9007, 9005, 3, 'delivering', '骑手配送中', CURRENT_TIMESTAMP),
-  (9008, 9005, 4, 'delivered', '订单已送达', CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE reached_at = VALUES(reached_at);
+  (11, 1, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (12, 1, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (13, 1, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (14, 1, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (15, 1, 5, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
+  (16, 1, 6, 'delivered', '订单已送达', NULL),
+  (17, 1, 7, 'completed', '订单已完成', NULL),
+  (90050, 9005, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90051, 9005, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90052, 9005, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90053, 9005, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (90054, 9005, 5, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
+  (90055, 9005, 6, 'delivered', '订单已送达', CURRENT_TIMESTAMP),
+  (90056, 9005, 7, 'completed', '订单已完成', CURRENT_TIMESTAMP),
+  (90110, 9011, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90111, 9011, 2, 'accepted', '商家已接单', NULL),
+  (90112, 9011, 3, 'preparing', '商家正在备餐', NULL),
+  (90113, 9011, 4, 'ready_for_delivery', '餐品已出餐，待配送', NULL),
+  (90114, 9011, 5, 'delivering', '骑手正在配送', NULL),
+  (90115, 9011, 6, 'delivered', '订单已送达', NULL),
+  (90116, 9011, 7, 'completed', '订单已完成', NULL),
+  (90120, 9012, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90121, 9012, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90122, 9012, 3, 'preparing', '商家正在备餐', NULL),
+  (90123, 9012, 4, 'ready_for_delivery', '餐品已出餐，待配送', NULL),
+  (90124, 9012, 5, 'delivering', '骑手正在配送', NULL),
+  (90125, 9012, 6, 'delivered', '订单已送达', NULL),
+  (90126, 9012, 7, 'completed', '订单已完成', NULL),
+  (90130, 9013, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90131, 9013, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90132, 9013, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90133, 9013, 4, 'ready_for_delivery', '餐品已出餐，待配送', NULL),
+  (90134, 9013, 5, 'delivering', '骑手正在配送', NULL),
+  (90135, 9013, 6, 'delivered', '订单已送达', NULL),
+  (90136, 9013, 7, 'completed', '订单已完成', NULL),
+  (90140, 9014, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90141, 9014, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90142, 9014, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90143, 9014, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (90144, 9014, 5, 'delivering', '骑手正在配送', NULL),
+  (90145, 9014, 6, 'delivered', '订单已送达', NULL),
+  (90146, 9014, 7, 'completed', '订单已完成', NULL),
+  (90150, 9015, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90151, 9015, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90152, 9015, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90153, 9015, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (90154, 9015, 5, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
+  (90155, 9015, 6, 'delivered', '订单已送达', NULL),
+  (90156, 9015, 7, 'completed', '订单已完成', NULL),
+  (90160, 9016, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90161, 9016, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90162, 9016, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90163, 9016, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (90164, 9016, 5, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
+  (90165, 9016, 6, 'delivered', '订单已送达', CURRENT_TIMESTAMP),
+  (90166, 9016, 7, 'completed', '订单已完成', NULL),
+  (90170, 9017, 1, 'merchant_pending', '待商家接单', CURRENT_TIMESTAMP),
+  (90171, 9017, 2, 'accepted', '商家已接单', CURRENT_TIMESTAMP),
+  (90172, 9017, 3, 'preparing', '商家正在备餐', CURRENT_TIMESTAMP),
+  (90173, 9017, 4, 'ready_for_delivery', '餐品已出餐，待配送', CURRENT_TIMESTAMP),
+  (90174, 9017, 5, 'delivering', '骑手正在配送', CURRENT_TIMESTAMP),
+  (90175, 9017, 6, 'delivered', '订单已送达', CURRENT_TIMESTAMP),
+  (90176, 9017, 7, 'completed', '订单已完成', CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE node_text = VALUES(node_text), reached_at = VALUES(reached_at);
 
 INSERT INTO review_record (id, order_id, store_id, user_id, rating, content, labels, status, replied) VALUES
   (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'published', 0),

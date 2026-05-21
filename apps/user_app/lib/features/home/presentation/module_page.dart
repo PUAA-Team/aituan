@@ -150,6 +150,11 @@ class _ModulePageState extends State<ModulePage> {
       address: merchant.address,
       tags: merchant.tags,
       items: decorated,
+      status: merchant.status,
+      businessHours: merchant.businessHours,
+      monthlySales: merchant.monthlySales,
+      avgPrice: merchant.avgPrice,
+      deliveryRule: merchant.deliveryRule,
     );
   }
 

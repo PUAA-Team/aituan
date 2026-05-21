@@ -35,6 +35,16 @@ class AuthController {
     return ApiResponse.ok(authService.login(request));
   }
 
+  @PostMapping("/merchant/login/password")
+  ApiResponse<AuthResponse> merchantLogin(@Valid @RequestBody LoginRequest request) {
+    return ApiResponse.ok(authService.loginMerchant(request));
+  }
+
+  @PostMapping("/admin/login/password")
+  ApiResponse<AuthResponse> adminLogin(@Valid @RequestBody LoginRequest request) {
+    return ApiResponse.ok(authService.loginAdmin(request));
+  }
+
   @PostMapping("/user/password/reset")
   ApiResponse<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
     authService.resetPassword(request);

@@ -10,6 +10,7 @@ import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../home/data/backend_app_repository.dart';
+import 'takeaway_fulfillment_text.dart';
 
 class TakeawayOrderDetailPage extends StatefulWidget {
   const TakeawayOrderDetailPage({super.key, required this.args});
@@ -54,9 +55,16 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
               _ErrorCard(message: _error.toString(), onRetry: _load)
             else if (detail != null) ...[
               _StatusCard(
-                status: detail.status,
-                desc: _desc(detail),
-                tag: _tag(detail.status),
+                title: takeawayStatusLabel(
+                  detail.status,
+                  detail.fulfillmentStatus,
+                ),
+                desc: takeawayStatusDescription(
+                  detail.status,
+                  detail.fulfillmentStatus,
+                ),
+                tag: takeawayStatusTag(detail.status, detail.fulfillmentStatus),
+                active: detail.status == OrderStatus.pending,
               ),
               if (detail.deliveryTimeline.isNotEmpty)
                 _ProgressCard(nodes: detail.deliveryTimeline),
@@ -73,8 +81,10 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
           : AppBottomActionBar(
               primaryText: _primaryText(detail.status),
               onPrimary: _paying ? null : () => _primaryAction(detail),
-              secondaryText: '刷新状态',
-              onSecondary: _load,
+              secondaryText: detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪',
+              onSecondary: detail.deliveryTimeline.isEmpty
+                  ? _load
+                  : () => _openDeliveryTracking(detail),
             ),
     );
   }
@@ -143,38 +153,38 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     );
   }
 
+  Future<void> _openDeliveryTracking(OrderDetailData detail) async {
+    await Navigator.pushNamed(
+      context,
+      Routes.deliveryTracking,
+      arguments: OrderDetailArgs(
+        kind: OrderKind.takeaway,
+        status: detail.status,
+        orderId: detail.id,
+      ),
+    );
+    await _load();
+  }
+
   String _primaryText(OrderStatus status) => switch (status) {
     OrderStatus.unpaid => _paying ? '支付中' : '模拟支付',
     OrderStatus.used => '去评价',
     _ => '查看商家',
   };
-
-  String _desc(OrderDetailData detail) => switch (detail.status) {
-    OrderStatus.unpaid => '订单已创建，请尽快完成支付。',
-    OrderStatus.pending =>
-      detail.fulfillmentStatus.isEmpty
-          ? '商家已接单，订单正在履约中。'
-          : '当前履约状态：${detail.fulfillmentStatus}',
-    _ => '订单已完成，可对本次服务进行评价。',
-  };
-
-  String _tag(OrderStatus status) => switch (status) {
-    OrderStatus.unpaid => '等待付款',
-    OrderStatus.pending => '配送中',
-    _ => '已完成',
-  };
 }
 
 class _StatusCard extends StatelessWidget {
   const _StatusCard({
-    required this.status,
+    required this.title,
     required this.desc,
     required this.tag,
+    required this.active,
   });
 
-  final OrderStatus status;
+  final String title;
   final String desc;
   final String tag;
+  final bool active;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -186,16 +196,13 @@ class _StatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                status.labelForKind(OrderKind.takeaway),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
               Text(desc, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
-        BrandTag(tag, green: status == OrderStatus.pending, selected: true),
+        BrandTag(tag, green: active, selected: true),
       ],
     ),
   );
@@ -231,7 +238,7 @@ class _ProgressCard extends StatelessWidget {
   String _timelineText(TimelineNodeData node) {
     final time = node.reachedAt == null
         ? ''
-        : '${node.reachedAt!.hour.toString().padLeft(2, '0')}:${node.reachedAt!.minute.toString().padLeft(2, '0')} ';
+        : '${formatTimelineTime(node.reachedAt)} ';
     return '$time${node.text}';
   }
 }

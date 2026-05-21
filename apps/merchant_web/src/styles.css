@@ -1,0 +1,429 @@
+:root {
+  color: #1f2329;
+  background: #f3f4f6;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 28px;
+}
+
+.login-panel,
+.workspace {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.login-panel {
+  min-height: calc(100vh - 56px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: center;
+  gap: 36px;
+}
+
+.login-panel h1,
+.top-bar h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 52px);
+  letter-spacing: -0.04em;
+}
+
+.login-panel p,
+.side-card p,
+.order-card p {
+  color: #667085;
+}
+
+.login-card,
+.side-card,
+.toolbar-card,
+.metric-card,
+.order-card,
+.detail-card,
+.item-card,
+.edit-card,
+.empty-card {
+  background: #fff;
+  border: 1px solid #e7ebf0;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(31, 35, 41, 0.07);
+}
+
+.login-card {
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: #475467;
+  font-size: 14px;
+}
+
+input,
+select {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #d8dde5;
+  border-radius: 10px;
+  padding: 0 12px;
+  color: #1f2329;
+  background: #fff;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid #f3b8c1;
+  border-color: #e4002b;
+}
+
+.primary,
+.ghost {
+  border: 0;
+  border-radius: 10px;
+  min-height: 42px;
+  padding: 0 18px;
+  font-weight: 700;
+}
+
+.primary {
+  color: #fff;
+  background: #e4002b;
+}
+
+.primary:disabled,
+.ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ghost {
+  color: #b80022;
+  background: #fff0f2;
+}
+
+.small {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #e4002b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.notice {
+  margin: 0;
+  color: #b80022;
+  font-weight: 700;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+}
+
+.side-card,
+.toolbar-card,
+.metric-card,
+.order-card,
+.detail-card,
+.item-card,
+.edit-card,
+.empty-card {
+  padding: 18px;
+}
+
+.side-card {
+  position: sticky;
+  top: 28px;
+  height: fit-content;
+}
+
+.content-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.top-bar,
+.order-main,
+.actions,
+.mode-switch,
+.detail-head,
+.line-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card span {
+  color: #667085;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 30px;
+}
+
+.toolbar-card {
+  display: grid;
+  grid-template-columns: 120px 180px minmax(260px, 1fr);
+  align-items: end;
+  gap: 14px;
+}
+
+.mode-switch {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.mode-switch button {
+  border: 1px solid #f3b8c1;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: #b80022;
+  background: #fff;
+}
+
+.mode-switch button.selected {
+  color: #fff;
+  background: #e4002b;
+  border-color: #e4002b;
+}
+
+.order-list {
+  display: grid;
+  gap: 12px;
+}
+
+.order-no {
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+
+.order-card h3 {
+  margin: 0 0 6px;
+}
+
+.order-card strong {
+  color: #e4002b;
+  font-size: 22px;
+}
+
+.actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.empty-card {
+  color: #667085;
+  text-align: center;
+}
+
+.side-tabs {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.side-tabs button {
+  border: 1px solid #f0d6db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #475467;
+  text-align: left;
+  background: #fff;
+}
+
+.side-tabs button.selected {
+  color: #b80022;
+  border-color: #e4002b;
+  background: #fff3f5;
+}
+
+.order-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 14px;
+  align-items: start;
+}
+
+.detail-card {
+  position: sticky;
+  top: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.detail-head h3,
+.item-card h3,
+.edit-card h3 {
+  margin: 0;
+}
+
+.detail-card p,
+.item-card p {
+  margin: 0;
+  color: #667085;
+}
+
+.line-list,
+.timeline,
+.edit-card {
+  display: grid;
+  gap: 10px;
+}
+
+.line-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.line-row b,
+.fee-box strong,
+.item-card strong {
+  color: #e4002b;
+}
+
+.fee-box {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #f2d6dc;
+  border-radius: 10px;
+  color: #475467;
+  background: #fff7f8;
+}
+
+.timeline-node {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  color: #98a2b3;
+}
+
+.timeline-node span {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #d0d5dd;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.timeline-node.done {
+  color: #1f2329;
+}
+
+.timeline-node.done span {
+  border-color: #e4002b;
+  background: #e4002b;
+}
+
+.timeline-node p {
+  margin: 0;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.item-card {
+  display: grid;
+  gap: 14px;
+}
+
+.status-pill {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-pill.on_sale {
+  color: #b80022;
+  background: #fff0f2;
+}
+
+.status-pill.off_sale {
+  color: #667085;
+  background: #f2f4f7;
+}
+
+.edit-card {
+  align-self: start;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .page-shell {
+    padding: 16px;
+  }
+
+  .login-panel,
+  .workspace,
+  .toolbar-card,
+  .order-layout,
+  .item-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .side-card,
+  .detail-card {
+    position: static;
+  }
+}

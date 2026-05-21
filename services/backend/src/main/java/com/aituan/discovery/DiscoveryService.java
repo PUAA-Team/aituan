@@ -138,6 +138,10 @@ class DiscoveryService {
         row.businessType(),
         row.distanceText(),
         row.rating(),
+        row.monthlySales(),
+        row.avgPrice(),
+        row.status(),
+        row.businessHoursText(),
         row.summary(),
         row.address(),
         splitTags(row.tagText()),
@@ -157,6 +161,9 @@ class DiscoveryService {
         row.originalPrice(),
         row.coverUrl(),
         splitTags(row.tagText()),
+        row.stock(),
+        row.skuStatus(),
+        row.stock() <= 0 || !"on_sale".equals(row.skuStatus()),
         row.storeId(),
         row.storeName());
   }

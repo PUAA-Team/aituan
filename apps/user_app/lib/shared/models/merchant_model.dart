@@ -12,6 +12,11 @@ class MerchantModel {
     required this.address,
     required this.tags,
     required this.items,
+    this.status = 'open',
+    this.businessHours = '10:00-22:00',
+    this.monthlySales = 0,
+    this.avgPrice = 0,
+    this.deliveryRule = const DeliveryRuleModel(),
   });
 
   final String id;
@@ -23,4 +28,23 @@ class MerchantModel {
   final String address;
   final List<String> tags;
   final List<ItemModel> items;
+  final String status;
+  final String businessHours;
+  final int monthlySales;
+  final double avgPrice;
+  final DeliveryRuleModel deliveryRule;
+}
+
+class DeliveryRuleModel {
+  const DeliveryRuleModel({
+    this.deliveryFee = 0,
+    this.estimatedMinutes = 35,
+    this.startPrice = 0,
+    this.deliveryText = '',
+  });
+
+  final double deliveryFee;
+  final int estimatedMinutes;
+  final double startPrice;
+  final String deliveryText;
 }

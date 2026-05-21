@@ -12,6 +12,24 @@ import java.util.List;
 
 record CheckoutItemRequest(@NotNull Long itemId, @Min(1) Integer quantity) {}
 
+record CartItemRequest(@NotNull Long storeId, @NotNull Long itemId, @Min(1) Integer quantity) {}
+
+record CartItemQuantityRequest(@NotNull Long storeId, @Min(0) Integer quantity) {}
+
+record CartLineView(
+    Long itemId,
+    String itemName,
+    String subtitle,
+    String categoryName,
+    BigDecimal unitPrice,
+    Integer quantity,
+    BigDecimal totalPrice,
+    Integer stock,
+    String status,
+    Boolean soldOut) {}
+
+record CartView(Long storeId, String storeName, BigDecimal amount, List<CartLineView> items) {}
+
 record CheckoutPreviewRequest(
     @NotNull Long storeId,
     @NotBlank String businessType,
@@ -28,6 +46,41 @@ record CreateOrderRequest(
     String idempotencyKey) {}
 
 record PayOrderRequest(@NotBlank String paymentMode) {}
+
+record TakeawayOrderActionRequest(String remark) {}
+
+record TakeawaySettingRequest(@NotBlank String acceptMode) {}
+
+record MerchantItemUpdateRequest(
+    @NotBlank String title,
+    String subtitle,
+    @NotNull BigDecimal price,
+    @NotNull @Min(0) Integer stock,
+    @NotBlank String status) {}
+
+record MerchantItemStatusRequest(@NotBlank String status) {}
+
+record DeliveryRuleUpdateRequest(
+    @NotNull BigDecimal deliveryFee,
+    @NotNull BigDecimal startPrice,
+    @Min(1) Integer estimatedMinutes,
+    String deliveryText) {}
+
+record TakeawaySettingView(Long storeId, String storeName, String acceptMode) {}
+
+record MerchantItemView(
+    Long id,
+    Long storeId,
+    String title,
+    String subtitle,
+    String categoryName,
+    BigDecimal price,
+    BigDecimal originalPrice,
+    Integer stock,
+    String status,
+    Integer salesCount) {}
+
+record DeliveryRuleOpsView(Long storeId, BigDecimal deliveryFee, BigDecimal startPrice, Integer estimatedMinutes, String deliveryText) {}
 
 record PaymentMethodView(String code, String name, boolean enabled) {}
 
@@ -75,6 +128,22 @@ record OrderSummaryView(
     String title,
     BigDecimal amount,
     LocalDateTime createdAt) {}
+
+record OpsOrderSummaryView(
+    Long id,
+    String orderNo,
+    String orderKind,
+    String displayStatus,
+    String paymentStatus,
+    String fulfillmentStatus,
+    String currentStage,
+    String currentStageText,
+    String storeName,
+    String title,
+    BigDecimal amount,
+    LocalDateTime createdAt) {}
+
+record OrderStatusCountView(String status, String label, long count) {}
 
 record TimelineNodeView(String code, String text, LocalDateTime reachedAt) {}
 

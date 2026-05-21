@@ -3,5 +3,9 @@
 # Backend build outputs
 services/backend/target/
 
+# Web build outputs
+apps/*/node_modules/
+apps/*/dist/
+
 # Local runtime/build handoff directories
 .aituan-local/
