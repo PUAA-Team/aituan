@@ -1,4 +1,5 @@
 import '../shared/enums/business_type.dart';
+import '../shared/models/address_model.dart';
 import '../shared/models/item_model.dart';
 import '../shared/models/merchant_model.dart';
 
@@ -74,4 +75,17 @@ class ReviewArgs {
 
   final String title;
   final String? orderId;
+}
+
+class AddressListArgs {
+  const AddressListArgs({this.selectMode = false, this.selectedAddressId});
+
+  final bool selectMode;
+  final String? selectedAddressId;
+}
+
+class AddressEditArgs {
+  const AddressEditArgs({this.address});
+
+  final AddressData? address;
 }

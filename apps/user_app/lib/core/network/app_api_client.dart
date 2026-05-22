@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 class AppApiException implements Exception {
   const AppApiException(this.message, {this.statusCode});
@@ -35,6 +36,56 @@ class AppApiClient {
 
   Future<Map<String, dynamic>> delete(String path) => _send('DELETE', path);
 
+  String resolveUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return '$baseUrl${path.startsWith('/') ? path : '/$path'}';
+  }
+
+  Future<Map<String, dynamic>> postMultipart(
+    String path, {
+    required String fileField,
+    required File file,
+    Map<String, String> fields = const {},
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final boundary = 'aituan-${DateTime.now().microsecondsSinceEpoch}';
+    final request = await _client.postUrl(uri);
+    request.headers.set(HttpHeaders.acceptHeader, ContentType.json.mimeType);
+    request.headers.contentType = ContentType(
+      'multipart',
+      'form-data',
+      parameters: {'boundary': boundary},
+    );
+    final token = tokenProvider?.call();
+    if (token != null && token.isNotEmpty) {
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+    }
+
+    final body = BytesBuilder();
+    for (final entry in fields.entries) {
+      body.add(utf8.encode('--$boundary\r\n'));
+      body.add(
+        utf8.encode(
+          'Content-Disposition: form-data; name="${entry.key}"\r\n\r\n${entry.value}\r\n',
+        ),
+      );
+    }
+    final filename = file.uri.pathSegments.isEmpty
+        ? 'upload.jpg'
+        : file.uri.pathSegments.last;
+    body.add(utf8.encode('--$boundary\r\n'));
+    body.add(
+      utf8.encode(
+        'Content-Disposition: form-data; name="$fileField"; filename="$filename"\r\n',
+      ),
+    );
+    body.add(utf8.encode('Content-Type: ${_mimeType(filename)}\r\n\r\n'));
+    body.add(await file.readAsBytes());
+    body.add(utf8.encode('\r\n--$boundary--\r\n'));
+    request.add(body.takeBytes());
+    return _handleResponse(await request.close());
+  }
+
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {
@@ -52,7 +103,12 @@ class AppApiClient {
       request.write(jsonEncode(body));
     }
 
-    final response = await request.close();
+    return _handleResponse(await request.close());
+  }
+
+  Future<Map<String, dynamic>> _handleResponse(
+    HttpClientResponse response,
+  ) async {
     final text = await response.transform(utf8.decoder).join();
     final decoded = text.isEmpty
         ? <String, dynamic>{}
@@ -71,6 +127,13 @@ class AppApiClient {
       );
     }
     return decoded;
+  }
+
+  String _mimeType(String filename) {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 
   String _message(Map<String, dynamic> json, String fallback) {

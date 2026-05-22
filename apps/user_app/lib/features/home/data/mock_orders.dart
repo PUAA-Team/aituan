@@ -12,6 +12,7 @@ final orders = [
     BusinessType.takeaway,
     39.7,
     '商家已接单，预计 35 分钟送达',
+    fulfillmentStatus: 'accepted',
   ),
   _order(
     'o2',
@@ -53,13 +54,15 @@ OrderModel _order(
   OrderStatus status,
   BusinessType businessType,
   double amount,
-  String desc,
-) => OrderModel(
+  String desc, {
+  String fulfillmentStatus = '',
+}) => OrderModel(
   id: id,
   title: title,
   storeName: storeName,
   kind: kind,
   status: status,
+  fulfillmentStatus: fulfillmentStatus,
   businessType: businessType,
   amount: amount,
   desc: desc,

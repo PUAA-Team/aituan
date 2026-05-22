@@ -6,6 +6,7 @@ class AppState extends ChangeNotifier {
   bool _loggedIn = false;
   String? _token;
   String _displayName = '游客';
+  String? _avatarUrl;
   String? _phone;
   String? _email;
   String _memberLevelName = '普通会员';
@@ -14,6 +15,7 @@ class AppState extends ChangeNotifier {
   bool get isLoggedIn => _loggedIn;
   String? get token => _token;
   String get displayName => _displayName;
+  String? get avatarUrl => _avatarUrl;
   String? get phone => _phone;
   String? get email => _email;
   String get memberLevelName => _memberLevelName;
@@ -22,6 +24,7 @@ class AppState extends ChangeNotifier {
   void login({
     required String token,
     required String displayName,
+    String? avatarUrl,
     String? phone,
     String? email,
     String? memberLevelName,
@@ -30,6 +33,7 @@ class AppState extends ChangeNotifier {
     _loggedIn = true;
     _token = token;
     _displayName = displayName;
+    _avatarUrl = avatarUrl;
     _phone = phone;
     _email = email;
     _memberLevelName = memberLevelName ?? '普通会员';
@@ -41,6 +45,7 @@ class AppState extends ChangeNotifier {
     _loggedIn = false;
     _token = null;
     _displayName = '游客';
+    _avatarUrl = null;
     _phone = null;
     _email = null;
     _memberLevelName = '普通会员';
@@ -50,6 +55,7 @@ class AppState extends ChangeNotifier {
 
   void updateProfile({
     String? displayName,
+    String? avatarUrl,
     String? phone,
     String? email,
     String? memberLevelName,
@@ -57,6 +63,7 @@ class AppState extends ChangeNotifier {
   }) {
     if (!_loggedIn) return;
     if (displayName != null) _displayName = displayName;
+    if (avatarUrl != null) _avatarUrl = avatarUrl;
     if (phone != null) _phone = phone;
     if (email != null) _email = email;
     if (memberLevelName != null) _memberLevelName = memberLevelName;

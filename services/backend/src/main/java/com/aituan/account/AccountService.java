@@ -3,18 +3,23 @@ package com.aituan.account;
 import com.aituan.common.api.PageResponse;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
+import com.aituan.common.file.FileAssetView;
+import com.aituan.common.file.FileStorageService;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 class AccountService {
   private final AccountRepository accountRepository;
+  private final FileStorageService fileStorageService;
 
-  AccountService(AccountRepository accountRepository) {
+  AccountService(AccountRepository accountRepository, FileStorageService fileStorageService) {
     this.accountRepository = accountRepository;
+    this.fileStorageService = fileStorageService;
   }
 
   AccountProfileView profile() {
@@ -33,6 +38,21 @@ class AccountService {
         accountRepository.countAddresses(currentUser.userId()),
         accountRepository.countFavorites(currentUser.userId(), null),
         accountRepository.countUnreadMessages(currentUser.userId()));
+  }
+
+  @Transactional
+  AccountProfileView updateProfile(AccountProfileUpdateRequest request) {
+    CurrentUser currentUser = CurrentUserContext.required();
+    accountRepository.updateProfile(currentUser.userId(), request.nickname().trim(), clean(request.avatarUrl()));
+    return profile();
+  }
+
+  @Transactional
+  AccountProfileView uploadAvatar(MultipartFile file) {
+    CurrentUser currentUser = CurrentUserContext.required();
+    FileAssetView asset = fileStorageService.save(file, "avatar");
+    accountRepository.updateAvatar(currentUser.userId(), asset.publicUrl());
+    return profile();
   }
 
   List<AddressView> addresses() {
@@ -82,6 +102,17 @@ class AccountService {
         accountRepository.markAddressDefault(userId, remain.get(0).id());
       }
     }
+  }
+
+  @Transactional
+  AddressView setDefaultAddress(long addressId) {
+    long userId = CurrentUserContext.required().userId();
+    requireAddress(userId, addressId);
+    accountRepository.clearDefaultAddresses(userId);
+    accountRepository.markAddressDefault(userId, addressId);
+    return accountRepository.findAddress(userId, addressId)
+        .map(this::toAddressView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
   PageResponse<FavoriteView> favorites(String favoriteType, int page, int pageSize) {
@@ -151,5 +182,9 @@ class AccountService {
 
   private String normalizeFavoriteType(String favoriteType) {
     return favoriteType == null ? null : favoriteType.trim().toLowerCase();
+  }
+
+  private String clean(String value) {
+    return value == null ? null : value.trim();
   }
 }

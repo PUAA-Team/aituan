@@ -588,10 +588,11 @@ class TradeRepository {
       jdbcTemplate.update(
           """
           update order_main
-          set display_status = ?, fulfillment_status = ?, completed_at = current_timestamp, updated_at = current_timestamp
+          set display_status = ?, fulfillment_status = ?, completed_at = case when ? = 'cancelled' then completed_at else current_timestamp end, updated_at = current_timestamp
           where id = ?
           """,
           displayStatus,
+          fulfillmentStatus,
           fulfillmentStatus,
           orderId);
       return;
@@ -681,6 +682,16 @@ class TradeRepository {
       markDeliveryNodeReached(taskId, nextStage);
     }
     return updated;
+  }
+
+  void cancelDeliveryTask(long orderId) {
+    jdbcTemplate.update(
+        """
+        update delivery_task
+        set current_stage = 'cancelled', current_stage_text = '订单已取消', next_tick_at = null, completed_at = current_timestamp, updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
+        """,
+        orderId);
   }
 
   void markDeliveryNodeReached(long taskId, String nodeCode) {

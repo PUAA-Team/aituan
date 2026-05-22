@@ -1,7 +1,11 @@
 import type {
   AuthSession,
+  CatalogCategory,
+  CatalogItem,
+  CatalogItemForm,
   DeliveryRule,
-  MerchantItem,
+  MerchantProfile,
+  MerchantStore,
   OpsOrder,
   OrderDetail,
   OrderStatusCount,
@@ -11,6 +15,12 @@ import type {
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const tokenKey = 'aituan_merchant_token';
+
+interface RequestOptions {
+  method?: string;
+  body?: unknown;
+  auth?: boolean;
+}
 
 export function getToken() {
   return localStorage.getItem(tokenKey) || '';
@@ -24,6 +34,12 @@ export function clearToken() {
   localStorage.removeItem(tokenKey);
 }
 
+export function resolveAssetUrl(path?: string) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export async function login(account: string, password: string) {
   const response = await request<AuthSession>('/api/open/auth/merchant/login/password', {
     method: 'POST',
@@ -34,9 +50,53 @@ export async function login(account: string, password: string) {
   return response;
 }
 
-export function fetchOrders(fulfillmentStatus = '') {
-  const query = new URLSearchParams({ page: '1', pageSize: '20' });
-  if (fulfillmentStatus) query.set('fulfillmentStatus', fulfillmentStatus);
+export function fetchMerchantProfile() {
+  return request<MerchantProfile>('/api/merchant/profile/me');
+}
+
+export function updateMerchantProfile(payload: Pick<MerchantProfile, 'merchantName' | 'contactName' | 'contactPhone'>) {
+  return request<MerchantProfile>('/api/merchant/profile/me', {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
+export function fetchCurrentStore() {
+  return request<MerchantStore>('/api/merchant/stores/current');
+}
+
+export function updateCurrentStore(payload: Partial<MerchantStore>) {
+  return request<MerchantStore>('/api/merchant/stores/current', {
+    method: 'PUT',
+    body: {
+      storeName: payload.storeName,
+      summary: payload.summary,
+      address: payload.address,
+      businessHoursText: payload.businessHoursText,
+      tagText: payload.tagText,
+      contactPhone: payload.contactPhone,
+      announcement: payload.announcement,
+      status: payload.status,
+    },
+  });
+}
+
+export function uploadStoreCover(file: File) {
+  const body = new FormData();
+  body.append('file', file);
+  return request<MerchantStore>('/api/merchant/stores/current/cover', {
+    method: 'POST',
+    body,
+  });
+}
+
+export function fetchOrders(params: { displayStatus?: string; fulfillmentStatus?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.displayStatus) query.set('displayStatus', params.displayStatus);
+  if (params.fulfillmentStatus) query.set('fulfillmentStatus', params.fulfillmentStatus);
   return request<PageResponse<OpsOrder>>(`/api/merchant/trade/orders?${query}`);
 }
 
@@ -48,6 +108,20 @@ export function fetchStats() {
   return request<OrderStatusCount[]>('/api/merchant/trade/orders/stats');
 }
 
+export function runOrderAction(orderId: number, action: string, remark = '') {
+  return request<OrderDetail>(`/api/merchant/trade/orders/${orderId}/${action}`, {
+    method: 'POST',
+    body: remark ? { remark } : {},
+  });
+}
+
+export function redeemVoucher(voucherCode: string) {
+  return request<OrderDetail>(`/api/merchant/trade/vouchers/${encodeURIComponent(voucherCode)}/redeem`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
 export function fetchTakeawaySetting(storeId: number) {
   return request<TakeawaySetting>(`/api/merchant/trade/stores/${storeId}/takeaway-setting`);
 }
@@ -56,33 +130,6 @@ export function updateTakeawaySetting(storeId: number, acceptMode: 'manual' | 'a
   return request<TakeawaySetting>(`/api/merchant/trade/stores/${storeId}/takeaway-setting`, {
     method: 'POST',
     body: { acceptMode },
-  });
-}
-
-export function fetchItems(storeId: number, status = '') {
-  const query = new URLSearchParams();
-  if (status) query.set('status', status);
-  const suffix = query.toString() ? `?${query}` : '';
-  return request<MerchantItem[]>(`/api/merchant/trade/stores/${storeId}/items${suffix}`);
-}
-
-export function updateItem(storeId: number, item: MerchantItem) {
-  return request<MerchantItem>(`/api/merchant/trade/stores/${storeId}/items/${item.id}`, {
-    method: 'POST',
-    body: {
-      title: item.title,
-      subtitle: item.subtitle,
-      price: item.price,
-      stock: item.stock,
-      status: item.status,
-    },
-  });
-}
-
-export function updateItemStatus(storeId: number, itemId: number, status: 'on_sale' | 'off_sale') {
-  return request<MerchantItem>(`/api/merchant/trade/stores/${storeId}/items/${itemId}/status`, {
-    method: 'POST',
-    body: { status },
   });
 }
 
@@ -102,23 +149,71 @@ export function updateDeliveryRule(storeId: number, rule: DeliveryRule) {
   });
 }
 
-export function runOrderAction(orderId: number, action: string) {
-  return request(`/api/merchant/trade/orders/${orderId}/${action}`, {
+export function fetchCatalogItems(filters: { businessType?: string; status?: string; keyword?: string } = {}) {
+  const query = new URLSearchParams();
+  if (filters.businessType) query.set('businessType', filters.businessType);
+  if (filters.status) query.set('status', filters.status);
+  if (filters.keyword) query.set('keyword', filters.keyword);
+  const suffix = query.toString() ? `?${query}` : '';
+  return request<CatalogItem[]>(`/api/merchant/catalog/items${suffix}`);
+}
+
+export function createCatalogItem(item: CatalogItemForm) {
+  return request<CatalogItem>('/api/merchant/catalog/items', {
     method: 'POST',
-    body: {},
+    body: item,
   });
 }
 
-async function request<T>(path: string, options: { method?: string; body?: unknown; auth?: boolean } = {}) {
+export function updateCatalogItem(itemId: number, item: CatalogItemForm) {
+  return request<CatalogItem>(`/api/merchant/catalog/items/${itemId}`, {
+    method: 'PUT',
+    body: item,
+  });
+}
+
+export function updateCatalogItemStatus(itemId: number, status: 'on_sale' | 'off_sale') {
+  return request<CatalogItem>(`/api/merchant/catalog/items/${itemId}/status`, {
+    method: 'POST',
+    body: { status },
+  });
+}
+
+export function uploadItemCover(itemId: number, file: File) {
+  const body = new FormData();
+  body.append('file', file);
+  return request<CatalogItem>(`/api/merchant/catalog/items/${itemId}/cover`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export function fetchCategories(businessType = '') {
+  const query = new URLSearchParams();
+  if (businessType) query.set('businessType', businessType);
+  const suffix = query.toString() ? `?${query}` : '';
+  return request<CatalogCategory[]>(`/api/merchant/catalog/categories${suffix}`);
+}
+
+export function createCategory(payload: { storeId?: number; businessType: string; categoryName: string; sortOrder?: number; status?: string }) {
+  return request<CatalogCategory>('/api/merchant/catalog/categories', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+async function request<T>(path: string, options: RequestOptions = {}) {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  const isFormData = options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
   if (options.auth !== false && getToken()) headers.Authorization = `Bearer ${getToken()}`;
   const response = await fetch(`${baseUrl}${path}`, {
     method: options.method || 'GET',
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : isFormData ? (options.body as FormData) : JSON.stringify(options.body),
   });
-  const json = await response.json().catch(() => ({}));
+  const text = await response.text();
+  const json = text ? JSON.parse(text) : {};
   if (!response.ok || json.code !== 0) {
     throw new Error(json.message || `请求失败：${response.status}`);
   }

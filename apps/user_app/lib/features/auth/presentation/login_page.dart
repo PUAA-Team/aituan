@@ -257,6 +257,7 @@ class _LoginPageState extends State<LoginPage> {
     AppScope.of(context).login(
       token: session.token,
       displayName: session.nickname,
+      avatarUrl: session.avatarUrl,
       phone: session.phone,
       email: session.email,
       memberLevelName: session.memberLevelName,

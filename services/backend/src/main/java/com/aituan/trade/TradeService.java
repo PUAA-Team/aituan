@@ -133,6 +133,41 @@ class TradeService {
     return getOrderDetail(orderId);
   }
 
+  @Transactional
+  OrderDetailView cancelTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    TradeRepository.OrderRow order = requireOrder(orderId);
+    if (!TAKEAWAY.equals(order.orderType())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "仅支持取消外卖订单");
+    }
+    if (DisplayOrderStatus.CANCELLED.code().equals(order.displayStatus())) {
+      return getOrderDetail(orderId);
+    }
+    if (DisplayOrderStatus.USED.code().equals(order.displayStatus()) || "completed".equals(order.fulfillmentStatus()) || "delivering".equals(order.fulfillmentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前状态不能取消");
+    }
+    CurrentUser current = CurrentUserContext.required();
+    tradeRepository.updateTakeawayFulfillment(orderId, DisplayOrderStatus.CANCELLED.code(), "cancelled", true);
+    tradeRepository.cancelDeliveryTask(orderId);
+    writeOrderLogs(order, "cancelled", "user_cancel", "user", current.accountId(), actionRemark(request) == null ? "用户取消订单" : actionRemark(request));
+    return getOrderDetail(orderId);
+  }
+
+  @Transactional
+  OrderDetailView remindTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    TradeRepository.OrderRow order = requireOrder(orderId);
+    if (!TAKEAWAY.equals(order.orderType())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "仅支持提醒外卖订单");
+    }
+    if (!DisplayOrderStatus.PENDING.code().equals(order.displayStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前状态不能催单");
+    }
+    CurrentUser current = CurrentUserContext.required();
+    String remark = actionRemark(request) == null ? "用户催单" : actionRemark(request);
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), order.fulfillmentStatus(), "user_remind", "user", current.accountId(), remark);
+    tradeRepository.insertAuditLog("user", current.accountId(), "user_remind", "order", order.id(), remark);
+    return getOrderDetail(orderId);
+  }
+
   PageResponse<OrderSummaryView> listOrders(String displayStatus, int page, int pageSize) {
     long userId = CurrentUserContext.required().userId();
     long total = tradeRepository.countOrders(userId, displayStatus);
@@ -241,7 +276,7 @@ class TradeService {
 
   @Transactional
   OrderDetailView rejectTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
-    return moveTakeawayOrder(orderId, "merchant_pending", nextStage("merchant_rejected", "商家已拒单", DisplayOrderStatus.USED.code(), true, false), "merchant_reject", request);
+    return moveTakeawayOrder(orderId, "merchant_pending", nextStage("merchant_rejected", "商家已拒单", DisplayOrderStatus.CANCELLED.code(), true, false), "merchant_reject", request);
   }
 
   @Transactional
@@ -745,6 +780,7 @@ class TradeService {
         row.orderNo(),
         row.orderType(),
         row.displayStatus(),
+        row.fulfillmentStatus(),
         row.storeName(),
         row.title(),
         row.payableAmount(),

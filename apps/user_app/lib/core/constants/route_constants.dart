@@ -16,6 +16,8 @@ class Routes {
   static const deliveryTracking = '/order/delivery-tracking';
   static const message = '/message/list';
   static const favorite = '/favorite';
+  static const addressList = '/address/list';
+  static const addressEdit = '/address/edit';
   static const profile = '/profile';
   static const reviewPublish = '/review/publish';
 }

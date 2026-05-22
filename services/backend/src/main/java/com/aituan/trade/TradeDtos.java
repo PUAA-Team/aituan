@@ -124,6 +124,7 @@ record OrderSummaryView(
     String orderNo,
     String orderKind,
     String displayStatus,
+    String fulfillmentStatus,
     String storeName,
     String title,
     BigDecimal amount,

@@ -27,6 +27,7 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   Object? _error;
   bool _loading = true;
   bool _paying = false;
+  bool _acting = false;
 
   String? get _orderId => widget.args.orderId;
 
@@ -66,8 +67,8 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
                 tag: takeawayStatusTag(detail.status, detail.fulfillmentStatus),
                 active: detail.status == OrderStatus.pending,
               ),
-              if (detail.deliveryTimeline.isNotEmpty)
-                _ProgressCard(nodes: detail.deliveryTimeline),
+              if (_visibleTimeline(detail).isNotEmpty)
+                _ProgressCard(nodes: _visibleTimeline(detail)),
               _StoreCard(detail: detail),
               _GoodsCard(detail: detail),
               _FeeCard(detail: detail),
@@ -79,12 +80,10 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       bottomNavigationBar: detail == null
           ? null
           : AppBottomActionBar(
-              primaryText: _primaryText(detail.status),
-              onPrimary: _paying ? null : () => _primaryAction(detail),
-              secondaryText: detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪',
-              onSecondary: detail.deliveryTimeline.isEmpty
-                  ? _load
-                  : () => _openDeliveryTracking(detail),
+              primaryText: _primaryText(detail),
+              onPrimary: _busy ? null : () => _primaryAction(detail),
+              secondaryText: _secondaryText(detail),
+              onSecondary: _busy ? null : () => _secondaryAction(detail),
             ),
     );
   }
@@ -115,6 +114,8 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     }
   }
 
+  bool get _busy => _paying || _acting;
+
   Future<void> _pay(OrderDetailData detail) async {
     try {
       setState(() => _paying = true);
@@ -127,9 +128,59 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _paying = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('支付失败：$error')));
+      _showSnackBar('支付失败：$error');
+    }
+  }
+
+  Future<void> _cancel(OrderDetailData detail) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消订单'),
+        content: const Text('确认取消当前外卖订单吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('再想想'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认取消'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      setState(() => _acting = true);
+      final cancelled = await backendRepository.cancelOrder(detail.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = cancelled;
+        _acting = false;
+      });
+      _showSnackBar('订单已取消');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('取消失败：$error');
+    }
+  }
+
+  Future<void> _remind(OrderDetailData detail) async {
+    try {
+      setState(() => _acting = true);
+      final updated = await backendRepository.remindOrder(detail.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = updated;
+        _acting = false;
+      });
+      _showSnackBar('已提醒商家处理');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('催单失败：$error');
     }
   }
 
@@ -138,20 +189,48 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       _pay(detail);
       return;
     }
+    if (detail.status == OrderStatus.pending) {
+      _remind(detail);
+      return;
+    }
     if (detail.status == OrderStatus.used) {
       Navigator.pushNamed(
         context,
         Routes.reviewPublish,
         arguments: ReviewArgs(title: detail.title, orderId: detail.id),
-      );
+      ).then((_) => _load());
       return;
     }
+    _openStore(detail);
+  }
+
+  void _secondaryAction(OrderDetailData detail) {
+    if (_canCancel(detail)) {
+      _cancel(detail);
+      return;
+    }
+    if (detail.deliveryTimeline.isEmpty) {
+      _load();
+      return;
+    }
+    _openDeliveryTracking(detail);
+  }
+
+  void _openStore(OrderDetailData detail) {
     Navigator.pushNamed(
       context,
       Routes.searchResult,
       arguments: SearchArgs(detail.storeName),
-    );
+    ).then((_) => _load());
   }
+
+  List<TimelineNodeData> _visibleTimeline(OrderDetailData detail) => detail
+      .deliveryTimeline
+      .where(
+        (node) =>
+            node.reachedAt != null || node.code == detail.fulfillmentStatus,
+      )
+      .toList();
 
   Future<void> _openDeliveryTracking(OrderDetailData detail) async {
     await Navigator.pushNamed(
@@ -166,11 +245,36 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     await _load();
   }
 
-  String _primaryText(OrderStatus status) => switch (status) {
+  bool _canCancel(OrderDetailData detail) {
+    if (detail.status == OrderStatus.unpaid) return true;
+    if (detail.status != OrderStatus.pending) return false;
+    return !{
+      'delivering',
+      'delivered',
+      'completed',
+      'cancelled',
+      'merchant_rejected',
+    }.contains(detail.fulfillmentStatus);
+  }
+
+  String _primaryText(OrderDetailData detail) => switch (detail.status) {
     OrderStatus.unpaid => _paying ? '支付中' : '模拟支付',
+    OrderStatus.pending => _acting ? '催单中' : '催单',
     OrderStatus.used => '去评价',
     _ => '查看商家',
   };
+
+  String _secondaryText(OrderDetailData detail) {
+    if (_acting && _canCancel(detail)) return '处理中';
+    if (_canCancel(detail)) return '取消订单';
+    return detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪';
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 class _StatusCard extends StatelessWidget {

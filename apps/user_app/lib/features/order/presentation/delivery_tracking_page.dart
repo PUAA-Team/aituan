@@ -144,7 +144,12 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nodes = detail.deliveryTimeline;
+    final nodes = detail.deliveryTimeline
+        .where(
+          (node) =>
+              node.reachedAt != null || node.code == detail.fulfillmentStatus,
+        )
+        .toList();
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

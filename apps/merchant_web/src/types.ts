@@ -1,3 +1,5 @@
+export type ConsolePage = 'orders' | 'catalog' | 'fulfillment' | 'store';
+
 export interface AuthSession {
   token: string;
   profile: {
@@ -13,9 +15,41 @@ export interface PageResponse<T> {
   hasNext: boolean;
 }
 
+export interface MerchantProfile {
+  merchantId: number;
+  merchantName: string;
+  contactName: string;
+  contactPhone: string;
+  licenseNo: string;
+  status: string;
+  auditStatus: string;
+  currentStoreId?: number;
+  stores: MerchantStore[];
+}
+
+export interface MerchantStore {
+  id: number;
+  merchantId: number;
+  storeName: string;
+  businessType: string;
+  summary: string;
+  address: string;
+  rating: number;
+  monthlySales: number;
+  avgPrice: number;
+  status: string;
+  businessHoursText: string;
+  tagText: string;
+  coverUrl: string;
+  contactPhone: string;
+  announcement: string;
+  updatedAt: string;
+}
+
 export interface OpsOrder {
   id: number;
   orderNo: string;
+  orderKind: string;
   displayStatus: string;
   paymentStatus: string;
   fulfillmentStatus: string;
@@ -35,6 +69,7 @@ export interface OrderLineItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  coverUrl?: string;
 }
 
 export interface TimelineNode {
@@ -80,17 +115,48 @@ export interface TakeawaySetting {
   acceptMode: 'manual' | 'auto';
 }
 
-export interface MerchantItem {
+export interface CatalogItem {
   id: number;
   storeId: number;
+  storeName: string;
+  businessType: string;
+  categoryId?: number;
+  categoryName: string;
   title: string;
   subtitle: string;
-  categoryName: string;
   price: number;
   originalPrice?: number;
   stock: number;
   status: 'on_sale' | 'off_sale';
+  coverUrl: string;
+  tagText: string;
   salesCount: number;
+  updatedAt: string;
+}
+
+export interface CatalogItemForm {
+  storeId?: number;
+  businessType: string;
+  categoryId?: number;
+  title: string;
+  subtitle: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  status: 'on_sale' | 'off_sale';
+  coverUrl: string;
+  tagText: string;
+}
+
+export interface CatalogCategory {
+  id: number;
+  storeId: number;
+  businessType: string;
+  categoryCode: string;
+  categoryName: string;
+  sortOrder: number;
+  status: string;
+  updatedAt: string;
 }
 
 export interface DeliveryRule {

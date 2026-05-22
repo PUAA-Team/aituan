@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants/route_constants.dart';
+import '../features/address/presentation/address_edit_page.dart';
+import '../features/address/presentation/address_list_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
 import '../features/checkout/presentation/checkout_page.dart';
@@ -33,6 +35,8 @@ class AppRouter {
     Routes.deliveryTracking,
     Routes.message,
     Routes.favorite,
+    Routes.addressList,
+    Routes.addressEdit,
     Routes.profile,
     Routes.reviewPublish,
   };
@@ -72,6 +76,14 @@ class AppRouter {
         settings,
       ),
       Routes.favorite => _page(const FavoritePage(), settings),
+      Routes.addressList => _page(
+        AddressListPage(args: _addressListArgs(settings.arguments)),
+        settings,
+      ),
+      Routes.addressEdit => _page(
+        AddressEditPage(args: _addressEditArgs(settings.arguments)),
+        settings,
+      ),
       Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
       _ => _page(const SplashPage(), settings),
     };
@@ -126,6 +138,12 @@ class AppRouter {
     String keyword => keyword,
     _ => '',
   };
+
+  static AddressListArgs _addressListArgs(Object? args) =>
+      args is AddressListArgs ? args : const AddressListArgs();
+
+  static AddressEditArgs _addressEditArgs(Object? args) =>
+      args is AddressEditArgs ? args : const AddressEditArgs();
 
   static ItemModel _item(Object? args) =>
       args is ItemArgs ? args.item : serviceItems.first;
