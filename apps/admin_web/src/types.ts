@@ -27,14 +27,58 @@ export interface DashboardView {
 
 export interface AdminMerchant {
   merchantId: number;
+  accountId?: number;
   merchantName: string;
   contactName: string;
   contactPhone: string;
+  licenseNo: string;
   status: string;
   auditStatus: string;
   storeCount: number;
   itemCount: number;
   settledAt: string;
+}
+
+export interface AdminMerchantForm {
+  accountId?: number;
+  merchantName: string;
+  contactName: string;
+  contactPhone: string;
+  licenseNo: string;
+  status: string;
+  auditStatus: string;
+}
+
+export interface AdminMerchantApplication {
+  id: number;
+  applicationNo: string;
+  accountId?: number;
+  merchantName: string;
+  contactName: string;
+  contactPhone: string;
+  businessType: string;
+  storeName: string;
+  address: string;
+  status: string;
+  auditRemark?: string;
+  submittedAt: string;
+  auditedBy?: number;
+  auditedAt?: string;
+}
+
+export interface AdminCertificationMaterial {
+  id: number;
+  merchantId: number;
+  applicationId?: number;
+  merchantName: string;
+  materialType: string;
+  materialName: string;
+  fileUrl: string;
+  status: string;
+  rejectReason?: string;
+  submittedAt: string;
+  auditedBy?: number;
+  auditedAt?: string;
 }
 
 export interface AdminStore {
@@ -46,10 +90,26 @@ export interface AdminStore {
   summary: string;
   address: string;
   status: string;
+  businessHoursText: string;
+  tagText: string;
   coverUrl: string;
   contactPhone: string;
   announcement: string;
   updatedAt: string;
+}
+
+export interface AdminStoreForm {
+  merchantId?: number;
+  storeName: string;
+  businessType: string;
+  summary: string;
+  address: string;
+  status: string;
+  businessHoursText: string;
+  tagText: string;
+  coverUrl: string;
+  contactPhone: string;
+  announcement: string;
 }
 
 export interface AdminUser {
@@ -63,6 +123,14 @@ export interface AdminUser {
   addressCount: number;
   orderCount: number;
   createdAt: string;
+}
+
+export interface AdminUserForm {
+  nickname: string;
+  avatarUrl: string;
+  phone: string;
+  email: string;
+  status: string;
 }
 
 export interface OpsOrder {
@@ -143,6 +211,31 @@ export interface CatalogItem {
   coverUrl: string;
   tagText: string;
   salesCount: number;
+  updatedAt: string;
+}
+
+export interface CatalogItemForm {
+  storeId?: number;
+  businessType: string;
+  categoryId?: number;
+  title: string;
+  subtitle: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  status: 'on_sale' | 'off_sale';
+  coverUrl: string;
+  tagText: string;
+}
+
+export interface CatalogCategory {
+  id: number;
+  storeId: number;
+  businessType: string;
+  categoryCode: string;
+  categoryName: string;
+  sortOrder: number;
+  status: string;
   updatedAt: string;
 }
 

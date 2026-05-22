@@ -12,6 +12,7 @@ class MerchantModel {
     required this.address,
     required this.tags,
     required this.items,
+    this.coverUrl,
     this.status = 'open',
     this.businessHours = '10:00-22:00',
     this.monthlySales = 0,
@@ -28,6 +29,7 @@ class MerchantModel {
   final String address;
   final List<String> tags;
   final List<ItemModel> items;
+  final String? coverUrl;
   final String status;
   final String businessHours;
   final int monthlySales;

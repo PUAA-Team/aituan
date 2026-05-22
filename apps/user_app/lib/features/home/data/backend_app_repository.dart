@@ -801,6 +801,7 @@ MerchantModel _merchantFromStoreCard(
   address: _string(json['address']),
   tags: _strings(json['tags']),
   items: items,
+  coverUrl: _nullableString(json['coverUrl']),
   status: _string(json['status'], fallback: 'open'),
   businessHours: _string(json['businessHoursText'], fallback: '10:00-22:00'),
   monthlySales: _int(json['monthlySales']),
@@ -851,6 +852,7 @@ List<OrderModel> _orders(dynamic value) => _list(value).map((entry) {
     businessType: type,
     amount: _double(json['amount']),
     desc: _string(json['title']),
+    coverUrl: _nullableString(json['coverUrl']),
   );
 }).toList();
 

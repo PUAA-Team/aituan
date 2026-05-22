@@ -28,6 +28,7 @@ class ServiceMerchantHero extends StatelessWidget {
               size: 84,
               icon: businessIcon(merchant.type),
               label: merchant.type.label,
+              imageUrl: merchant.coverUrl,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -192,6 +193,7 @@ class _ServiceItem extends StatelessWidget {
           size: 78,
           icon: businessIcon(item.type),
           label: item.category,
+          imageUrl: item.coverUrl,
         ),
         const SizedBox(width: 12),
         Expanded(

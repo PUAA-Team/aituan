@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue';
-import { resolveAssetUrl, updateCurrentStore, updateMerchantProfile, uploadStoreCover } from '../api';
-import type { MerchantProfile, MerchantStore } from '../types';
+import { onMounted, reactive, ref, watch } from 'vue';
+import { fetchCertification, resolveAssetUrl, updateCurrentStore, updateMerchantProfile, uploadCertificationMaterial, uploadStoreCover } from '../api';
+import type { MerchantCertification, MerchantProfile, MerchantStore } from '../types';
 
 const props = defineProps<{
   profile: MerchantProfile;
@@ -30,7 +30,14 @@ const storeForm = reactive({
   status: 'open',
 });
 
+const certification = ref<MerchantCertification | null>(null);
+const materialType = ref('business_license');
+const materialName = ref('营业执照');
+const materialBusy = ref(false);
+
 watch([() => props.profile, () => props.store], syncForms, { immediate: true });
+watch(() => props.profile.merchantId, loadCertification);
+onMounted(loadCertification);
 
 function syncForms() {
   profileForm.merchantName = props.profile.merchantName;
@@ -44,6 +51,14 @@ function syncForms() {
   storeForm.contactPhone = props.store.contactPhone || '';
   storeForm.announcement = props.store.announcement || '';
   storeForm.status = props.store.status || 'open';
+}
+
+async function loadCertification() {
+  try {
+    certification.value = await fetchCertification();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
 }
 
 async function saveProfile() {
@@ -80,6 +95,42 @@ async function onCoverChange(event: Event) {
     input.value = '';
   }
 }
+
+async function onMaterialChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  materialBusy.value = true;
+  try {
+    await uploadCertificationMaterial(materialType.value, materialName.value, file);
+    emit('notice', '认证材料已提交审核');
+    await loadCertification();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  } finally {
+    materialBusy.value = false;
+    input.value = '';
+  }
+}
+
+function materialTypeText(value: string) {
+  const map: Record<string, string> = {
+    business_license: '营业执照',
+    food_license: '食品经营许可证',
+    identity: '法人身份证明',
+    other: '其他材料',
+  };
+  return map[value] || value;
+}
+
+function statusText(value: string) {
+  const map: Record<string, string> = {
+    pending: '待审核',
+    approved: '已通过',
+    rejected: '已驳回',
+  };
+  return map[value] || value;
+}
 </script>
 
 <template>
@@ -113,11 +164,42 @@ async function onCoverChange(event: Event) {
         </label>
       </div>
       <div class="info-list compact">
-        <span>资质编号：{{ props.profile.licenseNo }}</span>
-        <span>审核状态：{{ props.profile.auditStatus }}</span>
+        <span>资质编号：{{ props.profile.licenseNo || '-' }}</span>
+        <span>审核状态：{{ statusText(props.profile.auditStatus) }}</span>
       </div>
       <div class="form-actions"><button class="primary-btn">保存主体资料</button></div>
     </form>
+
+    <article class="panel-card wide">
+      <div class="panel-toolbar"><h2>认证材料</h2></div>
+      <div class="form-grid three">
+        <label>
+          材料类型
+          <select v-model="materialType">
+            <option value="business_license">营业执照</option>
+            <option value="food_license">食品经营许可证</option>
+            <option value="identity">法人身份证明</option>
+            <option value="other">其他材料</option>
+          </select>
+        </label>
+        <label>材料名称<input v-model="materialName" /></label>
+        <label>
+          上传材料
+          <input type="file" accept="image/png,image/jpeg,image/webp" :disabled="materialBusy" @change="onMaterialChange" />
+        </label>
+      </div>
+      <div class="audit-list">
+        <div v-for="item in certification?.materials || []" :key="item.id" class="audit-row">
+          <strong>{{ item.materialName || materialTypeText(item.materialType) }}</strong>
+          <span>{{ materialTypeText(item.materialType) }} · {{ statusText(item.status) }}</span>
+          <small>
+            <a :href="resolveAssetUrl(item.fileUrl)" target="_blank" rel="noreferrer">查看材料</a>
+            <template v-if="item.rejectReason"> · {{ item.rejectReason }}</template>
+          </small>
+        </div>
+        <div v-if="!certification?.materials?.length" class="empty-card">暂无认证材料</div>
+      </div>
+    </article>
 
     <form class="panel-card wide" @submit.prevent="saveStore">
       <div class="panel-toolbar"><h2>门店经营资料</h2></div>

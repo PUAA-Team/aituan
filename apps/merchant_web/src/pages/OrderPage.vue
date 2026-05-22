@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { fetchOrderDetail, fetchOrders, fetchStats, runOrderAction } from '../api';
-import type { OpsOrder, OrderDetail, OrderStatusCount } from '../types';
+import type { MerchantStore, OpsOrder, OrderDetail, OrderStatusCount } from '../types';
 
 const props = defineProps<{
+  store: MerchantStore;
   refreshKey: number;
 }>();
 
@@ -17,7 +18,9 @@ const orders = ref<OpsOrder[]>([]);
 const stats = ref<OrderStatusCount[]>([]);
 const selectedOrder = ref<OrderDetail | null>(null);
 
-const statusOptions = [
+const isTakeaway = computed(() => props.store.businessType === 'takeaway');
+
+const takeawayStatusOptions = [
   { value: '', label: '全部履约' },
   { value: 'merchant_pending', label: '待接单' },
   { value: 'accepted', label: '已接单' },
@@ -30,8 +33,22 @@ const statusOptions = [
   { value: 'abnormal', label: '异常' },
 ];
 
+const serviceStatusOptions = [
+  { value: '', label: '全部订单' },
+  { value: 'created', label: '待付款' },
+  { value: 'voucher_unused', label: '待核销' },
+  { value: 'voucher_used', label: '已核销' },
+  { value: 'cancelled', label: '已取消' },
+];
+
+const statusOptions = computed(() => (isTakeaway.value ? takeawayStatusOptions : serviceStatusOptions));
+
 onMounted(load);
 watch(() => props.refreshKey, load);
+watch(() => props.store.businessType, () => {
+  filter.value = '';
+  load();
+});
 watch(filter, load);
 
 async function load() {
@@ -75,6 +92,7 @@ async function act(order: OpsOrder, action: string, label: string) {
 }
 
 function actionsFor(order: OpsOrder) {
+  if (!isTakeaway.value || order.orderKind !== 'takeaway') return [];
   switch (order.currentStage || order.fulfillmentStatus) {
     case 'merchant_pending':
       return [
@@ -97,7 +115,7 @@ function actionsFor(order: OpsOrder) {
 
 function statusText(order: OpsOrder) {
   const value = order.currentStage || order.fulfillmentStatus;
-  const option = statusOptions.find((item) => item.value === value);
+  const option = statusOptions.value.find((item) => item.value === value);
   return option?.label || order.currentStageText || value;
 }
 
@@ -128,7 +146,7 @@ function timeText(value: string | undefined) {
       <div class="panel-toolbar">
         <h2>订单列表</h2>
         <label class="inline-field">
-          履约状态
+          {{ isTakeaway ? '履约状态' : '券码状态' }}
           <select v-model="filter">
             <option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
@@ -189,7 +207,7 @@ function timeText(value: string | undefined) {
         <button class="text-btn" @click="selectedOrder = null">收起</button>
       </div>
       <div class="info-list">
-        <span>收货地址：{{ selectedOrder.addressSnapshot || '暂无' }}</span>
+        <span>{{ isTakeaway ? '收货地址' : '使用信息' }}：{{ selectedOrder.addressSnapshot || '暂无' }}</span>
         <span>备注：{{ selectedOrder.remark || '无' }}</span>
         <span>支付状态：{{ selectedOrder.paymentStatus }}</span>
       </div>
@@ -200,11 +218,11 @@ function timeText(value: string | undefined) {
         </div>
       </div>
       <div class="fee-box">
-        <span>商品金额 {{ money(selectedOrder.amount) }}</span>
-        <span>配送费 {{ money(selectedOrder.deliveryFee) }}</span>
+        <span>{{ isTakeaway ? '商品金额' : '订单金额' }} {{ money(selectedOrder.amount) }}</span>
+        <span v-if="isTakeaway">配送费 {{ money(selectedOrder.deliveryFee) }}</span>
         <strong>实付 {{ money(selectedOrder.payableAmount) }}</strong>
       </div>
-      <div class="timeline-list">
+      <div v-if="isTakeaway" class="timeline-list">
         <div
           v-for="node in selectedOrder.deliveryTimeline?.nodes || []"
           :key="node.code"

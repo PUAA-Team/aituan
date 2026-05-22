@@ -5,15 +5,41 @@ INSERT INTO iam_role (id, role_code, role_name, status, remark) VALUES
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
 INSERT INTO iam_account (id, account_no, account_type, login_name, phone, email, password_hash, status) VALUES
-  (1, 'U202605170001', 'USER', 'demo_user', '18800001111', 'user@example.com', '{noop}aituan123', 'normal'),
-  (2, 'M202605170001', 'MERCHANT', 'demo_merchant', '18800002222', 'merchant@example.com', '{noop}aituan123', 'normal'),
-  (3, 'A202605170001', 'ADMIN', 'demo_admin', '18800003333', 'admin@example.com', '{noop}aituan123', 'normal')
-ON DUPLICATE KEY UPDATE login_name = VALUES(login_name), password_hash = VALUES(password_hash);
+  (1, 'U202605170001', 'USER', 'demo_user', '18800001111', 'user@example.com', '{noop}123456', 'normal'),
+  (2, 'M202605170001', 'MERCHANT', 'demo_merchant', '18800002222', 'merchant@example.com', '{noop}123456', 'normal'),
+  (3, 'A202605170001', 'ADMIN', 'demo_admin', '18800003333', 'admin@example.com', '{noop}123456', 'normal'),
+  (21, 'M202605170021', 'MERCHANT', 'demo_takeaway_merchant', '18800002021', 'takeaway@example.com', '{noop}123456', 'normal'),
+  (22, 'M202605170022', 'MERCHANT', 'demo_groupbuy_merchant', '18800002022', 'groupbuy@example.com', '{noop}123456', 'normal'),
+  (23, 'M202605170023', 'MERCHANT', 'demo_hotel_merchant', '18800002023', 'hotel@example.com', '{noop}123456', 'normal'),
+  (24, 'M202605170024', 'MERCHANT', 'demo_entertainment_merchant', '18800002024', 'entertainment@example.com', '{noop}123456', 'normal'),
+  (25, 'M202605170025', 'MERCHANT', 'demo_movie_merchant', '18800002025', 'movie@example.com', '{noop}123456', 'normal'),
+  (26, 'M202605170026', 'MERCHANT', 'demo_beauty_merchant', '18800002026', 'beauty@example.com', '{noop}123456', 'normal'),
+  (27, 'M202605170027', 'MERCHANT', 'demo_ticket_merchant', '18800002027', 'ticket@example.com', '{noop}123456', 'normal'),
+  (28, 'M202605170028', 'MERCHANT', 'demo_massage_merchant', '18800002028', 'massage@example.com', '{noop}123456', 'normal'),
+  (29, 'M202605170029', 'MERCHANT', 'demo_bibimbap_merchant', '18800002029', 'bibimbap@example.com', '{noop}123456', 'normal'),
+  (30, 'M202605170030', 'MERCHANT', 'demo_bbq_merchant', '18800002030', 'bbq@example.com', '{noop}123456', 'normal'),
+  (31, 'M202605170031', 'MERCHANT', 'demo_hotel_room_merchant', '18800002031', 'hotelroom@example.com', '{noop}123456', 'normal'),
+  (32, 'M202605170032', 'MERCHANT', 'demo_arcade_merchant', '18800002032', 'arcade@example.com', '{noop}123456', 'normal'),
+  (33, 'M202605170033', 'MERCHANT', 'demo_spa_merchant', '18800002033', 'spa@example.com', '{noop}123456', 'normal')
+ON DUPLICATE KEY UPDATE login_name = VALUES(login_name), password_hash = VALUES(password_hash), status = VALUES(status);
 
 INSERT INTO iam_account_role (id, account_id, role_id) VALUES
   (1, 1, 1),
   (2, 2, 2),
-  (3, 3, 3)
+  (3, 3, 3),
+  (21, 21, 2),
+  (22, 22, 2),
+  (23, 23, 2),
+  (24, 24, 2),
+  (25, 25, 2),
+  (26, 26, 2),
+  (27, 27, 2),
+  (28, 28, 2),
+  (29, 29, 2),
+  (30, 30, 2),
+  (31, 31, 2),
+  (32, 32, 2),
+  (33, 33, 2)
 ON DUPLICATE KEY UPDATE role_id = VALUES(role_id);
 
 INSERT INTO user_profile (id, account_id, nickname, avatar_url, register_source, member_level_name, growth_value, status) VALUES
@@ -27,24 +53,20 @@ ON DUPLICATE KEY UPDATE detail_address = VALUES(detail_address), is_default = VA
 
 INSERT INTO merchant_profile (id, merchant_no, account_id, merchant_name, contact_name, contact_phone, license_no, status, audit_status, settled_at) VALUES
   (1, 'MCH001', 2, '塔斯汀中国汉堡', '张店长', '18810000001', 'L001', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (2, 'MCH002', NULL, '松记炸鸡饭', '王店长', '18810000002', 'L002', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (3, 'MCH003', NULL, '江南小馆', '陈店长', '18810000003', 'L003', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (4, 'MCH004', NULL, '云栖酒店', '赵经理', '18810000004', 'L004', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (5, 'MCH005', NULL, '星盒密室', '孙经理', '18810000005', 'L005', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (6, 'MCH006', NULL, '光影剧场', '周经理', '18810000006', 'L006', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (7, 'MCH007', NULL, '轻颜护理', '吴经理', '18810000007', 'L007', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (8, 'MCH008', NULL, '城市观景', '郑经理', '18810000008', 'L008', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (9, 'MCH009', NULL, '雅境足道', '冯经理', '18810000009', 'L009', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (10, 'MCH010', NULL, '米村拌饭', '刘店长', '18810000010', 'L010', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (11, 'MCH011', NULL, '琥珀烤肉', '许经理', '18810000011', 'L011', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (12, 'MCH012', NULL, '曼居影院酒店', '钱经理', '18810000012', 'L012', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (13, 'MCH013', NULL, '趣动电玩城', '马经理', '18810000013', 'L013', 'normal', 'approved', CURRENT_TIMESTAMP),
-  (14, 'MCH014', NULL, '悦己SPA', '林经理', '18810000014', 'L014', 'normal', 'approved', CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE merchant_name = VALUES(merchant_name), status = VALUES(status);
-
-UPDATE merchant_profile
-SET account_id = 2, updated_at = CURRENT_TIMESTAMP
-WHERE id IN (2, 10) AND (account_id IS NULL OR account_id = 2);
+  (2, 'MCH002', 21, '松记炸鸡饭', '王店长', '18810000002', 'L002', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (3, 'MCH003', 22, '江南小馆', '陈店长', '18810000003', 'L003', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (4, 'MCH004', 23, '云栖酒店', '赵经理', '18810000004', 'L004', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (5, 'MCH005', 24, '星盒密室', '孙经理', '18810000005', 'L005', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (6, 'MCH006', 25, '光影剧场', '周经理', '18810000006', 'L006', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (7, 'MCH007', 26, '轻颜护理', '吴经理', '18810000007', 'L007', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (8, 'MCH008', 27, '城市观景', '郑经理', '18810000008', 'L008', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (9, 'MCH009', 28, '雅境足道', '冯经理', '18810000009', 'L009', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (10, 'MCH010', 29, '米村拌饭', '刘店长', '18810000010', 'L010', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (11, 'MCH011', 30, '琥珀烤肉', '许经理', '18810000011', 'L011', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (12, 'MCH012', 31, '曼居影院酒店', '钱经理', '18810000012', 'L012', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (13, 'MCH013', 32, '趣动电玩城', '马经理', '18810000013', 'L013', 'normal', 'approved', CURRENT_TIMESTAMP),
+  (14, 'MCH014', 33, '悦己SPA', '林经理', '18810000014', 'L014', 'normal', 'approved', CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE account_id = VALUES(account_id), merchant_name = VALUES(merchant_name), status = VALUES(status), updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary, address, distance_text, rating, monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url) VALUES
   (1, 1, '塔斯汀中国汉堡', 'takeaway', '现烤汉堡，附近高复购外卖', '城市广场 1 层', '900m', 4.8, 3290, 28.00, 'open', '09:30-22:30', '35分钟送达,配送费¥4,满减', 'https://picsum.photos/seed/aituan-store-burger/900/520'),
@@ -71,8 +93,8 @@ ON DUPLICATE KEY UPDATE delivery_fee = VALUES(delivery_fee), estimated_minutes =
 
 INSERT INTO merchant_takeaway_setting (id, store_id, accept_mode, updated_by) VALUES
   (1, 1, 'manual', 2),
-  (2, 2, 'auto', 2),
-  (3, 10, 'manual', 2)
+  (2, 2, 'auto', 21),
+  (3, 10, 'manual', 29)
 ON DUPLICATE KEY UPDATE accept_mode = VALUES(accept_mode), updated_by = VALUES(updated_by), is_deleted = 0;
 
 INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_name, business_type, category_level, sort_order, status) VALUES

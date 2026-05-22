@@ -147,6 +147,7 @@ class _FavoriteCard extends StatelessWidget {
               ? Icons.storefront
               : Icons.local_activity,
           label: favorite.favoriteType,
+          imageUrl: favorite.coverUrl,
         ),
         const SizedBox(width: 10),
         Expanded(

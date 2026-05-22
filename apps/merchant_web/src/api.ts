@@ -3,7 +3,11 @@ import type {
   CatalogCategory,
   CatalogItem,
   CatalogItemForm,
+  CertificationMaterial,
   DeliveryRule,
+  MerchantApplicationForm,
+  MerchantApplicationView,
+  MerchantCertification,
   MerchantProfile,
   MerchantStore,
   OpsOrder,
@@ -48,6 +52,29 @@ export async function login(account: string, password: string) {
   });
   setToken(response.token);
   return response;
+}
+
+export function submitMerchantApplication(payload: MerchantApplicationForm) {
+  return request<MerchantApplicationView>('/api/open/merchant/applications', {
+    method: 'POST',
+    body: payload,
+    auth: false,
+  });
+}
+
+export function fetchCertification() {
+  return request<MerchantCertification>('/api/merchant/certification');
+}
+
+export function uploadCertificationMaterial(materialType: string, materialName: string, file: File) {
+  const body = new FormData();
+  body.append('materialType', materialType);
+  body.append('materialName', materialName);
+  body.append('file', file);
+  return request<CertificationMaterial>('/api/merchant/certification/materials', {
+    method: 'POST',
+    body,
+  });
 }
 
 export function fetchMerchantProfile() {

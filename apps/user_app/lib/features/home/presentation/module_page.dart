@@ -150,6 +150,7 @@ class _ModulePageState extends State<ModulePage> {
       address: merchant.address,
       tags: merchant.tags,
       items: decorated,
+      coverUrl: merchant.coverUrl,
       status: merchant.status,
       businessHours: merchant.businessHours,
       monthlySales: merchant.monthlySales,
@@ -209,6 +210,7 @@ class _HotCard extends StatelessWidget {
           height: 70,
           icon: businessIcon(item.type),
           label: item.category,
+          imageUrl: item.coverUrl,
         ),
         const SizedBox(height: 8),
         Text(

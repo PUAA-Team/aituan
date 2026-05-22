@@ -46,6 +46,44 @@ export interface MerchantStore {
   updatedAt: string;
 }
 
+export interface MerchantApplicationForm {
+  merchantName: string;
+  contactName: string;
+  contactPhone: string;
+  businessType: string;
+  storeName: string;
+  address: string;
+}
+
+export interface MerchantApplicationView extends MerchantApplicationForm {
+  id: number;
+  applicationNo: string;
+  accountId?: number;
+  status: string;
+  auditRemark?: string;
+  submittedAt: string;
+  auditedAt?: string;
+}
+
+export interface MerchantCertification {
+  auditStatus: string;
+  licenseNo: string;
+  materials: CertificationMaterial[];
+}
+
+export interface CertificationMaterial {
+  id: number;
+  merchantId: number;
+  applicationId?: number;
+  materialType: string;
+  materialName: string;
+  fileUrl: string;
+  status: string;
+  rejectReason?: string;
+  submittedAt: string;
+  auditedAt?: string;
+}
+
 export interface OpsOrder {
   id: number;
   orderNo: string;

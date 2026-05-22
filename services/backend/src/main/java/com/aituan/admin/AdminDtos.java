@@ -1,6 +1,7 @@
 package com.aituan.admin;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -15,14 +16,52 @@ record AdminDashboardView(
 
 record AdminMerchantView(
     Long merchantId,
+    Long accountId,
     String merchantName,
     String contactName,
     String contactPhone,
+    String licenseNo,
     String status,
     String auditStatus,
     Long storeCount,
     Long itemCount,
     LocalDateTime settledAt) {}
+
+record AdminMerchantApplicationView(
+    Long id,
+    String applicationNo,
+    Long accountId,
+    String merchantName,
+    String contactName,
+    String contactPhone,
+    String businessType,
+    String storeName,
+    String address,
+    String status,
+    String auditRemark,
+    LocalDateTime submittedAt,
+    Long auditedBy,
+    LocalDateTime auditedAt) {}
+
+record AdminMerchantApplicationAuditRequest(String remark) {}
+
+record AdminCertificationMaterialView(
+    Long id,
+    Long merchantId,
+    Long applicationId,
+    String merchantName,
+    String materialType,
+    String materialName,
+    String fileUrl,
+    String status,
+    String rejectReason,
+    LocalDateTime submittedAt,
+    Long auditedBy,
+    LocalDateTime auditedAt) {}
+
+record AdminCertificationMaterialAuditRequest(
+    @NotBlank String status,
+    String rejectReason) {}
 
 record AdminStoreView(
     Long storeId,
@@ -33,6 +72,8 @@ record AdminStoreView(
     String summary,
     String address,
     String status,
+    String businessHoursText,
+    String tagText,
     String coverUrl,
     String contactPhone,
     String announcement,
@@ -51,6 +92,35 @@ record AdminUserView(
     LocalDateTime createdAt) {}
 
 record AdminStatusRequest(@NotBlank String status) {}
+
+record AdminMerchantUpsertRequest(
+    Long accountId,
+    @NotBlank String merchantName,
+    String contactName,
+    String contactPhone,
+    String licenseNo,
+    String status,
+    String auditStatus) {}
+
+record AdminStoreUpsertRequest(
+    @NotNull Long merchantId,
+    @NotBlank String storeName,
+    @NotBlank String businessType,
+    @NotBlank String summary,
+    @NotBlank String address,
+    String status,
+    String businessHoursText,
+    String tagText,
+    String coverUrl,
+    String contactPhone,
+    String announcement) {}
+
+record AdminUserUpdateRequest(
+    @NotBlank String nickname,
+    String phone,
+    String email,
+    String avatarUrl,
+    String status) {}
 
 record AdminDeliveryTaskView(
     Long taskId,

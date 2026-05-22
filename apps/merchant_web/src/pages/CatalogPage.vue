@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import PanelModal from '../components/PanelModal.vue';
 import {
   createCatalogItem,
@@ -32,20 +32,26 @@ const editing = ref<CatalogItemForm | null>(null);
 const coverFile = ref<File | null>(null);
 const newCategoryName = ref('');
 
-const businessTypeOptions = [
-  { value: 'takeaway', label: '外卖' },
-  { value: 'group_buy', label: '团购' },
-  { value: 'hotel', label: '酒店' },
-  { value: 'entertainment', label: '休闲娱乐' },
-  { value: 'movie', label: '电影演出' },
-  { value: 'beauty', label: '丽人医美' },
-  { value: 'ticket', label: '景点门票' },
-  { value: 'massage', label: '洗脚按摩' },
-];
+const businessTypeLabels: Record<string, string> = {
+  takeaway: '外卖',
+  group_buy: '团购',
+  hotel: '酒店',
+  entertainment: '休闲娱乐',
+  movie: '电影演出',
+  beauty: '丽人医美',
+  ticket: '景点门票',
+  massage: '洗脚按摩',
+};
 
-const filters = reactive({
-  businessType: props.store.businessType,
-});
+const currentBusinessType = computed(() => props.store.businessType);
+const isTakeaway = computed(() => currentBusinessType.value === 'takeaway');
+const businessTypeName = computed(() => businessTypeLabels[currentBusinessType.value] || currentBusinessType.value);
+const itemNoun = computed(() => (isTakeaway.value ? '商品' : '服务/套餐'));
+const catalogTitle = computed(() => (isTakeaway.value ? '商品管理' : '服务与套餐'));
+const titleLabel = computed(() => (isTakeaway.value ? '商品名称' : '服务/套餐名称'));
+const subtitleLabel = computed(() => (isTakeaway.value ? '副标题' : '使用规则'));
+const imageLabel = computed(() => (isTakeaway.value ? '商品图片' : '服务图片'));
+const stockLabel = computed(() => (isTakeaway.value ? '库存' : '可售份数'));
 
 const statusOptions = [
   { value: '', label: '全部状态' },
@@ -54,19 +60,20 @@ const statusOptions = [
 ];
 
 const selectedCategories = computed(() =>
-  categories.value.filter((item) => item.businessType === filters.businessType),
+  categories.value.filter((item) => item.businessType === currentBusinessType.value),
 );
 
 watch(() => props.refreshKey, load, { immediate: true });
 watch(() => props.store.id, load);
-watch([() => filters.businessType, status], load);
+watch(() => props.store.businessType, load);
+watch(status, load);
 
 async function load() {
   try {
     loading.value = true;
     const [itemList, categoryList] = await Promise.all([
-      fetchCatalogItems({ businessType: filters.businessType, status: status.value, keyword: keyword.value }),
-      fetchCategories(filters.businessType),
+      fetchCatalogItems({ businessType: currentBusinessType.value, status: status.value, keyword: keyword.value }),
+      fetchCategories(currentBusinessType.value),
     ]);
     items.value = itemList;
     categories.value = categoryList;
@@ -82,7 +89,7 @@ function openCreate() {
   coverFile.value = null;
   editing.value = {
     storeId: props.store.id,
-    businessType: filters.businessType || props.store.businessType,
+    businessType: currentBusinessType.value || props.store.businessType,
     title: '',
     subtitle: '',
     price: 1,
@@ -114,6 +121,8 @@ function openEdit(item: CatalogItem) {
 
 async function saveItem() {
   if (!editing.value) return;
+  editing.value.storeId = props.store.id;
+  editing.value.businessType = currentBusinessType.value;
   try {
     loading.value = true;
     const saved = editingId.value
@@ -148,7 +157,7 @@ async function addCategory() {
   try {
     const category = await createCategory({
       storeId: props.store.id,
-      businessType: filters.businessType || props.store.businessType,
+      businessType: currentBusinessType.value || props.store.businessType,
       categoryName: name,
       sortOrder: categories.value.length + 1,
       status: 'enabled',
@@ -183,23 +192,21 @@ function money(value: number | undefined) {
 <template>
   <section class="panel-card">
     <div class="panel-toolbar">
-      <h2>商品与服务</h2>
+      <h2>{{ catalogTitle }}</h2>
       <div class="toolbar-actions">
-        <label class="inline-field">
+        <span class="inline-field">
           业务类型
-          <select v-model="filters.businessType">
-            <option v-for="item in businessTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-          </select>
-        </label>
+          <strong>{{ businessTypeName }}</strong>
+        </span>
         <label class="inline-field">
           状态
           <select v-model="status">
             <option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
         </label>
-        <input v-model="keyword" class="search-input" placeholder="搜索商品/服务" @keyup.enter="load" />
+        <input v-model="keyword" class="search-input" :placeholder="`搜索${itemNoun}`" @keyup.enter="load" />
         <button class="secondary-btn" :disabled="loading" @click="load">查询</button>
-        <button class="primary-btn" @click="openCreate">新增商品</button>
+        <button class="primary-btn" @click="openCreate">新增{{ itemNoun }}</button>
       </div>
     </div>
 
@@ -213,7 +220,7 @@ function money(value: number | undefined) {
       <article v-for="item in items" :key="item.id" class="catalog-card">
         <div class="thumb-box">
           <img v-if="item.coverUrl" :src="resolveAssetUrl(item.coverUrl)" :alt="item.title" />
-          <span v-else>{{ item.categoryName || '商品' }}</span>
+          <span v-else>{{ item.categoryName || itemNoun }}</span>
         </div>
         <div class="catalog-info">
           <div class="catalog-head">
@@ -222,33 +229,31 @@ function money(value: number | undefined) {
           </div>
           <h3>{{ item.title }}</h3>
           <p>{{ item.subtitle || item.tagText || '暂无副标题' }}</p>
-          <small>{{ item.categoryName }} · 库存 {{ item.stock }} · 月售 {{ item.salesCount }}</small>
+          <small>{{ item.categoryName }} · {{ stockLabel }} {{ item.stock }} · 月售 {{ item.salesCount }}</small>
         </div>
         <div class="row-actions">
           <button class="secondary-btn small" @click="openEdit(item)">编辑</button>
           <button class="primary-btn small" @click="toggleStatus(item)">{{ item.status === 'on_sale' ? '下架' : '上架' }}</button>
         </div>
       </article>
-      <article v-if="items.length === 0" class="empty-card">暂无商品</article>
+      <article v-if="items.length === 0" class="empty-card">暂无{{ itemNoun }}</article>
     </div>
   </section>
 
-  <PanelModal v-if="editing" :title="editingId ? '编辑商品' : '新增商品'" @close="editing = null">
+  <PanelModal v-if="editing" :title="editingId ? `编辑${itemNoun}` : `新增${itemNoun}`" @close="editing = null">
     <form class="modal-form" @submit.prevent="saveItem">
       <div class="form-grid two">
         <label>
-          商品名称
+          {{ titleLabel }}
           <input v-model="editing.title" required />
         </label>
         <label>
           业务类型
-          <select v-model="editing.businessType">
-            <option v-for="item in businessTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-          </select>
+          <input :value="businessTypeName" disabled />
         </label>
       </div>
       <label>
-        副标题
+        {{ subtitleLabel }}
         <input v-model="editing.subtitle" />
       </label>
       <div class="form-grid four">
@@ -268,7 +273,7 @@ function money(value: number | undefined) {
           <input v-model.number="editing.originalPrice" type="number" min="0" step="0.1" />
         </label>
         <label>
-          库存
+          {{ stockLabel }}
           <input v-model.number="editing.stock" type="number" min="0" />
         </label>
       </div>
@@ -286,7 +291,7 @@ function money(value: number | undefined) {
         </label>
       </div>
       <label>
-        商品图片
+        {{ imageLabel }}
         <input type="file" accept="image/png,image/jpeg,image/webp" @change="onFileChange" />
       </label>
       <div class="form-actions">

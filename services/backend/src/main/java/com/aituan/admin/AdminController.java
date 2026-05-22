@@ -40,9 +40,50 @@ class AdminController {
     return ApiResponse.ok(adminService.merchants(keyword, page, pageSize));
   }
 
+  @PostMapping("/merchants")
+  ApiResponse<AdminMerchantView> createMerchant(@Valid @RequestBody AdminMerchantUpsertRequest request) {
+    return ApiResponse.ok(adminService.createMerchant(request));
+  }
+
+  @PutMapping("/merchants/{merchantId}")
+  ApiResponse<AdminMerchantView> updateMerchant(@PathVariable long merchantId, @Valid @RequestBody AdminMerchantUpsertRequest request) {
+    return ApiResponse.ok(adminService.updateMerchant(merchantId, request));
+  }
+
   @PostMapping("/merchants/{merchantId}/status")
   ApiResponse<AdminMerchantView> updateMerchantStatus(@PathVariable long merchantId, @Valid @RequestBody AdminStatusRequest request) {
     return ApiResponse.ok(adminService.updateMerchantStatus(merchantId, request));
+  }
+
+  @GetMapping("/merchants/applications")
+  ApiResponse<PageResponse<AdminMerchantApplicationView>> merchantApplications(
+      @RequestParam(required = false) String status,
+      @RequestParam(defaultValue = "1") @Min(1) int page,
+      @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
+    return ApiResponse.ok(adminService.merchantApplications(status, page, pageSize));
+  }
+
+  @PostMapping("/merchants/applications/{id}/approve")
+  ApiResponse<AdminMerchantApplicationView> approveMerchantApplication(@PathVariable long id, @RequestBody(required = false) AdminMerchantApplicationAuditRequest request) {
+    return ApiResponse.ok(adminService.approveMerchantApplication(id, request));
+  }
+
+  @PostMapping("/merchants/applications/{id}/reject")
+  ApiResponse<AdminMerchantApplicationView> rejectMerchantApplication(@PathVariable long id, @RequestBody(required = false) AdminMerchantApplicationAuditRequest request) {
+    return ApiResponse.ok(adminService.rejectMerchantApplication(id, request));
+  }
+
+  @GetMapping("/merchants/certification-materials")
+  ApiResponse<PageResponse<AdminCertificationMaterialView>> certificationMaterials(
+      @RequestParam(required = false) String status,
+      @RequestParam(defaultValue = "1") @Min(1) int page,
+      @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
+    return ApiResponse.ok(adminService.certificationMaterials(status, page, pageSize));
+  }
+
+  @PostMapping("/merchants/certification-materials/{id}/status")
+  ApiResponse<AdminCertificationMaterialView> updateCertificationMaterialStatus(@PathVariable long id, @Valid @RequestBody AdminCertificationMaterialAuditRequest request) {
+    return ApiResponse.ok(adminService.updateCertificationMaterialStatus(id, request));
   }
 
   @GetMapping("/stores")
@@ -53,6 +94,16 @@ class AdminController {
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
     return ApiResponse.ok(adminService.stores(merchantId, businessType, status, page, pageSize));
+  }
+
+  @PostMapping("/stores")
+  ApiResponse<AdminStoreView> createStore(@Valid @RequestBody AdminStoreUpsertRequest request) {
+    return ApiResponse.ok(adminService.createStore(request));
+  }
+
+  @PutMapping("/stores/{storeId}")
+  ApiResponse<AdminStoreView> updateStore(@PathVariable long storeId, @Valid @RequestBody AdminStoreUpsertRequest request) {
+    return ApiResponse.ok(adminService.updateStore(storeId, request));
   }
 
   @PostMapping("/stores/{storeId}/status")
@@ -71,6 +122,11 @@ class AdminController {
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
     return ApiResponse.ok(adminService.users(keyword, page, pageSize));
+  }
+
+  @PutMapping("/users/{accountId}")
+  ApiResponse<AdminUserView> updateUser(@PathVariable long accountId, @Valid @RequestBody AdminUserUpdateRequest request) {
+    return ApiResponse.ok(adminService.updateUser(accountId, request));
   }
 
   @PostMapping("/users/{accountId}/status")

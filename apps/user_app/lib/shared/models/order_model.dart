@@ -11,6 +11,7 @@ class OrderModel {
     required this.businessType,
     required this.amount,
     required this.desc,
+    this.coverUrl,
   });
 
   final String id;
@@ -22,4 +23,5 @@ class OrderModel {
   final BusinessType businessType;
   final double amount;
   final String desc;
+  final String? coverUrl;
 }

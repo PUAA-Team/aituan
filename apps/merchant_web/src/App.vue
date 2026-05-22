@@ -18,10 +18,11 @@ const profile = ref<MerchantProfile | null>(null);
 const store = ref<MerchantStore | null>(null);
 
 const loggedIn = computed(() => token.value.length > 0);
+const isTakeaway = computed(() => store.value?.businessType === 'takeaway');
 const pageTitle = computed(() => {
   const map: Record<ConsolePage, string> = {
     orders: '订单中心',
-    catalog: '商品与服务',
+    catalog: isTakeaway.value ? '商品管理' : '服务与套餐',
     fulfillment: '履约设置',
     store: '门店资料',
   };
@@ -96,7 +97,7 @@ function setNotice(message: string) {
     @refresh="refreshActivePage"
     @logout="logout"
   >
-    <OrderPage v-if="activePage === 'orders'" :refresh-key="refreshKey" @notice="setNotice" />
+    <OrderPage v-if="activePage === 'orders'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <CatalogPage v-else-if="activePage === 'catalog'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <FulfillmentPage v-else-if="activePage === 'fulfillment'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <StorePage v-else :profile="profile" :store="store" @notice="setNotice" @changed="loadShell" />

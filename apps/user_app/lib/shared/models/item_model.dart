@@ -12,6 +12,7 @@ class ItemModel {
     required this.tags,
     required this.storeId,
     this.storeName = '',
+    this.coverUrl,
     this.stock = 999,
     this.saleStatus = 'on_sale',
   });
@@ -26,6 +27,7 @@ class ItemModel {
   final List<String> tags;
   final String storeId;
   final String storeName;
+  final String? coverUrl;
   final int stock;
   final String saleStatus;
 
@@ -42,6 +44,7 @@ class ItemModel {
     tags: _tags(json['tags']),
     storeId: _text(json['storeId']),
     storeName: _text(json['storeName']),
+    coverUrl: _nullableText(json['coverUrl']),
     stock: _int(json['stock'], fallback: 999),
     saleStatus: _text(json['saleStatus'], fallback: 'on_sale'),
   );
@@ -61,6 +64,11 @@ double? _optionalDouble(dynamic value) {
 String _text(dynamic value, {String fallback = ''}) {
   final text = value?.toString().trim();
   return (text == null || text.isEmpty) ? fallback : text;
+}
+
+String? _nullableText(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
 }
 
 List<String> _tags(dynamic value) {

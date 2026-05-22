@@ -11,6 +11,7 @@ import com.aituan.common.security.CurrentUserContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,13 +19,16 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 class AdminService {
   private static final int DELIVERY_TICK_MINUTES = 3;
+  private static final String DEFAULT_MERCHANT_PASSWORD = "123456";
 
   private final AdminRepository adminRepository;
   private final FileStorageService fileStorageService;
+  private final PasswordEncoder passwordEncoder;
 
-  AdminService(AdminRepository adminRepository, FileStorageService fileStorageService) {
+  AdminService(AdminRepository adminRepository, FileStorageService fileStorageService, PasswordEncoder passwordEncoder) {
     this.adminRepository = adminRepository;
     this.fileStorageService = fileStorageService;
+    this.passwordEncoder = passwordEncoder;
   }
 
   AdminDashboardView dashboard() {
@@ -46,11 +50,78 @@ class AdminService {
     return PageResponse.of(list, page, pageSize, total);
   }
 
+  PageResponse<AdminMerchantApplicationView> merchantApplications(String status, int page, int pageSize) {
+    requireAdmin();
+    String normalizedStatus = normalizeNullableAuditStatus(status);
+    long total = adminRepository.countApplications(normalizedStatus);
+    List<AdminMerchantApplicationView> list = adminRepository.listApplications(normalizedStatus, (page - 1) * pageSize, pageSize).stream().map(this::toApplicationView).toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  @Transactional
+  AdminMerchantApplicationView approveMerchantApplication(long id, AdminMerchantApplicationAuditRequest request) {
+    CurrentUser current = requireAdmin();
+    AdminRepository.ApplicationRow application = pendingApplication(id);
+    String remark = auditRemark(request, "审核通过，商家可用申请编号登录");
+    long accountId = adminRepository.insertMerchantAccount("M" + System.currentTimeMillis(), application.applicationNo(), passwordEncoder.encode(DEFAULT_MERCHANT_PASSWORD));
+    adminRepository.insertAccountRole(accountId, 2L);
+    long merchantId = adminRepository.insertMerchantFromApplication("MCH" + System.currentTimeMillis(), accountId, application);
+    adminRepository.insertStoreFromApplication(merchantId, application);
+    adminRepository.updateApplicationAudit(id, "approved", accountId, current.accountId(), remark);
+    adminRepository.insertMerchantAuditLog("application", id, "approve", "approved", remark, current.accountId());
+    adminRepository.insertSysAuditLog(current.accountId(), "merchant_application_approve", "merchant_application", id, application.applicationNo() + " 入驻申请已通过");
+    return adminRepository.findApplication(id).map(this::toApplicationView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
+  AdminMerchantApplicationView rejectMerchantApplication(long id, AdminMerchantApplicationAuditRequest request) {
+    CurrentUser current = requireAdmin();
+    AdminRepository.ApplicationRow application = pendingApplication(id);
+    String remark = auditRemark(request, "资料不完整，请补充后重新提交");
+    adminRepository.updateApplicationAudit(id, "rejected", application.accountId(), current.accountId(), remark);
+    adminRepository.insertMerchantAuditLog("application", id, "reject", "rejected", remark, current.accountId());
+    adminRepository.insertSysAuditLog(current.accountId(), "merchant_application_reject", "merchant_application", id, application.applicationNo() + " 入驻申请已驳回");
+    return adminRepository.findApplication(id).map(this::toApplicationView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  PageResponse<AdminCertificationMaterialView> certificationMaterials(String status, int page, int pageSize) {
+    requireAdmin();
+    String normalizedStatus = normalizeNullableAuditStatus(status);
+    long total = adminRepository.countCertificationMaterials(normalizedStatus);
+    List<AdminCertificationMaterialView> list = adminRepository.listCertificationMaterials(normalizedStatus, (page - 1) * pageSize, pageSize).stream().map(this::toMaterialView).toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  @Transactional
+  AdminCertificationMaterialView updateCertificationMaterialStatus(long id, AdminCertificationMaterialAuditRequest request) {
+    CurrentUser current = requireAdmin();
+    String status = normalizeAuditStatus(request.status());
+    String remark = request.rejectReason() == null || request.rejectReason().isBlank() ? ("approved".equals(status) ? "材料审核通过" : "材料审核未通过") : request.rejectReason().trim();
+    adminRepository.updateCertificationMaterialStatus(id, status, remark, current.accountId());
+    adminRepository.insertMerchantAuditLog("certification_material", id, "audit", status, remark, current.accountId());
+    adminRepository.insertSysAuditLog(current.accountId(), "merchant_material_audit", "certification_material", id, remark);
+    return adminRepository.findCertificationMaterial(id).map(this::toMaterialView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   PageResponse<AdminStoreView> stores(Long merchantId, String businessType, String status, int page, int pageSize) {
     requireAdmin();
     long total = adminRepository.countStores(merchantId, businessType, status);
     List<AdminStoreView> list = adminRepository.listStores(merchantId, businessType, status, (page - 1) * pageSize, pageSize).stream().map(this::toStoreView).toList();
     return PageResponse.of(list, page, pageSize, total);
+  }
+
+  @Transactional
+  AdminMerchantView createMerchant(AdminMerchantUpsertRequest request) {
+    requireAdmin();
+    long id = adminRepository.insertMerchant("MCH" + System.currentTimeMillis(), request, normalizeGeneralStatus(defaultValue(request.status(), "normal")), normalizeAuditStatus(defaultValue(request.auditStatus(), "approved")));
+    return merchantView(id);
+  }
+
+  @Transactional
+  AdminMerchantView updateMerchant(long merchantId, AdminMerchantUpsertRequest request) {
+    requireAdmin();
+    adminRepository.updateMerchant(merchantId, request, normalizeGeneralStatus(defaultValue(request.status(), "normal")), normalizeAuditStatus(defaultValue(request.auditStatus(), "approved")));
+    return merchantView(merchantId);
   }
 
   @Transactional
@@ -62,6 +133,20 @@ class AdminService {
         .findFirst()
         .map(this::toMerchantView)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
+  AdminStoreView createStore(AdminStoreUpsertRequest request) {
+    requireAdmin();
+    long id = adminRepository.insertStore(request, normalizeBusinessType(request.businessType()), normalizeStoreStatus(defaultValue(request.status(), "open")));
+    return storeView(id);
+  }
+
+  @Transactional
+  AdminStoreView updateStore(long storeId, AdminStoreUpsertRequest request) {
+    requireAdmin();
+    adminRepository.updateStore(storeId, request, normalizeBusinessType(request.businessType()), normalizeStoreStatus(defaultValue(request.status(), "open")));
+    return storeView(storeId);
   }
 
   @Transactional
@@ -92,6 +177,13 @@ class AdminService {
     long total = adminRepository.countUsers(keyword);
     List<AdminUserView> list = adminRepository.listUsers(keyword, (page - 1) * pageSize, pageSize).stream().map(this::toUserView).toList();
     return PageResponse.of(list, page, pageSize, total);
+  }
+
+  @Transactional
+  AdminUserView updateUser(long accountId, AdminUserUpdateRequest request) {
+    requireAdmin();
+    adminRepository.updateUser(accountId, request, normalizeGeneralStatus(defaultValue(request.status(), "normal")));
+    return userView(accountId);
   }
 
   @Transactional
@@ -254,6 +346,54 @@ class AdminService {
     };
   }
 
+  private String normalizeAuditStatus(String status) {
+    String value = status == null ? "" : status.trim().toLowerCase();
+    return switch (value) {
+      case "pending", "approved", "rejected" -> value;
+      default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "审核状态不正确");
+    };
+  }
+
+  private String normalizeNullableAuditStatus(String status) {
+    return status == null || status.isBlank() ? null : normalizeAuditStatus(status);
+  }
+
+  private String normalizeBusinessType(String businessType) {
+    String value = businessType == null ? "" : businessType.trim().toLowerCase();
+    return switch (value) {
+      case "takeaway", "group_buy", "hotel", "entertainment", "movie", "beauty", "ticket", "massage" -> value;
+      default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "业务类型不正确");
+    };
+  }
+
+  private String defaultValue(String value, String fallback) {
+    return value == null || value.isBlank() ? fallback : value;
+  }
+
+  private String auditRemark(AdminMerchantApplicationAuditRequest request, String fallback) {
+    return request == null || request.remark() == null || request.remark().isBlank() ? fallback : request.remark().trim();
+  }
+
+  private AdminRepository.ApplicationRow pendingApplication(long id) {
+    AdminRepository.ApplicationRow application = adminRepository.findApplication(id).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"pending".equals(application.status())) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "申请已处理");
+    }
+    return application;
+  }
+
+  private AdminMerchantView merchantView(long merchantId) {
+    return adminRepository.findMerchant(merchantId).map(this::toMerchantView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  private AdminStoreView storeView(long storeId) {
+    return adminRepository.findStore(storeId).map(this::toStoreView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  private AdminUserView userView(long accountId) {
+    return adminRepository.findUser(accountId).map(this::toUserView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   private String normalizeAnnouncementStatus(String status) {
     String value = status == null ? "" : status.trim().toLowerCase();
     return switch (value) {
@@ -263,11 +403,19 @@ class AdminService {
   }
 
   private AdminMerchantView toMerchantView(AdminRepository.MerchantRow row) {
-    return new AdminMerchantView(row.merchantId(), row.merchantName(), row.contactName(), row.contactPhone(), row.status(), row.auditStatus(), row.storeCount(), row.itemCount(), row.settledAt());
+    return new AdminMerchantView(row.merchantId(), row.accountId(), row.merchantName(), row.contactName(), row.contactPhone(), row.licenseNo(), row.status(), row.auditStatus(), row.storeCount(), row.itemCount(), row.settledAt());
+  }
+
+  private AdminMerchantApplicationView toApplicationView(AdminRepository.ApplicationRow row) {
+    return new AdminMerchantApplicationView(row.id(), row.applicationNo(), row.accountId(), row.merchantName(), row.contactName(), row.contactPhone(), row.businessType(), row.storeName(), row.address(), row.status(), row.auditRemark(), row.submittedAt(), row.auditedBy(), row.auditedAt());
+  }
+
+  private AdminCertificationMaterialView toMaterialView(AdminRepository.CertificationMaterialRow row) {
+    return new AdminCertificationMaterialView(row.id(), row.merchantId(), row.applicationId(), row.merchantName(), row.materialType(), row.materialName(), row.fileUrl(), row.status(), row.rejectReason(), row.submittedAt(), row.auditedBy(), row.auditedAt());
   }
 
   private AdminStoreView toStoreView(AdminRepository.StoreRow row) {
-    return new AdminStoreView(row.storeId(), row.merchantId(), row.merchantName(), row.storeName(), row.businessType(), row.summary(), row.address(), row.status(), row.coverUrl(), row.contactPhone(), row.announcement(), row.updatedAt());
+    return new AdminStoreView(row.storeId(), row.merchantId(), row.merchantName(), row.storeName(), row.businessType(), row.summary(), row.address(), row.status(), row.businessHoursText(), row.tagText(), row.coverUrl(), row.contactPhone(), row.announcement(), row.updatedAt());
   }
 
   private AdminUserView toUserView(AdminRepository.UserRow row) {

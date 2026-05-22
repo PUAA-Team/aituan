@@ -2,6 +2,7 @@ package com.aituan.merchant;
 
 import com.aituan.common.api.ApiResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,5 +47,23 @@ class MerchantController {
   @PostMapping(value = "/stores/current/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   ApiResponse<MerchantStoreView> uploadCurrentStoreCover(@RequestParam("file") MultipartFile file) {
     return ApiResponse.ok(merchantService.uploadCurrentStoreCover(file));
+  }
+
+  @GetMapping("/certification")
+  ApiResponse<MerchantCertificationView> certification() {
+    return ApiResponse.ok(merchantService.certification());
+  }
+
+  @GetMapping("/certification/materials")
+  ApiResponse<List<CertificationMaterialView>> certificationMaterials() {
+    return ApiResponse.ok(merchantService.certificationMaterials());
+  }
+
+  @PostMapping(value = "/certification/materials", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  ApiResponse<CertificationMaterialView> uploadCertificationMaterial(
+      @RequestParam String materialType,
+      @RequestParam(required = false) String materialName,
+      @RequestParam("file") MultipartFile file) {
+    return ApiResponse.ok(merchantService.uploadCertificationMaterial(materialType, materialName, file));
   }
 }

@@ -23,10 +23,11 @@ class TakeawayMerchantHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              const MockThumb(
+              MockThumb(
                 size: 76,
                 icon: Icons.delivery_dining,
                 label: '外卖',
+                imageUrl: merchant.coverUrl,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -100,7 +101,12 @@ class TakeawayFoodRow extends StatelessWidget {
     return AppCard(
       child: Row(
         children: [
-          const MockThumb(size: 76, icon: Icons.lunch_dining, label: '热卖'),
+          MockThumb(
+            size: 76,
+            icon: Icons.lunch_dining,
+            label: '热卖',
+            imageUrl: item.coverUrl,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

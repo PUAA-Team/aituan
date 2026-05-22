@@ -36,9 +36,12 @@ class AppApiClient {
 
   Future<Map<String, dynamic>> delete(String path) => _send('DELETE', path);
 
-  String resolveUrl(String path) {
+  String resolveUrl(String path) => resolvePublicUrl(path, baseUrl: baseUrl);
+
+  static String resolvePublicUrl(String path, {String? baseUrl}) {
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    return '$baseUrl${path.startsWith('/') ? path : '/$path'}';
+    final root = _normalizeBaseUrl(baseUrl ?? _defaultBaseUrl());
+    return '$root${path.startsWith('/') ? path : '/$path'}';
   }
 
   Future<Map<String, dynamic>> postMultipart(

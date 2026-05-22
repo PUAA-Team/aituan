@@ -34,6 +34,46 @@ record MerchantStoreView(
     String announcement,
     LocalDateTime updatedAt) {}
 
+record MerchantApplicationSubmitRequest(
+    @NotBlank String merchantName,
+    @NotBlank String contactName,
+    @NotBlank String contactPhone,
+    @NotBlank String businessType,
+    @NotBlank String storeName,
+    @NotBlank String address) {}
+
+record MerchantApplicationView(
+    Long id,
+    String applicationNo,
+    Long accountId,
+    String merchantName,
+    String contactName,
+    String contactPhone,
+    String businessType,
+    String storeName,
+    String address,
+    String status,
+    String auditRemark,
+    LocalDateTime submittedAt,
+    LocalDateTime auditedAt) {}
+
+record MerchantCertificationView(
+    String auditStatus,
+    String licenseNo,
+    List<CertificationMaterialView> materials) {}
+
+record CertificationMaterialView(
+    Long id,
+    Long merchantId,
+    Long applicationId,
+    String materialType,
+    String materialName,
+    String fileUrl,
+    String status,
+    String rejectReason,
+    LocalDateTime submittedAt,
+    LocalDateTime auditedAt) {}
+
 record MerchantProfileUpdateRequest(
     @NotBlank String merchantName,
     @NotBlank String contactName,

@@ -28,9 +28,14 @@ const isTakeaway = computed(() => props.store.businessType === 'takeaway');
 
 watch(() => props.refreshKey, load, { immediate: true });
 watch(() => props.store.id, load);
+watch(() => props.store.businessType, load);
 
 async function load() {
-  if (!isTakeaway.value) return;
+  if (!isTakeaway.value) {
+    setting.value = null;
+    rule.value = null;
+    return;
+  }
   try {
     loading.value = true;
     const [nextSetting, nextRule] = await Promise.all([
@@ -125,7 +130,7 @@ function money(value: number | undefined) {
       </div>
     </form>
 
-    <article class="panel-card">
+    <article v-if="!isTakeaway" class="panel-card">
       <div class="panel-toolbar"><h2>券码核销</h2></div>
       <form class="voucher-form" @submit.prevent="submitVoucher">
         <input v-model="voucherCode" placeholder="输入用户出示的券码" />
@@ -134,6 +139,14 @@ function money(value: number | undefined) {
       <div v-if="redeemedOrder" class="result-box">
         <strong>{{ redeemedOrder.title }}</strong>
         <span>{{ redeemedOrder.orderNo }} · {{ money(redeemedOrder.payableAmount) }}</span>
+      </div>
+    </article>
+
+    <article v-if="!isTakeaway" class="panel-card">
+      <div class="panel-toolbar"><h2>预约入口</h2></div>
+      <div class="info-list">
+        <span>到店服务订单可在此确认顾客预约信息。</span>
+        <span>到店服务按券码和预约信息完成履约。</span>
       </div>
     </article>
 

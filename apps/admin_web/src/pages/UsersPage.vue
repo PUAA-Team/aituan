@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { fetchUsers, resolveAssetUrl, updateUserStatus } from '../api';
-import type { AdminUser } from '../types';
+import PanelModal from '../components/PanelModal.vue';
+import { fetchUsers, resolveAssetUrl, updateUser, updateUserStatus } from '../api';
+import type { AdminUser, AdminUserForm } from '../types';
 
 const props = defineProps<{
   refreshKey: number;
@@ -13,12 +14,37 @@ const emit = defineEmits<{
 
 const keyword = ref('');
 const users = ref<AdminUser[]>([]);
+const editingId = ref<number | null>(null);
+const editing = ref<AdminUserForm | null>(null);
 
 watch(() => props.refreshKey, load, { immediate: true });
 
 async function load() {
   try {
     users.value = (await fetchUsers(keyword.value)).list;
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function openEdit(user: AdminUser) {
+  editingId.value = user.accountId;
+  editing.value = {
+    nickname: user.nickname,
+    avatarUrl: user.avatarUrl || '',
+    phone: user.phone || '',
+    email: user.email || '',
+    status: user.status,
+  };
+}
+
+async function saveUser() {
+  if (!editing.value || editingId.value == null) return;
+  try {
+    const updated = await updateUser(editingId.value, editing.value);
+    users.value = users.value.map((item) => (item.accountId === updated.accountId ? updated : item));
+    editing.value = null;
+    emit('notice', `${updated.nickname} 已保存`);
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   }
@@ -67,6 +93,7 @@ function timeText(value: string | undefined) {
             <td>{{ timeText(user.createdAt) }}</td>
             <td>
               <div class="row-actions">
+                <button class="secondary-btn small" @click="openEdit(user)">编辑</button>
                 <button class="secondary-btn small" @click="setStatus(user, user.status === 'normal' ? 'disabled' : 'normal')">
                   {{ user.status === 'normal' ? '停用' : '启用' }}
                 </button>
@@ -79,4 +106,27 @@ function timeText(value: string | undefined) {
       </table>
     </div>
   </section>
+
+  <PanelModal v-if="editing" title="编辑用户" @close="editing = null">
+    <form class="modal-form" @submit.prevent="saveUser">
+      <label>昵称<input v-model="editing.nickname" required /></label>
+      <div class="form-grid two">
+        <label>手机号<input v-model="editing.phone" /></label>
+        <label>邮箱<input v-model="editing.email" /></label>
+      </div>
+      <label>头像地址<input v-model="editing.avatarUrl" /></label>
+      <label>
+        状态
+        <select v-model="editing.status">
+          <option value="normal">正常</option>
+          <option value="disabled">停用</option>
+          <option value="blocked">拉黑</option>
+        </select>
+      </label>
+      <div class="form-actions">
+        <button class="secondary-btn" type="button" @click="editing = null">取消</button>
+        <button class="primary-btn">保存用户</button>
+      </div>
+    </form>
+  </PanelModal>
 </template>

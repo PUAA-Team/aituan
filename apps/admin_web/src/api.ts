@@ -1,13 +1,20 @@
 import type {
+  AdminCertificationMaterial,
   AdminConfig,
   AdminMerchant,
+  AdminMerchantApplication,
+  AdminMerchantForm,
   AdminStore,
+  AdminStoreForm,
   AdminUser,
+  AdminUserForm,
   Announcement,
   AnnouncementForm,
   AuditLog,
   AuthSession,
+  CatalogCategory,
   CatalogItem,
+  CatalogItemForm,
   DashboardView,
   DeliverySetting,
   DeliveryTask,
@@ -85,10 +92,57 @@ export function fetchMerchants(keyword = '') {
   return request<PageResponse<AdminMerchant>>(`/api/admin/merchants?${query}`);
 }
 
+export function createMerchant(payload: AdminMerchantForm) {
+  return request<AdminMerchant>('/api/admin/merchants', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateMerchant(merchantId: number, payload: AdminMerchantForm) {
+  return request<AdminMerchant>(`/api/admin/merchants/${merchantId}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
 export function updateMerchantStatus(merchantId: number, status: string) {
   return request<AdminMerchant>(`/api/admin/merchants/${merchantId}/status`, {
     method: 'POST',
     body: { status },
+  });
+}
+
+export function fetchMerchantApplications(status = '') {
+  const query = new URLSearchParams({ page: '1', pageSize: '50' });
+  if (status) query.set('status', status);
+  return request<PageResponse<AdminMerchantApplication>>(`/api/admin/merchants/applications?${query}`);
+}
+
+export function approveMerchantApplication(id: number, remark = '') {
+  return request<AdminMerchantApplication>(`/api/admin/merchants/applications/${id}/approve`, {
+    method: 'POST',
+    body: { remark },
+  });
+}
+
+export function rejectMerchantApplication(id: number, remark = '') {
+  return request<AdminMerchantApplication>(`/api/admin/merchants/applications/${id}/reject`, {
+    method: 'POST',
+    body: { remark },
+  });
+}
+
+export function fetchCertificationMaterials(status = '') {
+  const query = new URLSearchParams({ page: '1', pageSize: '50' });
+  if (status) query.set('status', status);
+  return request<PageResponse<AdminCertificationMaterial>>(`/api/admin/merchants/certification-materials?${query}`);
+}
+
+export function updateCertificationMaterialStatus(id: number, status: string, rejectReason = '') {
+  return request<AdminCertificationMaterial>(`/api/admin/merchants/certification-materials/${id}/status`, {
+    method: 'POST',
+    body: { status, rejectReason },
   });
 }
 
@@ -98,6 +152,20 @@ export function fetchStores(filters: { merchantId?: number; businessType?: strin
   if (filters.businessType) query.set('businessType', filters.businessType);
   if (filters.status) query.set('status', filters.status);
   return request<PageResponse<AdminStore>>(`/api/admin/stores?${query}`);
+}
+
+export function createStore(payload: AdminStoreForm) {
+  return request<AdminStore>('/api/admin/stores', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateStore(storeId: number, payload: AdminStoreForm) {
+  return request<AdminStore>(`/api/admin/stores/${storeId}`, {
+    method: 'PUT',
+    body: payload,
+  });
 }
 
 export function updateStoreStatus(storeId: number, status: string) {
@@ -122,6 +190,13 @@ export function fetchUsers(keyword = '') {
   return request<PageResponse<AdminUser>>(`/api/admin/users?${query}`);
 }
 
+export function updateUser(accountId: number, payload: AdminUserForm) {
+  return request<AdminUser>(`/api/admin/users/${accountId}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
 export function updateUserStatus(accountId: number, status: string) {
   return request<AdminUser>(`/api/admin/users/${accountId}/status`, {
     method: 'POST',
@@ -138,10 +213,47 @@ export function fetchCatalogItems(filters: { storeId?: number; businessType?: st
   return request<PageResponse<CatalogItem>>(`/api/admin/catalog/items?${query}`);
 }
 
+export function createCatalogItem(payload: CatalogItemForm) {
+  return request<CatalogItem>('/api/admin/catalog/items', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateCatalogItem(itemId: number, payload: CatalogItemForm) {
+  return request<CatalogItem>(`/api/admin/catalog/items/${itemId}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
 export function updateCatalogItemStatus(itemId: number, status: 'on_sale' | 'off_sale') {
   return request<CatalogItem>(`/api/admin/catalog/items/${itemId}/status`, {
     method: 'POST',
     body: { status },
+  });
+}
+
+export function uploadCatalogItemCover(itemId: number, file: File) {
+  const body = new FormData();
+  body.append('file', file);
+  return request<CatalogItem>(`/api/admin/catalog/items/${itemId}/cover`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export function fetchCatalogCategories(filters: { storeId?: number; businessType?: string } = {}) {
+  const query = new URLSearchParams();
+  if (filters.storeId) query.set('storeId', String(filters.storeId));
+  if (filters.businessType) query.set('businessType', filters.businessType);
+  return request<CatalogCategory[]>(`/api/admin/catalog/categories?${query}`);
+}
+
+export function createCatalogCategory(payload: { storeId?: number; businessType: string; categoryName: string; sortOrder: number; status: string }) {
+  return request<CatalogCategory>('/api/admin/catalog/categories', {
+    method: 'POST',
+    body: payload,
   });
 }
 

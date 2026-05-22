@@ -59,6 +59,74 @@ class MerchantRepository {
     return rows.stream().findFirst();
   }
 
+  long insertApplication(String applicationNo, MerchantApplicationSubmitRequest request, String businessType) {
+    jdbcTemplate.update(
+        """
+        insert into merchant_application(application_no, merchant_name, contact_name, contact_phone, business_type, store_name, address, status, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, 'pending', current_timestamp, current_timestamp)
+        """,
+        applicationNo,
+        request.merchantName().trim(),
+        request.contactName().trim(),
+        request.contactPhone().trim(),
+        businessType,
+        request.storeName().trim(),
+        request.address().trim());
+    return jdbcTemplate.queryForObject("select max(id) from merchant_application where application_no = ?", Long.class, applicationNo);
+  }
+
+  Optional<ApplicationRow> findApplication(long applicationId) {
+    List<ApplicationRow> rows = jdbcTemplate.query(
+        """
+        select id, application_no, account_id, merchant_name, contact_name, contact_phone, business_type, store_name, address,
+               status, audit_remark, submitted_at, audited_at
+        from merchant_application
+        where id = ? and is_deleted = 0
+        limit 1
+        """,
+        this::mapApplication,
+        applicationId);
+    return rows.stream().findFirst();
+  }
+
+  List<MaterialRow> listMaterialsByMerchant(long merchantId) {
+    return jdbcTemplate.query(
+        """
+        select id, merchant_id, application_id, material_type, material_name, file_url, status, reject_reason, submitted_at, audited_at
+        from merchant_certification_material
+        where merchant_id = ? and is_deleted = 0
+        order by submitted_at desc, id desc
+        """,
+        this::mapMaterial,
+        merchantId);
+  }
+
+  Optional<MaterialRow> findMaterial(long id) {
+    List<MaterialRow> rows = jdbcTemplate.query(
+        """
+        select id, merchant_id, application_id, material_type, material_name, file_url, status, reject_reason, submitted_at, audited_at
+        from merchant_certification_material
+        where id = ? and is_deleted = 0
+        limit 1
+        """,
+        this::mapMaterial,
+        id);
+    return rows.stream().findFirst();
+  }
+
+  long insertMaterial(long merchantId, String materialType, String materialName, String fileUrl) {
+    jdbcTemplate.update(
+        """
+        insert into merchant_certification_material(merchant_id, material_type, material_name, file_url, status, created_at, updated_at)
+        values (?, ?, ?, ?, 'pending', current_timestamp, current_timestamp)
+        """,
+        merchantId,
+        materialType,
+        materialName,
+        fileUrl);
+    return jdbcTemplate.queryForObject("select max(id) from merchant_certification_material where merchant_id = ?", Long.class, merchantId);
+  }
+
   void updateProfile(long merchantId, MerchantProfileUpdateRequest request) {
     jdbcTemplate.update(
         """
@@ -132,6 +200,41 @@ class MerchantRepository {
         updatedAt == null ? null : updatedAt.toLocalDateTime());
   }
 
+  private ApplicationRow mapApplication(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp submittedAt = rs.getTimestamp("submitted_at");
+    Timestamp auditedAt = rs.getTimestamp("audited_at");
+    return new ApplicationRow(
+        rs.getLong("id"),
+        rs.getString("application_no"),
+        rs.getObject("account_id", Long.class),
+        rs.getString("merchant_name"),
+        rs.getString("contact_name"),
+        rs.getString("contact_phone"),
+        rs.getString("business_type"),
+        rs.getString("store_name"),
+        rs.getString("address"),
+        rs.getString("status"),
+        rs.getString("audit_remark"),
+        submittedAt == null ? null : submittedAt.toLocalDateTime(),
+        auditedAt == null ? null : auditedAt.toLocalDateTime());
+  }
+
+  private MaterialRow mapMaterial(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp submittedAt = rs.getTimestamp("submitted_at");
+    Timestamp auditedAt = rs.getTimestamp("audited_at");
+    return new MaterialRow(
+        rs.getLong("id"),
+        rs.getObject("merchant_id", Long.class),
+        rs.getObject("application_id", Long.class),
+        rs.getString("material_type"),
+        rs.getString("material_name"),
+        rs.getString("file_url"),
+        rs.getString("status"),
+        rs.getString("reject_reason"),
+        submittedAt == null ? null : submittedAt.toLocalDateTime(),
+        auditedAt == null ? null : auditedAt.toLocalDateTime());
+  }
+
   private String clean(String value) {
     return value == null ? "" : value.trim();
   }
@@ -147,4 +250,8 @@ class MerchantRepository {
   record MerchantRow(Long id, Long accountId, String merchantName, String contactName, String contactPhone, String licenseNo, String status, String auditStatus, LocalDateTime settledAt) {}
 
   record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, java.math.BigDecimal rating, int monthlySales, java.math.BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl, String contactPhone, String announcement, LocalDateTime updatedAt) {}
+
+  record ApplicationRow(Long id, String applicationNo, Long accountId, String merchantName, String contactName, String contactPhone, String businessType, String storeName, String address, String status, String auditRemark, LocalDateTime submittedAt, LocalDateTime auditedAt) {}
+
+  record MaterialRow(Long id, Long merchantId, Long applicationId, String materialType, String materialName, String fileUrl, String status, String rejectReason, LocalDateTime submittedAt, LocalDateTime auditedAt) {}
 }
