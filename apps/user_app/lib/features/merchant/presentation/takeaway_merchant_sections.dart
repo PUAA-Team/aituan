@@ -102,10 +102,17 @@ class TakeawayMerchantInfoPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _InfoLine(icon: Icons.place_outlined, text: merchant.address),
-        const _InfoLine(icon: Icons.schedule, text: '营业时间 10:00-22:00'),
-        const _InfoLine(
+        _InfoLine(icon: Icons.schedule, text: '营业时间 ${merchant.businessHours}'),
+        _InfoLine(
           icon: Icons.delivery_dining,
-          text: '由商家接单后安排配送，配送费以确认订单页为准',
+          text: merchant.deliveryRule.deliveryText.isEmpty
+              ? '由商家接单后安排配送，配送费以确认订单页为准'
+              : merchant.deliveryRule.deliveryText,
+        ),
+        _InfoLine(
+          icon: Icons.receipt_long_outlined,
+          text:
+              '起送￥${merchant.deliveryRule.startPrice.toStringAsFixed(0)} · 配送费￥${merchant.deliveryRule.deliveryFee.toStringAsFixed(0)}',
         ),
         const SizedBox(height: 8),
         Text(merchant.summary, style: Theme.of(context).textTheme.bodyMedium),

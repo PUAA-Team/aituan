@@ -31,6 +31,25 @@ class AccountRepository {
     return rows.stream().findFirst();
   }
 
+  void updateProfile(long userId, String nickname, String avatarUrl) {
+    jdbcTemplate.update(
+        """
+        update user_profile
+        set nickname = ?, avatar_url = coalesce(?, avatar_url), updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        nickname,
+        avatarUrl,
+        userId);
+  }
+
+  void updateAvatar(long userId, String avatarUrl) {
+    jdbcTemplate.update(
+        "update user_profile set avatar_url = ?, updated_at = current_timestamp where id = ? and is_deleted = 0",
+        avatarUrl,
+        userId);
+  }
+
   long countAddresses(long userId) {
     Long count = jdbcTemplate.queryForObject(
         "select count(1) from user_address where user_id = ? and is_deleted = 0",

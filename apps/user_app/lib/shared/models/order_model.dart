@@ -7,9 +7,11 @@ class OrderModel {
     required this.storeName,
     required this.kind,
     required this.status,
+    required this.fulfillmentStatus,
     required this.businessType,
     required this.amount,
     required this.desc,
+    this.coverUrl,
   });
 
   final String id;
@@ -17,7 +19,9 @@ class OrderModel {
   final String storeName;
   final OrderKind kind;
   final OrderStatus status;
+  final String fulfillmentStatus;
   final BusinessType businessType;
   final double amount;
   final String desc;
+  final String? coverUrl;
 }

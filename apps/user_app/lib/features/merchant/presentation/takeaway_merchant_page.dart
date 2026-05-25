@@ -82,6 +82,8 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
           ? TakeawayCartBar(
               total: _total,
               count: _count,
+              deliveryFee: merchant.deliveryRule.deliveryFee,
+              startPrice: merchant.deliveryRule.startPrice,
               onOpen: _openCart,
               onSubmit: _submit,
             )
@@ -109,8 +111,18 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
         : groups.keys.first;
   }
 
-  void _add(ItemModel item) =>
-      setState(() => _cart[item.id] = (_cart[item.id] ?? 0) + 1);
+  void _add(ItemModel item) {
+    if (item.soldOut) {
+      _showToast('该商品已售罄');
+      return;
+    }
+    final count = _cart[item.id] ?? 0;
+    if (count >= item.stock) {
+      _showToast('库存只剩${item.stock}份');
+      return;
+    }
+    setState(() => _cart[item.id] = count + 1);
+  }
 
   void _remove(ItemModel item) => setState(() {
     final count = (_cart[item.id] ?? 0) - 1;
@@ -122,20 +134,32 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
   });
 
   void _openCart() {
+    final merchant = _merchant ?? widget.merchant;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (_) => TakeawayCartSheet(
         items: _items,
         cart: _cart,
-        total: _total,
+        deliveryFee: merchant.deliveryRule.deliveryFee,
+        startPrice: merchant.deliveryRule.startPrice,
+        onAdd: _add,
+        onRemove: _remove,
+        onClear: () => setState(_cart.clear),
         onSubmit: _submit,
       ),
     );
   }
 
   void _submit() {
-    if (_total <= 0 || !AppScope.of(context).requireLogin(context)) return;
     final merchant = _merchant ?? widget.merchant;
+    if (_total <= 0 || !AppScope.of(context).requireLogin(context)) return;
+    if (_total < merchant.deliveryRule.startPrice) {
+      _showToast(
+        '还差￥${(merchant.deliveryRule.startPrice - _total).toStringAsFixed(0)}起送',
+      );
+      return;
+    }
     Navigator.pushNamed(
       context,
       Routes.checkout,
@@ -160,5 +184,11 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
             .toList(),
       ),
     );
+  }
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

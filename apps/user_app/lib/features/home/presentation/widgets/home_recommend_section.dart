@@ -58,6 +58,7 @@ class RecommendCard extends StatelessWidget {
           height: 112,
           icon: _icon(item.type),
           label: item.type.label,
+          imageUrl: item.coverUrl,
         ),
         Expanded(
           child: Padding(

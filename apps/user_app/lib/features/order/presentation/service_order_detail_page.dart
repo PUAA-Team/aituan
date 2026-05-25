@@ -220,7 +220,11 @@ class _GoodsCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                MockThumb(size: 72, label: item.categoryName),
+                MockThumb(
+                  size: 72,
+                  label: item.categoryName,
+                  imageUrl: item.coverUrl,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

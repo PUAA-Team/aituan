@@ -12,6 +12,9 @@ class ItemModel {
     required this.tags,
     required this.storeId,
     this.storeName = '',
+    this.coverUrl,
+    this.stock = 999,
+    this.saleStatus = 'on_sale',
   });
 
   final String id;
@@ -24,6 +27,11 @@ class ItemModel {
   final List<String> tags;
   final String storeId;
   final String storeName;
+  final String? coverUrl;
+  final int stock;
+  final String saleStatus;
+
+  bool get soldOut => stock <= 0 || saleStatus != 'on_sale';
 
   factory ItemModel.fromApi(Map<String, dynamic> json) => ItemModel(
     id: _text(json['id']),
@@ -36,11 +44,17 @@ class ItemModel {
     tags: _tags(json['tags']),
     storeId: _text(json['storeId']),
     storeName: _text(json['storeName']),
+    coverUrl: _nullableText(json['coverUrl']),
+    stock: _int(json['stock'], fallback: 999),
+    saleStatus: _text(json['saleStatus'], fallback: 'on_sale'),
   );
 }
 
 double _double(dynamic value) =>
     value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+
+int _int(dynamic value, {int fallback = 0}) =>
+    value is num ? value.toInt() : int.tryParse('$value') ?? fallback;
 
 double? _optionalDouble(dynamic value) {
   if (value == null || value == '') return null;
@@ -50,6 +64,11 @@ double? _optionalDouble(dynamic value) {
 String _text(dynamic value, {String fallback = ''}) {
   final text = value?.toString().trim();
   return (text == null || text.isEmpty) ? fallback : text;
+}
+
+String? _nullableText(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
 }
 
 List<String> _tags(dynamic value) {

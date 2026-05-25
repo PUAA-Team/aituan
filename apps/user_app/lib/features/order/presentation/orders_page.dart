@@ -9,6 +9,7 @@ import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/order_model.dart';
 import '../../home/data/backend_app_repository.dart';
+import 'takeaway_fulfillment_text.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -158,9 +159,11 @@ class _OrderCard extends StatelessWidget {
               ),
             ),
             BrandTag(
-              order.status.labelForKind(order.kind),
+              _statusText(order),
               emphasis: order.status == OrderStatus.unpaid,
-              green: order.status == OrderStatus.unused,
+              green:
+                  order.status == OrderStatus.unused ||
+                  order.fulfillmentStatus == 'completed',
             ),
           ],
         ),
@@ -188,11 +191,16 @@ class _OrderCard extends StatelessWidget {
     ),
   );
 
+  String _statusText(OrderModel order) => order.kind == OrderKind.takeaway
+      ? takeawayStatusLabel(order.status, order.fulfillmentStatus)
+      : order.status.labelForKind(order.kind);
+
   String _hint(OrderStatus status, OrderKind kind) => switch (status) {
     OrderStatus.unpaid => '等待付款 ›',
     OrderStatus.pending => kind == OrderKind.takeaway ? '配送进度 ›' : '正在处理 ›',
     OrderStatus.unused => '待核销 ›',
     OrderStatus.used => '去评价 ›',
+    OrderStatus.cancelled => '已关闭 ›',
   };
 }
 

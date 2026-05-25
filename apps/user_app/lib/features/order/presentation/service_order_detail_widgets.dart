@@ -49,6 +49,7 @@ class ServiceOrderStatusCard extends StatelessWidget {
     OrderStatus.pending => '处理中',
     OrderStatus.unused => '待核销',
     OrderStatus.used => '可评价',
+    OrderStatus.cancelled => '已取消',
   };
 }
 

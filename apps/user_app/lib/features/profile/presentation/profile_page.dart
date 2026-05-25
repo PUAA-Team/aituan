@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../app/app_state.dart';
 import '../../../core/constants/app_colors.dart';
@@ -17,6 +18,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ProfileData? _profile;
   Object? _error;
   bool _loading = true;
+  bool _avatarBusy = false;
 
   @override
   void initState() {
@@ -44,7 +46,12 @@ class _ProfilePageState extends State<ProfilePage> {
               borderColor: AppColors.brandLine,
               child: Row(
                 children: [
-                  _Avatar(name),
+                  _Avatar(
+                    name: name,
+                    avatarUrl: profile?.avatarUrl ?? state.avatarUrl,
+                    busy: _avatarBusy,
+                    onTap: state.isLoggedIn ? _pickAvatar : null,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -83,17 +90,24 @@ class _ProfilePageState extends State<ProfilePage> {
               const AppCard(child: Center(child: CircularProgressIndicator()))
             else if (_error != null)
               _ErrorCard(message: _error.toString(), onRetry: _loadProfile),
-            _EntryGrid(profile: profile),
+            _EntryGrid(profile: profile, onReturned: _loadProfile),
             AppCard(
               child: Column(
-                children: const [
-                  _ToolRow(icon: Icons.place_outlined, title: '地址管理'),
-                  Divider(),
-                  _ToolRow(icon: Icons.rate_review_outlined, title: '我的评价'),
-                  Divider(),
-                  _ToolRow(icon: Icons.support_agent, title: '客服咨询'),
-                  Divider(),
+                children: [
                   _ToolRow(
+                    icon: Icons.place_outlined,
+                    title: '地址管理',
+                    onTap: () => _openAndRefresh(Routes.addressList),
+                  ),
+                  const Divider(),
+                  const _ToolRow(
+                    icon: Icons.rate_review_outlined,
+                    title: '我的评价',
+                  ),
+                  const Divider(),
+                  const _ToolRow(icon: Icons.support_agent, title: '客服咨询'),
+                  const Divider(),
+                  const _ToolRow(
                     icon: Icons.workspace_premium_outlined,
                     title: '会员中心',
                   ),
@@ -128,6 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final profile = await backendRepository.fetchProfile();
       appState.updateProfile(
         displayName: profile.nickname,
+        avatarUrl: profile.avatarUrl,
         phone: profile.phone,
         email: profile.email,
         memberLevelName: profile.memberLevelName,
@@ -160,6 +175,43 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<void> _pickAvatar() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 900,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      setState(() => _avatarBusy = true);
+      final profile = await backendRepository.uploadAvatar(picked.path);
+      appState.updateProfile(
+        displayName: profile.nickname,
+        avatarUrl: profile.avatarUrl,
+        phone: profile.phone,
+        email: profile.email,
+        memberLevelName: profile.memberLevelName,
+        unreadMessageCount: profile.unreadMessageCount,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _avatarBusy = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _avatarBusy = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('头像上传失败：$error')));
+    }
+  }
+
+  Future<void> _openAndRefresh(String route) async {
+    await Navigator.pushNamed(context, route);
+    if (mounted) await _loadProfile();
+  }
+
   String _memberLine(ProfileData? profile, String member, bool loggedIn) {
     if (!loggedIn) return '登录后查看会员权益和订单提醒';
     if (profile == null) return '$member · 爱团本地生活会员';
@@ -176,34 +228,76 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _Avatar extends StatelessWidget {
-  const _Avatar(this.name);
+  const _Avatar({
+    required this.name,
+    required this.avatarUrl,
+    required this.busy,
+    required this.onTap,
+  });
 
   final String name;
+  final String? avatarUrl;
+  final bool busy;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 58,
-    height: 58,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: AppColors.brand,
+  Widget build(BuildContext context) {
+    final url = backendRepository.resolveAssetUrl(avatarUrl);
+    return InkWell(
+      onTap: busy ? null : onTap,
       borderRadius: BorderRadius.circular(16),
-    ),
-    child: Text(
-      name.isEmpty ? '爱' : name.substring(0, 1),
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 24,
-        fontWeight: FontWeight.w800,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 58,
+              height: 58,
+              alignment: Alignment.center,
+              color: AppColors.brand,
+              child: url == null
+                  ? Text(
+                      name.isEmpty ? '爱' : name.substring(0, 1),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    )
+                  : Image.network(
+                      url,
+                      width: 58,
+                      height: 58,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Text(
+                        name.isEmpty ? '爱' : name.substring(0, 1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+          if (busy)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x66000000),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+            ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _EntryGrid extends StatelessWidget {
-  const _EntryGrid({required this.profile});
+  const _EntryGrid({required this.profile, required this.onReturned});
 
   final ProfileData? profile;
+  final Future<void> Function() onReturned;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +310,7 @@ class _EntryGrid extends StatelessWidget {
         profile?.unreadMessageCount,
       ),
       ('收藏', Icons.favorite_border, Routes.favorite, profile?.favoriteCount),
-      ('地址', Icons.place_outlined, '', profile?.addressCount),
+      ('地址', Icons.place_outlined, Routes.addressList, profile?.addressCount),
     ];
     return AppCard(
       child: Row(
@@ -227,7 +321,10 @@ class _EntryGrid extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 onTap: entry.$3.isEmpty
                     ? null
-                    : () => Navigator.pushNamed(context, entry.$3),
+                    : () async {
+                        await Navigator.pushNamed(context, entry.$3);
+                        await onReturned();
+                      },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Column(
@@ -263,10 +360,11 @@ class _EntryGrid extends StatelessWidget {
 }
 
 class _ToolRow extends StatelessWidget {
-  const _ToolRow({required this.icon, required this.title});
+  const _ToolRow({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -276,6 +374,7 @@ class _ToolRow extends StatelessWidget {
     leading: _IconBox(icon),
     title: Text(title, style: Theme.of(context).textTheme.titleSmall),
     trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
+    onTap: onTap,
   );
 }
 

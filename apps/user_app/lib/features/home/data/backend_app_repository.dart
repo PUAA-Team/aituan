@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
 import '../../../core/network/app_api_client.dart';
 import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/address_model.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
 import '../../../shared/models/message_item.dart';
@@ -191,6 +194,20 @@ class BackendAppRepository {
     return OrderDetailData.fromApi(_map(json['data']));
   }
 
+  Future<OrderDetailData> cancelOrder(String orderId) async {
+    final json = await _post('/api/app/trade/orders/$orderId/cancel', {
+      'remark': '用户取消订单',
+    });
+    return OrderDetailData.fromApi(_map(json['data']));
+  }
+
+  Future<OrderDetailData> remindOrder(String orderId) async {
+    final json = await _post('/api/app/trade/orders/$orderId/remind', {
+      'remark': '用户催单',
+    });
+    return OrderDetailData.fromApi(_map(json['data']));
+  }
+
   Future<List<MessageItem>> fetchMessages() async {
     final json = await _get('/api/app/message/station?page=1&pageSize=20');
     final page = _map(json['data']);
@@ -202,6 +219,66 @@ class BackendAppRepository {
   Future<ProfileData> fetchProfile() async {
     final json = await _get('/api/app/account/profile');
     return ProfileData.fromApi(_map(json['data']));
+  }
+
+  Future<ProfileData> updateProfile({
+    required String nickname,
+    String? avatarUrl,
+  }) async {
+    final json = await _put('/api/app/account/profile', {
+      'nickname': nickname,
+      'avatarUrl': avatarUrl,
+    });
+    return ProfileData.fromApi(_map(json['data']));
+  }
+
+  Future<ProfileData> uploadAvatar(String filePath) async {
+    final json = await _client.postMultipart(
+      '/api/app/account/avatar',
+      fileField: 'file',
+      file: File(filePath),
+    );
+    return ProfileData.fromApi(_map(json['data']));
+  }
+
+  Future<List<AddressData>> fetchAddresses() async {
+    final json = await _get('/api/app/account/addresses');
+    return _list(
+      json['data'],
+    ).map((entry) => AddressData.fromApi(_map(entry))).toList();
+  }
+
+  Future<AddressData> createAddress(AddressFormData address) async {
+    final json = await _post('/api/app/account/addresses', address.toApi());
+    return AddressData.fromApi(_map(json['data']));
+  }
+
+  Future<AddressData> updateAddress(
+    String addressId,
+    AddressFormData address,
+  ) async {
+    final json = await _put(
+      '/api/app/account/addresses/$addressId',
+      address.toApi(),
+    );
+    return AddressData.fromApi(_map(json['data']));
+  }
+
+  Future<void> deleteAddress(String addressId) async {
+    await _delete('/api/app/account/addresses/$addressId');
+  }
+
+  Future<AddressData> setDefaultAddress(String addressId) async {
+    final json = await _post(
+      '/api/app/account/addresses/$addressId/default',
+      <String, dynamic>{},
+    );
+    return AddressData.fromApi(_map(json['data']));
+  }
+
+  String? resolveAssetUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    return _client.resolveUrl(path);
   }
 
   Future<List<FavoriteEntry>> fetchFavorites({String? favoriteType}) async {
@@ -251,6 +328,9 @@ class BackendAppRepository {
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) =>
       _client.post(path, body);
 
+  Future<Map<String, dynamic>> _put(String path, Map<String, dynamic> body) =>
+      _client.put(path, body);
+
   Future<Map<String, dynamic>> _delete(String path) => _client.delete(path);
 }
 
@@ -258,6 +338,7 @@ class AuthSession {
   const AuthSession({
     required this.token,
     required this.nickname,
+    required this.avatarUrl,
     required this.phone,
     required this.email,
     required this.memberLevelName,
@@ -266,22 +347,24 @@ class AuthSession {
 
   final String token;
   final String nickname;
+  final String? avatarUrl;
   final String? phone;
   final String? email;
   final String memberLevelName;
   final int unreadMessageCount;
 
-  factory AuthSession.fromApi(Map<String, dynamic> json) => AuthSession(
-    token: _string(json['token']),
-    nickname: _string(_map(json['profile'])['nickname'], fallback: '爱团用户'),
-    phone: _nullableString(_map(json['profile'])['phone']),
-    email: _nullableString(_map(json['profile'])['email']),
-    memberLevelName: _string(
-      _map(json['profile'])['memberLevelName'],
-      fallback: '普通会员',
-    ),
-    unreadMessageCount: _int(_map(json['profile'])['unreadMessageCount']),
-  );
+  factory AuthSession.fromApi(Map<String, dynamic> json) {
+    final profile = _map(json['profile']);
+    return AuthSession(
+      token: _string(json['token']),
+      nickname: _string(profile['nickname'], fallback: '爱团用户'),
+      avatarUrl: _nullableString(profile['avatarUrl']),
+      phone: _nullableString(profile['phone']),
+      email: _nullableString(profile['email']),
+      memberLevelName: _string(profile['memberLevelName'], fallback: '普通会员'),
+      unreadMessageCount: _int(profile['unreadMessageCount']),
+    );
+  }
 }
 
 class HomeData {
@@ -351,6 +434,7 @@ class ItemGroupData {
 class ProfileData {
   const ProfileData({
     required this.nickname,
+    required this.avatarUrl,
     required this.phone,
     required this.email,
     required this.memberLevelName,
@@ -361,6 +445,7 @@ class ProfileData {
   });
 
   final String nickname;
+  final String? avatarUrl;
   final String? phone;
   final String? email;
   final String memberLevelName;
@@ -371,6 +456,7 @@ class ProfileData {
 
   factory ProfileData.fromApi(Map<String, dynamic> json) => ProfileData(
     nickname: _string(json['nickname'], fallback: '爱团用户'),
+    avatarUrl: _nullableString(json['avatarUrl']),
     phone: _nullableString(json['phone']),
     email: _nullableString(json['email']),
     memberLevelName: _string(json['memberLevelName'], fallback: '普通会员'),
@@ -704,6 +790,7 @@ List<MerchantModel> _merchants(dynamic value) => _list(value)
 MerchantModel _merchantFromStoreCard(
   Map<String, dynamic> json, {
   List<ItemModel> items = const [],
+  DeliveryRuleModel deliveryRule = const DeliveryRuleModel(),
 }) => MerchantModel(
   id: _string(json['id']),
   name: _string(json['name']),
@@ -714,6 +801,12 @@ MerchantModel _merchantFromStoreCard(
   address: _string(json['address']),
   tags: _strings(json['tags']),
   items: items,
+  coverUrl: _nullableString(json['coverUrl']),
+  status: _string(json['status'], fallback: 'open'),
+  businessHours: _string(json['businessHoursText'], fallback: '10:00-22:00'),
+  monthlySales: _int(json['monthlySales']),
+  avgPrice: _double(json['avgPrice']),
+  deliveryRule: deliveryRule,
 );
 
 MerchantModel _merchantFromStoreDetail(Map<String, dynamic> json) {
@@ -726,6 +819,18 @@ MerchantModel _merchantFromStoreDetail(Map<String, dynamic> json) {
   return _merchantFromStoreCard(
     store,
     items: items.isEmpty ? _items(store['matchedItems']) : items,
+    deliveryRule: _deliveryRule(json['deliveryRule']),
+  );
+}
+
+DeliveryRuleModel _deliveryRule(dynamic value) {
+  final json = _map(value);
+  if (json.isEmpty) return const DeliveryRuleModel();
+  return DeliveryRuleModel(
+    deliveryFee: _double(json['deliveryFee']),
+    estimatedMinutes: _int(json['estimatedMinutes']),
+    startPrice: _double(json['startPrice']),
+    deliveryText: _string(json['deliveryText']),
   );
 }
 
@@ -743,9 +848,11 @@ List<OrderModel> _orders(dynamic value) => _list(value).map((entry) {
     storeName: _string(json['storeName']),
     kind: kind,
     status: orderStatusFromApi(_string(json['displayStatus'])),
+    fulfillmentStatus: _string(json['fulfillmentStatus']),
     businessType: type,
     amount: _double(json['amount']),
     desc: _string(json['title']),
+    coverUrl: _nullableString(json['coverUrl']),
   );
 }).toList();
 

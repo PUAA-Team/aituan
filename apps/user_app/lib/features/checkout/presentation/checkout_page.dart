@@ -7,6 +7,7 @@ import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -19,7 +20,11 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
+  final _remarkController = TextEditingController();
   CheckoutPreviewData? _preview;
+  List<AddressData> _addresses = const [];
+  String? _selectedAddressId;
+  List<PaymentMethodData> _paymentMethods = const [];
   Object? _error;
   bool _loading = true;
   bool _submitting = false;
@@ -29,6 +34,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       (widget.args.kind == OrderKind.takeaway
           ? BusinessType.takeaway
           : BusinessType.groupBuy);
+
+  AddressData? get _selectedAddress {
+    for (final address in _addresses) {
+      if (address.id == _selectedAddressId) return address;
+    }
+    return null;
+  }
 
   bool get _canUseBackend =>
       int.tryParse(widget.args.storeId) != null &&
@@ -42,59 +54,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   @override
+  void dispose() {
+    _remarkController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isTakeaway = widget.args.kind == OrderKind.takeaway;
     final preview = _preview;
     final payable = preview?.payableAmount ?? widget.args.amount;
     return Scaffold(
       appBar: AppBar(title: const Text('确认订单')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isTakeaway ? '收货地址' : '使用信息',
-                  style: Theme.of(context).textTheme.titleMedium,
+      body: RefreshIndicator(
+        onRefresh: _loadPreview,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (isTakeaway)
+              _AddressCard(
+                address: _selectedAddress,
+                loading: _loading,
+                onTap: _openAddressSelector,
+              )
+            else
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '使用信息',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '支付成功后生成券码，到店出示即可核销',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  preview?.addressSnapshot ??
-                      (isTakeaway ? '使用默认收货地址' : '支付成功后生成券码，到店出示即可核销'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          if (!_canUseBackend)
-            const AppCard(child: Text('订单信息不完整，请返回商家页重新选择商品。'))
-          else if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _loadPreview)
-          else ...[
-            _GoodsCard(
-              title: widget.args.title,
-              preview: preview,
-              args: widget.args,
-            ),
-            AppCard(
-              child: Row(
-                children: const [
-                  Icon(Icons.payments_outlined, color: AppColors.brand),
-                  SizedBox(width: 8),
-                  Text('模拟支付', style: TextStyle(fontWeight: FontWeight.w700)),
-                  Spacer(),
-                  Icon(Icons.check_circle, color: AppColors.brand),
-                ],
               ),
-            ),
-            _FeeCard(preview: preview, fallbackAmount: widget.args.amount),
+            if (!_canUseBackend)
+              const AppCard(child: Text('订单信息不完整，请返回商家页重新选择商品。'))
+            else if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _loadPreview)
+            else ...[
+              _GoodsCard(
+                title: widget.args.title,
+                preview: preview,
+                args: widget.args,
+              ),
+              _RemarkCard(controller: _remarkController),
+              _PaymentMethodCard(methods: _paymentMethods),
+              _FeeCard(preview: preview, fallbackAmount: widget.args.amount),
+            ],
+            const SizedBox(height: 90),
           ],
-          const SizedBox(height: 90),
-        ],
+        ),
       ),
       bottomNavigationBar: AppBottomActionBar(
         primaryText: _submitting ? '提交中' : '提交并支付',
@@ -117,15 +136,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
         _loading = true;
         _error = null;
       });
+      final isTakeaway = widget.args.kind == OrderKind.takeaway;
+      final addresses = isTakeaway
+          ? await backendRepository.fetchAddresses()
+          : const <AddressData>[];
+      final selected = _resolveSelectedAddress(addresses);
       final preview = await backendRepository.previewCheckout(
         storeId: widget.args.storeId,
         businessType: _businessType,
-        addressId: null,
+        addressId: selected?.id,
         lines: widget.args.lines,
       );
+      final paymentMethods = await backendRepository.fetchPaymentMethods();
       if (!mounted) return;
       setState(() {
+        _addresses = addresses;
+        _selectedAddressId = selected?.id;
         _preview = preview;
+        _paymentMethods = paymentMethods;
         _loading = false;
       });
     } catch (error) {
@@ -137,15 +165,46 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
   }
 
+  AddressData? _resolveSelectedAddress(List<AddressData> addresses) {
+    for (final address in addresses) {
+      if (address.id == _selectedAddressId) return address;
+    }
+    for (final address in addresses) {
+      if (address.isDefault) return address;
+    }
+    return addresses.isEmpty ? null : addresses.first;
+  }
+
+  Future<void> _openAddressSelector() async {
+    final selected = await Navigator.pushNamed(
+      context,
+      Routes.addressList,
+      arguments: AddressListArgs(
+        selectMode: true,
+        selectedAddressId: _selectedAddressId,
+      ),
+    );
+    if (selected is AddressData) {
+      setState(() => _selectedAddressId = selected.id);
+    }
+    if (mounted) await _loadPreview();
+  }
+
   Future<void> _pay() async {
+    if (widget.args.kind == OrderKind.takeaway && _selectedAddress == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先新增或选择收货地址')));
+      return;
+    }
     try {
       setState(() => _submitting = true);
       final order = await backendRepository.createOrder(
         storeId: widget.args.storeId,
         businessType: _businessType,
-        addressId: null,
+        addressId: _selectedAddress?.id,
         lines: widget.args.lines,
-        remark: '',
+        remark: _remarkController.text.trim(),
         idempotencyKey: DateTime.now().microsecondsSinceEpoch.toString(),
       );
       final paid = await backendRepository.payOrder(order.id);
@@ -167,6 +226,53 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ).showSnackBar(SnackBar(content: Text('提交失败：$error')));
     }
   }
+}
+
+class _AddressCard extends StatelessWidget {
+  const _AddressCard({
+    required this.address,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final AddressData? address;
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: loading ? null : onTap,
+    borderColor: address == null ? AppColors.brandLine : AppColors.line,
+    child: Row(
+      children: [
+        const Icon(Icons.place_outlined, color: AppColors.brand),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('收货地址', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              if (address == null)
+                Text(
+                  '新增或选择收货地址后继续下单',
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              else ...[
+                Text('${address!.contactName} ${address!.contactPhone}'),
+                const SizedBox(height: 4),
+                Text(
+                  address!.fullAddress,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: AppColors.textLight),
+      ],
+    ),
+  );
 }
 
 class _GoodsCard extends StatelessWidget {
@@ -228,6 +334,84 @@ class _ArgLine extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _RemarkCard extends StatelessWidget {
+  const _RemarkCard({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('订单备注', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            hintText: '口味偏好、餐具数量、配送说明等',
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PaymentMethodCard extends StatelessWidget {
+  const _PaymentMethodCard({required this.methods});
+
+  final List<PaymentMethodData> methods;
+
+  @override
+  Widget build(BuildContext context) {
+    final display = methods.isEmpty
+        ? const [PaymentMethodData(code: 'mock', name: '模拟支付', enabled: true)]
+        : methods;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('支付方式', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          for (final method in display)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Row(
+                children: [
+                  Icon(
+                    method.enabled
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: method.enabled
+                        ? AppColors.brand
+                        : AppColors.textLight,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    method.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: method.enabled
+                          ? AppColors.textMain
+                          : AppColors.textSub,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    method.enabled ? '当前可用' : '后续开放',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _FeeCard extends StatelessWidget {

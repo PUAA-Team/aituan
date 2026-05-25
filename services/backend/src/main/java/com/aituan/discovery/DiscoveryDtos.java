@@ -19,6 +19,9 @@ record ItemCardView(
     BigDecimal originalPrice,
     String coverUrl,
     List<String> tags,
+    Integer stock,
+    String saleStatus,
+    Boolean soldOut,
     Long storeId,
     String storeName) {}
 
@@ -28,6 +31,10 @@ record StoreCardView(
     String businessType,
     String distanceText,
     BigDecimal rating,
+    Integer monthlySales,
+    BigDecimal avgPrice,
+    String status,
+    String businessHoursText,
     String summary,
     String address,
     List<String> tags,

@@ -4,7 +4,8 @@ public enum DisplayOrderStatus {
   UNPAID("unpaid", "未支付"),
   PENDING("pending", "待完成"),
   UNUSED("unused", "未使用"),
-  USED("used", "已使用");
+  USED("used", "已使用"),
+  CANCELLED("cancelled", "已取消");
 
   private final String code;
   private final String label;

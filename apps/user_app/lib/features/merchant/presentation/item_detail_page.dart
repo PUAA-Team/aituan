@@ -70,6 +70,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                 height: 190,
                 icon: businessIcon(item.type),
                 label: item.category,
+                imageUrl: item.coverUrl,
               ),
               const SizedBox(height: 10),
               _InfoCard(item: item, categories: detail.categories),
@@ -158,6 +159,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           favoriteType: 'item',
           targetId: targetId,
           targetName: detail.item.title,
+          coverUrl: detail.item.coverUrl,
           subtitle: detail.item.subtitle,
         );
       }
@@ -256,7 +258,12 @@ class _MerchantCard extends StatelessWidget {
     ),
     child: Row(
       children: [
-        const Icon(Icons.storefront, color: AppColors.brand),
+        MockThumb(
+          size: 44,
+          icon: Icons.storefront,
+          label: detail.merchant.type.label,
+          imageUrl: detail.merchant.coverUrl,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(

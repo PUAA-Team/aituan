@@ -30,3 +30,7 @@ aituan:
   security:
     jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
     jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:604800}
+  upload:
+    root-dir: ${AITUAN_UPLOAD_ROOT:D:/aituan_runtime/uploads}
+    public-prefix: ${AITUAN_UPLOAD_PUBLIC_PREFIX:/api/common/files}
+    max-size-bytes: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5242880}

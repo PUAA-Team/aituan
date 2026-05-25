@@ -48,6 +48,10 @@ record AddressUpsertRequest(
     Boolean isDefault,
     String deliveryNote) {}
 
+record AccountProfileUpdateRequest(
+    @NotBlank String nickname,
+    String avatarUrl) {}
+
 record FavoriteUpsertRequest(
     @NotBlank String favoriteType,
     @NotNull Long targetId,

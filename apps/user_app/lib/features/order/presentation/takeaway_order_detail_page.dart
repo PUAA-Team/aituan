@@ -10,6 +10,7 @@ import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../home/data/backend_app_repository.dart';
+import 'takeaway_fulfillment_text.dart';
 
 class TakeawayOrderDetailPage extends StatefulWidget {
   const TakeawayOrderDetailPage({super.key, required this.args});
@@ -26,6 +27,7 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   Object? _error;
   bool _loading = true;
   bool _paying = false;
+  bool _acting = false;
 
   String? get _orderId => widget.args.orderId;
 
@@ -54,12 +56,19 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
               _ErrorCard(message: _error.toString(), onRetry: _load)
             else if (detail != null) ...[
               _StatusCard(
-                status: detail.status,
-                desc: _desc(detail),
-                tag: _tag(detail.status),
+                title: takeawayStatusLabel(
+                  detail.status,
+                  detail.fulfillmentStatus,
+                ),
+                desc: takeawayStatusDescription(
+                  detail.status,
+                  detail.fulfillmentStatus,
+                ),
+                tag: takeawayStatusTag(detail.status, detail.fulfillmentStatus),
+                active: detail.status == OrderStatus.pending,
               ),
-              if (detail.deliveryTimeline.isNotEmpty)
-                _ProgressCard(nodes: detail.deliveryTimeline),
+              if (_visibleTimeline(detail).isNotEmpty)
+                _ProgressCard(nodes: _visibleTimeline(detail)),
               _StoreCard(detail: detail),
               _GoodsCard(detail: detail),
               _FeeCard(detail: detail),
@@ -71,10 +80,10 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       bottomNavigationBar: detail == null
           ? null
           : AppBottomActionBar(
-              primaryText: _primaryText(detail.status),
-              onPrimary: _paying ? null : () => _primaryAction(detail),
-              secondaryText: '刷新状态',
-              onSecondary: _load,
+              primaryText: _primaryText(detail),
+              onPrimary: _busy ? null : () => _primaryAction(detail),
+              secondaryText: _secondaryText(detail),
+              onSecondary: _busy ? null : () => _secondaryAction(detail),
             ),
     );
   }
@@ -105,6 +114,8 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     }
   }
 
+  bool get _busy => _paying || _acting;
+
   Future<void> _pay(OrderDetailData detail) async {
     try {
       setState(() => _paying = true);
@@ -117,9 +128,59 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _paying = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('支付失败：$error')));
+      _showSnackBar('支付失败：$error');
+    }
+  }
+
+  Future<void> _cancel(OrderDetailData detail) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消订单'),
+        content: const Text('确认取消当前外卖订单吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('再想想'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认取消'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      setState(() => _acting = true);
+      final cancelled = await backendRepository.cancelOrder(detail.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = cancelled;
+        _acting = false;
+      });
+      _showSnackBar('订单已取消');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('取消失败：$error');
+    }
+  }
+
+  Future<void> _remind(OrderDetailData detail) async {
+    try {
+      setState(() => _acting = true);
+      final updated = await backendRepository.remindOrder(detail.id);
+      if (!mounted) return;
+      setState(() {
+        _detail = updated;
+        _acting = false;
+      });
+      _showSnackBar('已提醒商家处理');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('催单失败：$error');
     }
   }
 
@@ -128,53 +189,106 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       _pay(detail);
       return;
     }
+    if (detail.status == OrderStatus.pending) {
+      _remind(detail);
+      return;
+    }
     if (detail.status == OrderStatus.used) {
       Navigator.pushNamed(
         context,
         Routes.reviewPublish,
         arguments: ReviewArgs(title: detail.title, orderId: detail.id),
-      );
+      ).then((_) => _load());
       return;
     }
+    _openStore(detail);
+  }
+
+  void _secondaryAction(OrderDetailData detail) {
+    if (_canCancel(detail)) {
+      _cancel(detail);
+      return;
+    }
+    if (detail.deliveryTimeline.isEmpty) {
+      _load();
+      return;
+    }
+    _openDeliveryTracking(detail);
+  }
+
+  void _openStore(OrderDetailData detail) {
     Navigator.pushNamed(
       context,
       Routes.searchResult,
       arguments: SearchArgs(detail.storeName),
-    );
+    ).then((_) => _load());
   }
 
-  String _primaryText(OrderStatus status) => switch (status) {
+  List<TimelineNodeData> _visibleTimeline(OrderDetailData detail) => detail
+      .deliveryTimeline
+      .where(
+        (node) =>
+            node.reachedAt != null || node.code == detail.fulfillmentStatus,
+      )
+      .toList();
+
+  Future<void> _openDeliveryTracking(OrderDetailData detail) async {
+    await Navigator.pushNamed(
+      context,
+      Routes.deliveryTracking,
+      arguments: OrderDetailArgs(
+        kind: OrderKind.takeaway,
+        status: detail.status,
+        orderId: detail.id,
+      ),
+    );
+    await _load();
+  }
+
+  bool _canCancel(OrderDetailData detail) {
+    if (detail.status == OrderStatus.unpaid) return true;
+    if (detail.status != OrderStatus.pending) return false;
+    return !{
+      'delivering',
+      'delivered',
+      'completed',
+      'cancelled',
+      'merchant_rejected',
+    }.contains(detail.fulfillmentStatus);
+  }
+
+  String _primaryText(OrderDetailData detail) => switch (detail.status) {
     OrderStatus.unpaid => _paying ? '支付中' : '模拟支付',
+    OrderStatus.pending => _acting ? '催单中' : '催单',
     OrderStatus.used => '去评价',
     _ => '查看商家',
   };
 
-  String _desc(OrderDetailData detail) => switch (detail.status) {
-    OrderStatus.unpaid => '订单已创建，请尽快完成支付。',
-    OrderStatus.pending =>
-      detail.fulfillmentStatus.isEmpty
-          ? '商家已接单，订单正在履约中。'
-          : '当前履约状态：${detail.fulfillmentStatus}',
-    _ => '订单已完成，可对本次服务进行评价。',
-  };
+  String _secondaryText(OrderDetailData detail) {
+    if (_acting && _canCancel(detail)) return '处理中';
+    if (_canCancel(detail)) return '取消订单';
+    return detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪';
+  }
 
-  String _tag(OrderStatus status) => switch (status) {
-    OrderStatus.unpaid => '等待付款',
-    OrderStatus.pending => '配送中',
-    _ => '已完成',
-  };
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 class _StatusCard extends StatelessWidget {
   const _StatusCard({
-    required this.status,
+    required this.title,
     required this.desc,
     required this.tag,
+    required this.active,
   });
 
-  final OrderStatus status;
+  final String title;
   final String desc;
   final String tag;
+  final bool active;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -186,16 +300,13 @@ class _StatusCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                status.labelForKind(OrderKind.takeaway),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
               Text(desc, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
-        BrandTag(tag, green: status == OrderStatus.pending, selected: true),
+        BrandTag(tag, green: active, selected: true),
       ],
     ),
   );
@@ -231,7 +342,7 @@ class _ProgressCard extends StatelessWidget {
   String _timelineText(TimelineNodeData node) {
     final time = node.reachedAt == null
         ? ''
-        : '${node.reachedAt!.hour.toString().padLeft(2, '0')}:${node.reachedAt!.minute.toString().padLeft(2, '0')} ';
+        : '${formatTimelineTime(node.reachedAt)} ';
     return '$time${node.text}';
   }
 }
@@ -278,7 +389,11 @@ class _GoodsCard extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: [
-                MockThumb(size: 72, label: item.categoryName),
+                MockThumb(
+                  size: 72,
+                  label: item.categoryName,
+                  imageUrl: item.coverUrl,
+                ),
                 const SizedBox(width: 10),
                 Expanded(child: Text('${item.itemName} ×${item.quantity}')),
                 PriceText(item.totalPrice, size: 18),

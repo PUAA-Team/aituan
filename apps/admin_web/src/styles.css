@@ -1,0 +1,123 @@
+:root {
+  color: #1f2329;
+  background: #f5f6f8;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+h1, h2, h3, p { margin: 0; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid #edf0f4; padding: 12px; text-align: left; vertical-align: middle; }
+th { color: #4e5969; background: #f7f8fa; font-size: 13px; font-weight: 800; }
+td span { display: block; margin-top: 4px; color: #86909c; font-size: 12px; }
+
+input, select {
+  width: 100%; height: 38px; border: 1px solid #d9dee7; border-radius: 4px;
+  padding: 0 10px; color: #1f2329; background: #fff;
+}
+input:focus, select:focus { outline: 2px solid rgba(228, 0, 43, 0.14); border-color: #e4002b; }
+label { display: grid; gap: 8px; color: #4e5969; font-size: 13px; }
+
+.primary-btn, .secondary-btn, .text-btn, .file-btn {
+  border-radius: 4px; min-height: 38px; padding: 0 16px; font-weight: 800;
+}
+.primary-btn { border: 1px solid #e4002b; color: #fff; background: #e4002b; }
+.secondary-btn, .file-btn { border: 1px solid #d9dee7; color: #1f2329; background: #fff; }
+.text-btn { border: 0; color: #b80022; background: transparent; }
+.small { min-height: 30px; padding: 0 10px; font-size: 12px; }
+.section-kicker { color: #b80022; font-size: 12px; font-weight: 900; letter-spacing: 0.1em; }
+.notice-bar { border: 1px solid #ffd4dc; padding: 10px 12px; color: #9f001e; background: #fff4f6; font-weight: 800; }
+
+.login-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 400px; align-items: center; gap: 48px; padding: 56px 8vw; }
+.login-copy h1 { margin-top: 12px; font-size: clamp(42px, 6vw, 72px); line-height: 1; letter-spacing: -0.05em; }
+.login-points { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.login-points span, .tag { display: inline-flex; width: fit-content; align-items: center; border: 1px solid #edf0f4; padding: 4px 8px; color: #4e5969; background: #fff; font-size: 12px; font-weight: 800; }
+.login-card, .panel-card, .drawer-card, .metric-card, .modal-panel, .empty-card { border: 1px solid #e5e8ef; background: #fff; box-shadow: 0 10px 28px rgba(31, 35, 41, 0.06); }
+.login-card { display: grid; gap: 18px; padding: 28px; }
+
+.admin-layout { min-height: 100vh; display: grid; grid-template-columns: 270px minmax(0, 1fr); }
+.admin-side { display: grid; grid-template-rows: auto 1fr auto; border-right: 1px solid #e5e8ef; background: #fff; }
+.brand-block { display: grid; gap: 7px; padding: 24px 20px; border-bottom: 1px solid #edf0f4; }
+.brand-block span, .brand-block small, .side-footer, .catalog-card small { color: #86909c; font-size: 12px; }
+.brand-block strong { font-size: 20px; }
+.side-nav { display: grid; align-content: start; gap: 4px; padding: 14px; }
+.side-nav button { display: grid; gap: 5px; border: 1px solid transparent; border-radius: 4px; padding: 12px; text-align: left; color: #1f2329; background: #fff; }
+.side-nav button small { color: #86909c; }
+.side-nav button.active { border-color: #f0b7c2; color: #b80022; background: #fff5f6; }
+.side-footer { display: grid; gap: 10px; padding: 18px; border-top: 1px solid #edf0f4; }
+.admin-main { display: grid; align-content: start; gap: 16px; padding: 24px; }
+.topbar, .panel-toolbar, .row-actions, .toolbar-actions, .line-row, .catalog-head, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.topbar { border: 1px solid #e5e8ef; padding: 18px; background: #fff; }
+.topbar h1 { margin-top: 6px; font-size: 26px; }
+
+.page-grid { display: grid; gap: 16px; }
+.page-grid.two-col, .split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.panel-card, .drawer-card, .empty-card { padding: 18px; }
+.panel-toolbar { margin-bottom: 14px; }
+.toolbar-actions { flex-wrap: wrap; justify-content: flex-end; }
+.search-input { width: 210px; }
+.mini-input { width: 110px; }
+.table-wrap { overflow-x: auto; }
+.metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.metric-card { padding: 16px; }
+.metric-card span { color: #86909c; font-size: 13px; }
+.metric-card strong { display: block; margin-top: 8px; font-size: 30px; }
+.metric-card.warning strong, .amount, .fee-box strong, .line-row b, .catalog-head strong { color: #e4002b; }
+.empty-cell, .empty-card { color: #86909c; text-align: center; }
+.mono { font-family: "JetBrains Mono", Consolas, monospace; }
+.row-actions { justify-content: flex-start; flex-wrap: wrap; }
+
+.tag.normal, .tag.open, .tag.published, .tag.on_sale { color: #0f7a3d; border-color: #bde7cf; background: #f1fbf5; }
+.tag.disabled, .tag.closed, .tag.offline, .tag.off_sale { color: #7a4b00; border-color: #ffe0a6; background: #fff8e8; }
+.tag.blocked, .tag.abnormal { color: #9f001e; border-color: #ffd4dc; background: #fff4f6; }
+.tag.draft { color: #4e5969; background: #f7f8fa; }
+
+.status-list, .audit-list, .config-list, .info-list, .line-list, .timeline-list, .modal-form { display: grid; gap: 10px; }
+.status-row, .audit-row, .config-row { border: 1px solid #edf0f4; padding: 12px; }
+.status-row { display: flex; justify-content: space-between; }
+.audit-row { display: grid; gap: 5px; }
+.audit-row span, .audit-row small, .info-list, .catalog-info p { color: #86909c; font-size: 12px; }
+.config-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+
+.drawer-card { display: grid; gap: 14px; }
+.line-row { border-bottom: 1px solid #edf0f4; padding-bottom: 8px; }
+.fee-box, .result-box { display: grid; gap: 6px; border: 1px solid #f3c9d1; padding: 12px; background: #fff7f8; }
+.timeline-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 120px; gap: 10px; align-items: center; color: #86909c; }
+.timeline-row i { width: 8px; height: 8px; border: 2px solid #c9cdd4; border-radius: 50%; }
+.timeline-row.done { color: #1f2329; }
+.timeline-row.done i { border-color: #e4002b; background: #e4002b; }
+
+.store-grid, .catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.store-card, .catalog-card { display: grid; gap: 12px; border: 1px solid #edf0f4; padding: 12px; }
+.store-thumb, .thumb-box { display: grid; place-items: center; overflow: hidden; border: 1px solid #edf0f4; color: #9f001e; background: #fff5f6; font-weight: 900; }
+.store-thumb { height: 120px; }
+.thumb-box { height: 96px; }
+.store-thumb img, .thumb-box img { width: 100%; height: 100%; object-fit: cover; }
+.catalog-info h3 { margin: 10px 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.file-btn { display: inline-grid; place-items: center; position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.user-cell { display: inline-flex; align-items: center; gap: 8px; }
+.user-cell img, .user-cell i { width: 30px; height: 30px; display: inline-grid; place-items: center; border: 1px solid #edf0f4; border-radius: 50%; object-fit: cover; background: #fff5f6; color: #9f001e; font-style: normal; }
+.form-grid { display: grid; gap: 12px; }
+.form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.check-line { display: flex; align-items: center; gap: 8px; }
+.check-line input { width: auto; height: auto; }
+.wide { grid-column: 1 / -1; }
+
+.modal-mask { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(31, 35, 41, 0.38); }
+.modal-panel { max-width: min(96vw, 860px); max-height: 92vh; overflow: auto; padding: 20px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+
+@media (max-width: 1180px) { .store-grid, .catalog-grid, .metric-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .login-shell, .admin-layout, .page-grid.two-col, .split-grid, .store-grid, .catalog-grid, .metric-row, .form-grid.three, .config-row { grid-template-columns: 1fr; }
+  .toolbar-actions, .topbar, .panel-toolbar { align-items: stretch; flex-direction: column; }
+  .search-input, .mini-input { width: 100%; }
+}

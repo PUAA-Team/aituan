@@ -13,6 +13,17 @@ function Invoke-Step {
   }
 }
 
+function Remove-DirectoryIfExists {
+  param([string]$Path)
+
+  if (-not (Test-Path $Path)) { return }
+  $CmdPath = $Path.Replace('/', '\')
+  cmd.exe /c "if exist `"$CmdPath`" rmdir /s /q `"$CmdPath`""
+  if (Test-Path $Path) {
+    throw "Failed to remove work dir: $Path"
+  }
+}
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir '..\..')
 $SourceDir = Join-Path $RepoRoot 'apps\user_app'
@@ -43,6 +54,6 @@ try {
 $BuiltApk = Join-Path $WorkDir 'build\app\outputs\flutter-apk\app-debug.apk'
 $TargetApk = Join-Path $ReleaseDir $ApkName
 Copy-Item $BuiltApk $TargetApk -Force
-Remove-Item $WorkDir -Recurse -Force
+Remove-DirectoryIfExists $WorkDir
 
 Write-Host "APK output: $TargetApk"

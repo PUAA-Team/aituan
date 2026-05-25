@@ -55,8 +55,23 @@ class AuthService {
   }
 
   AuthResponse login(LoginRequest request) {
+    return loginForType(request, null);
+  }
+
+  AuthResponse loginMerchant(LoginRequest request) {
+    return loginForType(request, AccountType.MERCHANT);
+  }
+
+  AuthResponse loginAdmin(LoginRequest request) {
+    return loginForType(request, AccountType.ADMIN);
+  }
+
+  private AuthResponse loginForType(LoginRequest request, AccountType expectedType) {
     AuthRepository.AccountRow account = authRepository.findAccountByLogin(request.account())
         .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PASSWORD));
+    if (expectedType != null && account.accountType() != expectedType) {
+      throw new BusinessException(ErrorCode.FORBIDDEN);
+    }
     if (!passwordEncoder.matches(request.password(), account.passwordHash()) && !request.password().equals(account.passwordHash())) {
       throw new BusinessException(ErrorCode.INVALID_PASSWORD);
     }

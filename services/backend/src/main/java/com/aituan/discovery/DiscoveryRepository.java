@@ -32,11 +32,20 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from member_recommend_config r
         join catalog_item i on i.id = r.item_id and i.is_deleted = 0 and i.status = 'on_sale'
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
         where r.scene = 'home_recommend' and r.status = 'normal'
         order by r.sort_order, r.id
         limit ? offset ?
@@ -72,10 +81,19 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
         where i.business_type = ? and i.is_deleted = 0 and i.status = 'on_sale'
         order by i.sort_order, i.sales_count desc, i.id
         limit ?
@@ -103,10 +121,19 @@ class DiscoveryRepository {
     List<ItemRow> rows = jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
         where i.id = ? and i.is_deleted = 0
         limit 1
         """,
@@ -131,10 +158,19 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
         where i.store_id = ? and i.is_deleted = 0 and i.status = 'on_sale'
         order by c.sort_order, i.sort_order, i.id
         """,
@@ -147,10 +183,19 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
         where i.store_id = ? and i.is_deleted = 0 and i.status = 'on_sale'
           and (i.item_name like ? or i.subtitle like ? or i.tag_text like ?)
         order by i.sort_order, i.sales_count desc, i.id
@@ -293,7 +338,9 @@ class DiscoveryRepository {
         rs.getString("tag_text"),
         rs.getLong("store_id"),
         rs.getString("store_name"),
-        rs.getInt("sort_order"));
+        rs.getInt("sort_order"),
+        rs.getInt("stock"),
+        rs.getString("sku_status"));
   }
 
   record ModuleRow(Long id, String code, String name, String businessType, int sortOrder) {}
@@ -329,7 +376,9 @@ class DiscoveryRepository {
       String tagText,
       Long storeId,
       String storeName,
-      int sortOrder) {}
+      int sortOrder,
+      int stock,
+      String skuStatus) {}
 
   record ReviewSummaryRow(BigDecimal rating, long count, List<String> highlights) {}
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants/route_constants.dart';
+import '../features/address/presentation/address_edit_page.dart';
+import '../features/address/presentation/address_list_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
 import '../features/checkout/presentation/checkout_page.dart';
@@ -10,6 +12,7 @@ import '../features/home/presentation/module_page.dart';
 import '../features/merchant/presentation/item_detail_page.dart';
 import '../features/merchant/presentation/service_merchant_page.dart';
 import '../features/merchant/presentation/takeaway_merchant_page.dart';
+import '../features/order/presentation/delivery_tracking_page.dart';
 import '../features/order/presentation/service_order_detail_page.dart';
 import '../features/order/presentation/takeaway_order_detail_page.dart';
 import '../features/review/presentation/review_publish_page.dart';
@@ -29,8 +32,11 @@ class AppRouter {
     Routes.checkout,
     Routes.orders,
     Routes.orderDetail,
+    Routes.deliveryTracking,
     Routes.message,
     Routes.favorite,
+    Routes.addressList,
+    Routes.addressEdit,
     Routes.profile,
     Routes.reviewPublish,
   };
@@ -65,7 +71,19 @@ class AppRouter {
         settings,
       ),
       Routes.orderDetail => _orderDetail(settings),
+      Routes.deliveryTracking => _page(
+        DeliveryTrackingPage(args: _orderDetailArgs(settings.arguments)),
+        settings,
+      ),
       Routes.favorite => _page(const FavoritePage(), settings),
+      Routes.addressList => _page(
+        AddressListPage(args: _addressListArgs(settings.arguments)),
+        settings,
+      ),
+      Routes.addressEdit => _page(
+        AddressEditPage(args: _addressEditArgs(settings.arguments)),
+        settings,
+      ),
       Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
       _ => _page(const SplashPage(), settings),
     };
@@ -84,18 +102,20 @@ class AppRouter {
   }
 
   static MaterialPageRoute<dynamic> _orderDetail(RouteSettings settings) {
-    final args = settings.arguments;
-    final data = args is OrderDetailArgs
-        ? args
-        : const OrderDetailArgs(
-            kind: OrderKind.takeaway,
-            status: OrderStatus.pending,
-          );
+    final data = _orderDetailArgs(settings.arguments);
     if (data.kind == OrderKind.takeaway) {
       return _page(TakeawayOrderDetailPage(args: data), settings);
     }
     return _page(ServiceOrderDetailPage(args: data), settings);
   }
+
+  static OrderDetailArgs _orderDetailArgs(Object? args) =>
+      args is OrderDetailArgs
+      ? args
+      : const OrderDetailArgs(
+          kind: OrderKind.takeaway,
+          status: OrderStatus.pending,
+        );
 
   static MaterialPageRoute<dynamic> _page(
     Widget child,
@@ -118,6 +138,12 @@ class AppRouter {
     String keyword => keyword,
     _ => '',
   };
+
+  static AddressListArgs _addressListArgs(Object? args) =>
+      args is AddressListArgs ? args : const AddressListArgs();
+
+  static AddressEditArgs _addressEditArgs(Object? args) =>
+      args is AddressEditArgs ? args : const AddressEditArgs();
 
   static ItemModel _item(Object? args) =>
       args is ItemArgs ? args.item : serviceItems.first;

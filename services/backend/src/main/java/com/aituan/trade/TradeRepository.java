@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -79,6 +80,222 @@ class TradeRepository {
             rs.getString("status")),
         itemId);
     return rows.stream().findFirst();
+  }
+
+  long getOrCreateCart(long userId, long storeId) {
+    Optional<Long> existing = findCartId(userId, storeId);
+    if (existing.isPresent()) {
+      return existing.get();
+    }
+    jdbcTemplate.update(
+        "insert into cart(user_id, store_id) values (?, ?)",
+        userId,
+        storeId);
+    return findCartId(userId, storeId).orElseThrow();
+  }
+
+  private Optional<Long> findCartId(long userId, long storeId) {
+    List<Long> rows = jdbcTemplate.query(
+        "select id from cart where user_id = ? and store_id = ? and is_deleted = 0 limit 1",
+        (rs, rowNum) -> rs.getLong("id"),
+        userId,
+        storeId);
+    return rows.stream().findFirst();
+  }
+
+  List<CartItemRow> listCartItems(long cartId) {
+    return jdbcTemplate.query(
+        """
+        select ci.item_id, i.item_name, i.subtitle, c.category_name, i.price,
+               coalesce(sku.stock, 0) as stock, i.status, ci.quantity
+        from cart_item ci
+        join catalog_item i on i.id = ci.item_id and i.is_deleted = 0
+        join catalog_category c on c.id = i.category_id
+        left join catalog_sku sku on sku.item_id = i.id and sku.sku_name = '默认' and sku.is_deleted = 0
+        where ci.cart_id = ? and ci.is_deleted = 0
+        order by ci.updated_at desc, ci.id desc
+        """,
+        (rs, rowNum) -> new CartItemRow(
+            rs.getLong("item_id"),
+            rs.getString("item_name"),
+            rs.getString("subtitle"),
+            rs.getString("category_name"),
+            rs.getBigDecimal("price"),
+            rs.getInt("stock"),
+            rs.getString("status"),
+            rs.getInt("quantity")),
+        cartId);
+  }
+
+  int findCartItemQuantity(long cartId, long itemId) {
+    List<Integer> rows = jdbcTemplate.query(
+        "select quantity from cart_item where cart_id = ? and item_id = ? and is_deleted = 0 limit 1",
+        (rs, rowNum) -> rs.getInt("quantity"),
+        cartId,
+        itemId);
+    return rows.stream().findFirst().orElse(0);
+  }
+
+  void upsertCartItem(long cartId, long itemId, int quantity) {
+    int updated = jdbcTemplate.update(
+        "update cart_item set quantity = quantity + ?, is_deleted = 0, updated_at = current_timestamp where cart_id = ? and item_id = ?",
+        quantity,
+        cartId,
+        itemId);
+    if (updated == 0) {
+      jdbcTemplate.update(
+          "insert into cart_item(cart_id, item_id, quantity) values (?, ?, ?)",
+          cartId,
+          itemId,
+          quantity);
+    }
+    touchCart(cartId);
+  }
+
+  void setCartItemQuantity(long cartId, long itemId, int quantity) {
+    if (quantity <= 0) {
+      removeCartItem(cartId, itemId);
+      return;
+    }
+    int updated = jdbcTemplate.update(
+        "update cart_item set quantity = ?, is_deleted = 0, updated_at = current_timestamp where cart_id = ? and item_id = ?",
+        quantity,
+        cartId,
+        itemId);
+    if (updated == 0) {
+      jdbcTemplate.update(
+          "insert into cart_item(cart_id, item_id, quantity) values (?, ?, ?)",
+          cartId,
+          itemId,
+          quantity);
+    }
+    touchCart(cartId);
+  }
+
+  void removeCartItem(long cartId, long itemId) {
+    jdbcTemplate.update(
+        "update cart_item set quantity = 0, is_deleted = 1, updated_at = current_timestamp where cart_id = ? and item_id = ?",
+        cartId,
+        itemId);
+    touchCart(cartId);
+  }
+
+  void clearCart(long cartId) {
+    jdbcTemplate.update(
+        "update cart_item set quantity = 0, is_deleted = 1, updated_at = current_timestamp where cart_id = ? and is_deleted = 0",
+        cartId);
+    touchCart(cartId);
+  }
+
+  private void touchCart(long cartId) {
+    jdbcTemplate.update("update cart set updated_at = current_timestamp where id = ?", cartId);
+  }
+
+  List<MerchantItemRow> listTakeawayItems(long storeId, String status) {
+    StringBuilder sql = new StringBuilder("""
+        select i.id, i.store_id, i.item_name, i.subtitle, c.category_name, i.price, i.original_price,
+               coalesce(sku.stock, 0) as stock, i.status, i.sales_count
+        from catalog_item i
+        join catalog_category c on c.id = i.category_id
+        left join catalog_sku sku on sku.item_id = i.id and sku.sku_name = '默认' and sku.is_deleted = 0
+        where i.store_id = ? and i.business_type = 'takeaway' and i.is_deleted = 0
+        """);
+    List<Object> params = new ArrayList<>();
+    params.add(storeId);
+    if (status != null && !status.isBlank()) {
+      sql.append(" and i.status = ?");
+      params.add(status);
+    }
+    sql.append(" order by c.sort_order, i.sort_order, i.id");
+    return jdbcTemplate.query(sql.toString(), this::mapMerchantItem, params.toArray());
+  }
+
+  Optional<MerchantItemRow> findMerchantItem(long itemId) {
+    List<MerchantItemRow> rows = jdbcTemplate.query(
+        """
+        select i.id, i.store_id, i.item_name, i.subtitle, c.category_name, i.price, i.original_price,
+               coalesce(sku.stock, 0) as stock, i.status, i.sales_count
+        from catalog_item i
+        join catalog_category c on c.id = i.category_id
+        left join catalog_sku sku on sku.item_id = i.id and sku.sku_name = '默认' and sku.is_deleted = 0
+        where i.id = ? and i.business_type = 'takeaway' and i.is_deleted = 0
+        limit 1
+        """,
+        this::mapMerchantItem,
+        itemId);
+    return rows.stream().findFirst();
+  }
+
+  void updateMerchantItem(long itemId, String title, String subtitle, BigDecimal price, int stock, String status) {
+    jdbcTemplate.update(
+        """
+        update catalog_item
+        set item_name = ?, subtitle = ?, price = ?, status = ?, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        title,
+        subtitle,
+        price,
+        status,
+        itemId);
+    int updatedSku = jdbcTemplate.update(
+        """
+        update catalog_sku
+        set price = ?, stock = ?, status = ?, updated_at = current_timestamp
+        where item_id = ? and sku_name = '默认' and is_deleted = 0
+        """,
+        price,
+        stock,
+        status,
+        itemId);
+    if (updatedSku == 0) {
+      jdbcTemplate.update(
+          """
+          insert into catalog_sku(item_id, sku_name, price, stock, status, created_at, updated_at)
+          values (?, '默认', ?, ?, ?, current_timestamp, current_timestamp)
+          """,
+          itemId,
+          price,
+          stock,
+          status);
+    }
+  }
+
+  void updateMerchantItemStatus(long itemId, String status) {
+    jdbcTemplate.update(
+        "update catalog_item set status = ?, updated_at = current_timestamp where id = ? and is_deleted = 0",
+        status,
+        itemId);
+    jdbcTemplate.update(
+        "update catalog_sku set status = ?, updated_at = current_timestamp where item_id = ? and sku_name = '默认' and is_deleted = 0",
+        status,
+        itemId);
+  }
+
+  void upsertDeliveryRule(long storeId, BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {
+    int updated = jdbcTemplate.update(
+        """
+        update merchant_delivery_rule
+        set delivery_fee = ?, start_price = ?, estimated_minutes = ?, delivery_text = ?, updated_at = current_timestamp
+        where store_id = ? and is_deleted = 0
+        """,
+        deliveryFee,
+        startPrice,
+        estimatedMinutes,
+        deliveryText,
+        storeId);
+    if (updated == 0) {
+      jdbcTemplate.update(
+          """
+          insert into merchant_delivery_rule(store_id, delivery_fee, start_price, estimated_minutes, delivery_text, created_at, updated_at)
+          values (?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+          """,
+          storeId,
+          deliveryFee,
+          startPrice,
+          estimatedMinutes,
+          deliveryText);
+    }
   }
 
   Optional<StoreRow> findStore(long storeId) {
@@ -355,13 +572,39 @@ class TradeRepository {
         "MOCK" + orderId + System.currentTimeMillis());
   }
 
-  void updateOrderAfterTakeawayPaid(long orderId) {
+  void updateOrderAfterTakeawayPaid(long orderId, String fulfillmentStatus) {
     jdbcTemplate.update(
         """
         update order_main
-        set display_status = 'pending', fulfillment_status = 'delivering', updated_at = current_timestamp
+        set display_status = 'pending', fulfillment_status = ?, updated_at = current_timestamp
         where id = ?
         """,
+        fulfillmentStatus,
+        orderId);
+  }
+
+  void updateTakeawayFulfillment(long orderId, String displayStatus, String fulfillmentStatus, boolean completed) {
+    if (completed) {
+      jdbcTemplate.update(
+          """
+          update order_main
+          set display_status = ?, fulfillment_status = ?, completed_at = case when ? = 'cancelled' then completed_at else current_timestamp end, updated_at = current_timestamp
+          where id = ?
+          """,
+          displayStatus,
+          fulfillmentStatus,
+          fulfillmentStatus,
+          orderId);
+      return;
+    }
+    jdbcTemplate.update(
+        """
+        update order_main
+        set display_status = ?, fulfillment_status = ?, updated_at = current_timestamp
+        where id = ?
+        """,
+        displayStatus,
+        fulfillmentStatus,
         orderId);
   }
 
@@ -388,69 +631,70 @@ class TradeRepository {
         Timestamp.valueOf(effectiveTo));
   }
 
-  void insertDeliveryTask(long orderId, LocalDateTime nextTickAt) {
+  void insertDeliveryTask(long orderId, String currentStage, String currentStageText, LocalDateTime nextTickAt) {
     jdbcTemplate.update(
         """
         insert into delivery_task(order_id, current_stage, current_stage_text, eta_minutes, next_tick_at)
-        values (?, 'accepted', '商家已接单', 35, ?)
+        values (?, ?, ?, 35, ?)
         """,
         orderId,
-        Timestamp.valueOf(nextTickAt));
-    Long taskId = jdbcTemplate.queryForObject("select max(id) from delivery_task", Long.class);
-    jdbcTemplate.update(
-        "insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text, reached_at) values (?, 1, 'accepted', '商家已接单', current_timestamp)",
-        taskId);
-    jdbcTemplate.update(
-        "insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text) values (?, 2, 'preparing', '商家正在备餐')",
-        taskId);
-    jdbcTemplate.update(
-        "insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text) values (?, 3, 'delivering', '骑手正在配送')",
-        taskId);
-    jdbcTemplate.update(
-        "insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text) values (?, 4, 'delivered', '订单已送达')",
-        taskId);
+        currentStage,
+        currentStageText,
+        nextTickAt == null ? null : Timestamp.valueOf(nextTickAt));
+    Long taskId = jdbcTemplate.queryForObject("select id from delivery_task where order_id = ?", Long.class, orderId);
+    insertDeliveryNode(taskId, 1, "merchant_pending", "待商家接单", true);
+    insertDeliveryNode(taskId, 2, "accepted", "商家已接单", isReached(currentStage, "accepted"));
+    insertDeliveryNode(taskId, 3, "preparing", "商家正在备餐", isReached(currentStage, "preparing"));
+    insertDeliveryNode(taskId, 4, "ready_for_delivery", "餐品已出餐，待配送", isReached(currentStage, "ready_for_delivery"));
+    insertDeliveryNode(taskId, 5, "delivering", "骑手正在配送", isReached(currentStage, "delivering"));
+    insertDeliveryNode(taskId, 6, "delivered", "订单已送达", isReached(currentStage, "delivered"));
+    insertDeliveryNode(taskId, 7, "completed", "订单已完成", isReached(currentStage, "completed"));
   }
 
-  void advanceDeliveryTask(long taskId, String currentStage, String nextStage, String nextText, boolean delivered) {
-    if (delivered) {
-      jdbcTemplate.update(
+  int updateDeliveryTaskStage(long taskId, String currentStage, String nextStage, String nextText, LocalDateTime nextTickAt, boolean completed) {
+    int updated;
+    if (completed) {
+      updated = jdbcTemplate.update(
           """
           update delivery_task
-          set current_stage = ?, current_stage_text = ?, completed_at = current_timestamp, next_tick_at = null, updated_at = current_timestamp
+          set current_stage = ?, current_stage_text = ?, completed_at = current_timestamp,
+              next_tick_at = null, updated_at = current_timestamp
           where id = ? and is_deleted = 0 and current_stage = ?
           """,
           nextStage,
           nextText,
           taskId,
           currentStage);
-      Long orderId = jdbcTemplate.queryForObject("select order_id from delivery_task where id = ?", Long.class, taskId);
-      jdbcTemplate.update(
+    } else {
+      updated = jdbcTemplate.update(
           """
-          update order_main
-          set display_status = 'used', fulfillment_status = 'delivered', completed_at = current_timestamp, updated_at = current_timestamp
-          where id = ?
+          update delivery_task
+          set current_stage = ?, current_stage_text = ?, next_tick_at = ?, updated_at = current_timestamp
+          where id = ? and is_deleted = 0 and current_stage = ?
           """,
-          orderId);
-      jdbcTemplate.update(
-          """
-          update delivery_track_node
-          set reached_at = current_timestamp, updated_at = current_timestamp
-          where delivery_task_id = ? and node_code = 'delivered'
-          """,
-          taskId);
-      return;
+          nextStage,
+          nextText,
+          nextTickAt == null ? null : Timestamp.valueOf(nextTickAt),
+          taskId,
+          currentStage);
     }
+    if (updated > 0) {
+      markDeliveryNodeReached(taskId, nextStage);
+    }
+    return updated;
+  }
+
+  void cancelDeliveryTask(long orderId) {
     jdbcTemplate.update(
         """
         update delivery_task
-        set current_stage = ?, current_stage_text = ?, next_tick_at = ?, updated_at = current_timestamp
-        where id = ? and is_deleted = 0 and current_stage = ?
+        set current_stage = 'cancelled', current_stage_text = '订单已取消', next_tick_at = null, completed_at = current_timestamp, updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
         """,
-        nextStage,
-        nextText,
-        Timestamp.valueOf(LocalDateTime.now().plusMinutes(3)),
-        taskId,
-        currentStage);
+        orderId);
+  }
+
+  void markDeliveryNodeReached(long taskId, String nodeCode) {
     jdbcTemplate.update(
         """
         update delivery_track_node
@@ -458,7 +702,36 @@ class TradeRepository {
         where delivery_task_id = ? and node_code = ?
         """,
         taskId,
-        nextStage);
+        nodeCode);
+  }
+
+  private void insertDeliveryNode(Long taskId, int order, String code, String text, boolean reached) {
+    if (reached) {
+      jdbcTemplate.update(
+          """
+          insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text, reached_at)
+          values (?, ?, ?, ?, current_timestamp)
+          """,
+          taskId,
+          order,
+          code,
+          text);
+      return;
+    }
+    jdbcTemplate.update(
+        """
+        insert into delivery_track_node(delivery_task_id, node_order, node_code, node_text)
+        values (?, ?, ?, ?)
+        """,
+        taskId,
+        order,
+        code,
+        text);
+  }
+
+  private boolean isReached(String currentStage, String nodeCode) {
+    List<String> stages = List.of("merchant_pending", "accepted", "preparing", "ready_for_delivery", "delivering", "delivered", "completed");
+    return stages.indexOf(nodeCode) <= stages.indexOf(currentStage);
   }
 
   void setOrderUsed(long orderId) {
@@ -473,6 +746,138 @@ class TradeRepository {
         "update order_voucher set status = 'used', verified_at = current_timestamp, verified_by = ?, updated_at = current_timestamp where order_id = ?",
         verifiedBy,
         orderId);
+  }
+
+  boolean isStoreOwnedByAccount(long storeId, long accountId) {
+    Long count = jdbcTemplate.queryForObject(
+        """
+        select count(1)
+        from merchant_store s
+        join merchant_profile m on m.id = s.merchant_id
+        where s.id = ? and m.account_id = ? and s.is_deleted = 0 and m.is_deleted = 0
+        """,
+        Long.class,
+        storeId,
+        accountId);
+    return count != null && count > 0;
+  }
+
+  List<OpsOrderRow> listOpsOrders(Long merchantAccountId, String displayStatus, String fulfillmentStatus, int offset, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select o.id, o.order_no, o.user_id, o.store_id, o.store_name, o.order_type, o.title, o.display_status, o.payment_status,
+               o.fulfillment_status, o.payment_method, o.amount, o.delivery_fee, o.discount_amount, o.payable_amount,
+               o.address_snapshot, o.voucher_summary, o.remark, o.paid_at, o.completed_at, o.created_at, o.updated_at,
+               dt.current_stage, dt.current_stage_text
+        from order_main o
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        left join delivery_task dt on dt.order_id = o.id and dt.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    appendOpsFilters(sql, params, merchantAccountId, displayStatus, fulfillmentStatus);
+    sql.append(" order by o.created_at desc, o.id desc limit ? offset ?");
+    params.add(limit);
+    params.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapOpsOrder, params.toArray());
+  }
+
+  long countOpsOrders(Long merchantAccountId, String displayStatus, String fulfillmentStatus) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from order_main o
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        left join delivery_task dt on dt.order_id = o.id and dt.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    appendOpsFilters(sql, params, merchantAccountId, displayStatus, fulfillmentStatus);
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+    return count == null ? 0 : count;
+  }
+
+  List<StatusCountRow> countOpsOrdersByStage(Long merchantAccountId) {
+    StringBuilder sql = new StringBuilder("""
+        select coalesce(dt.current_stage, o.fulfillment_status) as status, count(1) as total
+        from order_main o
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        left join delivery_task dt on dt.order_id = o.id and dt.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    appendOpsFilters(sql, params, merchantAccountId, null, null);
+    sql.append(" group by coalesce(dt.current_stage, o.fulfillment_status) order by total desc");
+    return jdbcTemplate.query(sql.toString(), (rs, rowNum) -> new StatusCountRow(rs.getString("status"), rs.getLong("total")), params.toArray());
+  }
+
+  Optional<TakeawaySettingRow> findTakeawaySetting(long storeId) {
+    List<TakeawaySettingRow> rows = jdbcTemplate.query(
+        """
+        select s.id as store_id, s.store_name, coalesce(t.accept_mode, 'manual') as accept_mode
+        from merchant_store s
+        left join merchant_takeaway_setting t on t.store_id = s.id and t.is_deleted = 0
+        where s.id = ? and s.business_type = 'takeaway' and s.is_deleted = 0
+        limit 1
+        """,
+        (rs, rowNum) -> new TakeawaySettingRow(rs.getLong("store_id"), rs.getString("store_name"), rs.getString("accept_mode")),
+        storeId);
+    return rows.stream().findFirst();
+  }
+
+  void upsertTakeawaySetting(long storeId, String acceptMode, long updatedBy) {
+    jdbcTemplate.update(
+        """
+        insert into merchant_takeaway_setting(store_id, accept_mode, updated_by, created_at, updated_at)
+        values (?, ?, ?, current_timestamp, current_timestamp)
+        on duplicate key update accept_mode = values(accept_mode), updated_by = values(updated_by), updated_at = current_timestamp, is_deleted = 0
+        """,
+        storeId,
+        acceptMode,
+        updatedBy);
+  }
+
+  void insertOrderStateLog(long orderId, String fromStatus, String toStatus, String actionType, String operatorType, Long operatorId, String remark) {
+    jdbcTemplate.update(
+        """
+        insert into order_state_log(order_id, from_status, to_status, action_type, operator_type, operator_id, remark)
+        values (?, ?, ?, ?, ?, ?, ?)
+        """,
+        orderId,
+        fromStatus,
+        toStatus,
+        actionType,
+        operatorType,
+        operatorId,
+        remark);
+  }
+
+  void insertAuditLog(String actorType, Long actorId, String actionType, String targetType, long targetId, String detail) {
+    jdbcTemplate.update(
+        """
+        insert into sys_audit_log(actor_type, actor_id, action_type, target_type, target_id, detail)
+        values (?, ?, ?, ?, ?, ?)
+        """,
+        actorType,
+        actorId,
+        actionType,
+        targetType,
+        targetId,
+        detail);
+  }
+
+  private void appendOpsFilters(StringBuilder sql, List<Object> params, Long merchantAccountId, String displayStatus, String fulfillmentStatus) {
+    sql.append(" where o.is_deleted = 0 and o.order_type = 'takeaway'");
+    if (merchantAccountId != null) {
+      sql.append(" and m.account_id = ?");
+      params.add(merchantAccountId);
+    }
+    if (displayStatus != null && !displayStatus.isBlank()) {
+      sql.append(" and o.display_status = ?");
+      params.add(displayStatus);
+    }
+    if (fulfillmentStatus != null && !fulfillmentStatus.isBlank()) {
+      sql.append(" and coalesce(dt.current_stage, o.fulfillment_status) = ?");
+      params.add(fulfillmentStatus);
+    }
   }
 
   private AddressRow mapAddress(ResultSet rs, int rowNum) throws SQLException {
@@ -506,6 +911,20 @@ class TradeRepository {
         rs.getString("rule_text"),
         rs.getInt("sales_count"),
         rs.getString("status"));
+  }
+
+  private MerchantItemRow mapMerchantItem(ResultSet rs, int rowNum) throws SQLException {
+    return new MerchantItemRow(
+        rs.getLong("id"),
+        rs.getLong("store_id"),
+        rs.getString("item_name"),
+        rs.getString("subtitle"),
+        rs.getString("category_name"),
+        rs.getBigDecimal("price"),
+        rs.getBigDecimal("original_price"),
+        rs.getInt("stock"),
+        rs.getString("status"),
+        rs.getInt("sales_count"));
   }
 
   private StoreRow mapStore(ResultSet rs, int rowNum) throws SQLException {
@@ -554,6 +973,13 @@ class TradeRepository {
         completedAt == null ? null : completedAt.toLocalDateTime(),
         createdAt == null ? null : createdAt.toLocalDateTime(),
         updatedAt == null ? null : updatedAt.toLocalDateTime());
+  }
+
+  private OpsOrderRow mapOpsOrder(ResultSet rs, int rowNum) throws SQLException {
+    return new OpsOrderRow(
+        mapOrder(rs, rowNum),
+        rs.getString("current_stage"),
+        rs.getString("current_stage_text"));
   }
 
   private OrderItemRow mapOrderItem(ResultSet rs, int rowNum) throws SQLException {
@@ -606,6 +1032,8 @@ class TradeRepository {
 
   record ItemRow(Long id, Long storeId, String storeName, String businessType, Long categoryId, String categoryName, String title, String subtitle, BigDecimal price, BigDecimal originalPrice, String coverUrl, String ruleText, int salesCount, String status) {}
 
+  record MerchantItemRow(Long id, Long storeId, String title, String subtitle, String categoryName, BigDecimal price, BigDecimal originalPrice, int stock, String status, int salesCount) {}
+
   record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, String distanceText, BigDecimal rating, int monthlySales, BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl) {}
 
   record OrderInsertRow(Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, String voucherSummary, String remark, String idempotencyKey, String orderNo) {}
@@ -614,6 +1042,12 @@ class TradeRepository {
 
   record OrderItemRow(Long id, Long orderId, Long itemId, String itemName, String itemSubtitle, String businessType, Long categoryId, int quantity, BigDecimal unitPrice, BigDecimal totalPrice, String coverUrl, boolean isReviewed) {}
 
+  record OpsOrderRow(OrderRow order, String currentStage, String currentStageText) {}
+
+  record StatusCountRow(String status, long total) {}
+
+  record TakeawaySettingRow(Long storeId, String storeName, String acceptMode) {}
+
   record VoucherRow(Long id, Long orderId, String voucherCode, String qrPayload, String status, LocalDateTime effectiveFrom, LocalDateTime effectiveTo, LocalDateTime verifiedAt, Long verifiedBy) {}
 
   record DeliveryTaskRow(Long id, Long orderId, String currentStage, String currentStageText, int etaMinutes, LocalDateTime nextTickAt, LocalDateTime completedAt) {}
@@ -621,6 +1055,8 @@ class TradeRepository {
   record TimelineRow(String code, String text, LocalDateTime reachedAt) {}
 
   record SkuRow(Long id, Long itemId, String skuName, BigDecimal price, int stock, String status) {}
+
+  record CartItemRow(Long itemId, String itemName, String subtitle, String categoryName, BigDecimal unitPrice, int stock, String status, int quantity) {}
 
   record DeliveryRuleRow(BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {}
 }
