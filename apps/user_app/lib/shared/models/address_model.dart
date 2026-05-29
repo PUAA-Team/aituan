@@ -7,6 +7,8 @@ class AddressData {
     required this.city,
     required this.district,
     required this.detailAddress,
+    this.longitude,
+    this.latitude,
     required this.tagName,
     required this.isDefault,
     required this.deliveryNote,
@@ -20,6 +22,8 @@ class AddressData {
   final String city;
   final String district;
   final String detailAddress;
+  final double? longitude;
+  final double? latitude;
   final String tagName;
   final bool isDefault;
   final String deliveryNote;
@@ -40,6 +44,8 @@ class AddressData {
     city: _string(json['city']),
     district: _string(json['district']),
     detailAddress: _string(json['detailAddress']),
+    longitude: _nullableDouble(json['longitude']),
+    latitude: _nullableDouble(json['latitude']),
     tagName: _string(json['tagName'], fallback: '家'),
     isDefault: _bool(json['isDefault']),
     deliveryNote: _string(json['deliveryNote']),
@@ -55,6 +61,8 @@ class AddressFormData {
     required this.city,
     required this.district,
     required this.detailAddress,
+    this.longitude,
+    this.latitude,
     required this.tagName,
     required this.isDefault,
     required this.deliveryNote,
@@ -66,6 +74,8 @@ class AddressFormData {
   final String city;
   final String district;
   final String detailAddress;
+  final double? longitude;
+  final double? latitude;
   final String tagName;
   final bool isDefault;
   final String deliveryNote;
@@ -77,6 +87,8 @@ class AddressFormData {
     city: address.city,
     district: address.district,
     detailAddress: address.detailAddress,
+    longitude: address.longitude,
+    latitude: address.latitude,
     tagName: address.tagName,
     isDefault: address.isDefault,
     deliveryNote: address.deliveryNote,
@@ -89,6 +101,8 @@ class AddressFormData {
     'city': city,
     'district': district,
     'detailAddress': detailAddress,
+    'longitude': longitude,
+    'latitude': latitude,
     'tagName': tagName,
     'isDefault': isDefault,
     'deliveryNote': deliveryNote,
@@ -98,6 +112,12 @@ class AddressFormData {
 String _string(dynamic value, {String fallback = ''}) {
   final text = value?.toString().trim();
   return (text == null || text.isEmpty) ? fallback : text;
+}
+
+double? _nullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }
 
 bool _bool(dynamic value) =>

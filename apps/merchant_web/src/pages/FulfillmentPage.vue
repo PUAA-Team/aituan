@@ -107,7 +107,7 @@ function money(value: number | undefined) {
 
     <form v-if="isTakeaway && rule" class="panel-card" @submit.prevent="saveRule">
       <div class="panel-toolbar"><h2>配送规则</h2></div>
-      <div class="form-grid three">
+      <div class="form-grid four">
         <label>
           起送价
           <input v-model.number="rule.startPrice" type="number" min="0" step="0.1" />
@@ -120,7 +120,12 @@ function money(value: number | undefined) {
           预计分钟
           <input v-model.number="rule.estimatedMinutes" type="number" min="1" />
         </label>
+        <label>
+          可配送范围 km
+          <input v-model.number="rule.maxDeliveryDistanceKm" type="number" min="0.1" max="100" step="0.1" />
+        </label>
       </div>
+      <p class="form-hint">超过该距离后，用户将无法提交外卖订单。</p>
       <label>
         配送说明
         <input v-model="rule.deliveryText" />

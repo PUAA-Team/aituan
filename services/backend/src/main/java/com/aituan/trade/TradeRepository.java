@@ -24,7 +24,7 @@ class TradeRepository {
     if (addressId == null) {
       List<AddressRow> defaults = jdbcTemplate.query(
           """
-          select id, user_id, contact_name, contact_phone, province, city, district, detail_address, tag_name, is_default, delivery_note
+          select id, user_id, contact_name, contact_phone, province, city, district, detail_address, longitude, latitude, tag_name, is_default, delivery_note
           from user_address
           where user_id = ? and is_deleted = 0 and is_default = 1
           limit 1
@@ -35,7 +35,7 @@ class TradeRepository {
     }
     List<AddressRow> rows = jdbcTemplate.query(
         """
-        select id, user_id, contact_name, contact_phone, province, city, district, detail_address, tag_name, is_default, delivery_note
+        select id, user_id, contact_name, contact_phone, province, city, district, detail_address, longitude, latitude, tag_name, is_default, delivery_note
         from user_address
         where user_id = ? and id = ? and is_deleted = 0
         limit 1
@@ -272,28 +272,30 @@ class TradeRepository {
         itemId);
   }
 
-  void upsertDeliveryRule(long storeId, BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {
+  void upsertDeliveryRule(long storeId, BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, BigDecimal maxDeliveryDistanceKm, String deliveryText) {
     int updated = jdbcTemplate.update(
         """
         update merchant_delivery_rule
-        set delivery_fee = ?, start_price = ?, estimated_minutes = ?, delivery_text = ?, updated_at = current_timestamp
+        set delivery_fee = ?, start_price = ?, estimated_minutes = ?, max_delivery_distance_km = ?, delivery_text = ?, updated_at = current_timestamp
         where store_id = ? and is_deleted = 0
         """,
         deliveryFee,
         startPrice,
         estimatedMinutes,
+        maxDeliveryDistanceKm,
         deliveryText,
         storeId);
     if (updated == 0) {
       jdbcTemplate.update(
           """
-          insert into merchant_delivery_rule(store_id, delivery_fee, start_price, estimated_minutes, delivery_text, created_at, updated_at)
-          values (?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+          insert into merchant_delivery_rule(store_id, delivery_fee, start_price, estimated_minutes, max_delivery_distance_km, delivery_text, created_at, updated_at)
+          values (?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
           """,
           storeId,
           deliveryFee,
           startPrice,
           estimatedMinutes,
+          maxDeliveryDistanceKm,
           deliveryText);
     }
   }
@@ -301,7 +303,7 @@ class TradeRepository {
   Optional<StoreRow> findStore(long storeId) {
     List<StoreRow> rows = jdbcTemplate.query(
         """
-        select id, merchant_id, store_name, business_type, summary, address, distance_text, rating,
+        select id, merchant_id, store_name, business_type, summary, address, distance_text, longitude, latitude, rating,
                monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url
         from merchant_store
         where id = ? and is_deleted = 0
@@ -314,11 +316,12 @@ class TradeRepository {
 
   Optional<DeliveryRuleRow> findDeliveryRule(long storeId) {
     List<DeliveryRuleRow> rows = jdbcTemplate.query(
-        "select delivery_fee, start_price, estimated_minutes, delivery_text from merchant_delivery_rule where store_id = ? and is_deleted = 0 limit 1",
+        "select delivery_fee, start_price, estimated_minutes, max_delivery_distance_km, delivery_text from merchant_delivery_rule where store_id = ? and is_deleted = 0 limit 1",
         (rs, rowNum) -> new DeliveryRuleRow(
             rs.getBigDecimal("delivery_fee"),
             rs.getBigDecimal("start_price"),
             rs.getInt("estimated_minutes"),
+            rs.getBigDecimal("max_delivery_distance_km"),
             rs.getString("delivery_text")),
         storeId);
     return rows.stream().findFirst();
@@ -352,8 +355,8 @@ class TradeRepository {
         """
         insert into order_main(order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                                fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount,
-                               address_snapshot, voucher_summary, remark, idempotency_key, created_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
+                               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, remark, idempotency_key, created_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, current_timestamp, current_timestamp)
         """,
         order.orderNo(),
         order.userId(),
@@ -370,6 +373,8 @@ class TradeRepository {
         order.discountAmount(),
         order.payableAmount(),
         order.addressSnapshot(),
+        order.deliveryDistanceKm(),
+        order.estimatedArrivalAt() == null ? null : Timestamp.valueOf(order.estimatedArrivalAt()),
         order.voucherSummary(),
         order.remark(),
         order.idempotencyKey());
@@ -399,7 +404,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount,
-               address_snapshot, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
         from order_main
         where id = ? and is_deleted = 0
         limit 1
@@ -417,7 +422,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount,
-               address_snapshot, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
         from order_main
         where user_id = ? and idempotency_key = ? and is_deleted = 0
         limit 1
@@ -434,7 +439,7 @@ class TradeRepository {
           """
           select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                  fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount,
-                 address_snapshot, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
+                 address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
           from order_main
           where user_id = ? and is_deleted = 0
           order by created_at desc, id desc
@@ -449,7 +454,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount,
-               address_snapshot, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, remark, paid_at, completed_at, created_at, updated_at
         from order_main
         where user_id = ? and display_status = ? and is_deleted = 0
         order by created_at desc, id desc
@@ -583,6 +588,30 @@ class TradeRepository {
         orderId);
   }
 
+  void updateOrderDeliveryAddress(long orderId, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt) {
+    jdbcTemplate.update(
+        """
+        update order_main
+        set address_snapshot = ?, delivery_distance_km = ?, estimated_arrival_at = ?, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        addressSnapshot,
+        deliveryDistanceKm,
+        estimatedArrivalAt == null ? null : Timestamp.valueOf(estimatedArrivalAt),
+        orderId);
+  }
+
+  void updateDeliveryTaskEta(long orderId, int etaMinutes) {
+    jdbcTemplate.update(
+        """
+        update delivery_task
+        set eta_minutes = ?, updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
+        """,
+        etaMinutes,
+        orderId);
+  }
+
   void updateTakeawayFulfillment(long orderId, String displayStatus, String fulfillmentStatus, boolean completed) {
     if (completed) {
       jdbcTemplate.update(
@@ -635,11 +664,12 @@ class TradeRepository {
     jdbcTemplate.update(
         """
         insert into delivery_task(order_id, current_stage, current_stage_text, eta_minutes, next_tick_at)
-        values (?, ?, ?, 35, ?)
+        values (?, ?, ?, coalesce((select timestampdiff(minute, current_timestamp, estimated_arrival_at) from order_main where id = ?), 35), ?)
         """,
         orderId,
         currentStage,
         currentStageText,
+        orderId,
         nextTickAt == null ? null : Timestamp.valueOf(nextTickAt));
     Long taskId = jdbcTemplate.queryForObject("select id from delivery_task where order_id = ?", Long.class, orderId);
     insertDeliveryNode(taskId, 1, "merchant_pending", "待商家接单", true);
@@ -766,7 +796,7 @@ class TradeRepository {
     StringBuilder sql = new StringBuilder("""
         select o.id, o.order_no, o.user_id, o.store_id, o.store_name, o.order_type, o.title, o.display_status, o.payment_status,
                o.fulfillment_status, o.payment_method, o.amount, o.delivery_fee, o.discount_amount, o.payable_amount,
-               o.address_snapshot, o.voucher_summary, o.remark, o.paid_at, o.completed_at, o.created_at, o.updated_at,
+               o.address_snapshot, o.delivery_distance_km, o.estimated_arrival_at, o.voucher_summary, o.remark, o.paid_at, o.completed_at, o.created_at, o.updated_at,
                dt.current_stage, dt.current_stage_text
         from order_main o
         join merchant_store s on s.id = o.store_id
@@ -890,6 +920,8 @@ class TradeRepository {
         rs.getString("city"),
         rs.getString("district"),
         rs.getString("detail_address"),
+        getNullableBigDecimal(rs, "longitude"),
+        getNullableBigDecimal(rs, "latitude"),
         rs.getString("tag_name"),
         rs.getBoolean("is_default"),
         rs.getString("delivery_note"));
@@ -936,6 +968,8 @@ class TradeRepository {
         rs.getString("summary"),
         rs.getString("address"),
         rs.getString("distance_text"),
+        getNullableBigDecimal(rs, "longitude"),
+        getNullableBigDecimal(rs, "latitude"),
         rs.getBigDecimal("rating"),
         rs.getInt("monthly_sales"),
         rs.getBigDecimal("avg_price"),
@@ -967,6 +1001,8 @@ class TradeRepository {
         rs.getBigDecimal("discount_amount"),
         rs.getBigDecimal("payable_amount"),
         rs.getString("address_snapshot"),
+        rs.getBigDecimal("delivery_distance_km"),
+        rs.getTimestamp("estimated_arrival_at") == null ? null : rs.getTimestamp("estimated_arrival_at").toLocalDateTime(),
         rs.getString("voucher_summary"),
         rs.getString("remark"),
         paidAt == null ? null : paidAt.toLocalDateTime(),
@@ -1015,6 +1051,11 @@ class TradeRepository {
         rs.wasNull() ? null : verifiedBy);
   }
 
+  private BigDecimal getNullableBigDecimal(ResultSet rs, String column) throws SQLException {
+    BigDecimal value = rs.getBigDecimal(column);
+    return rs.wasNull() ? null : value;
+  }
+
   private DeliveryTaskRow mapDeliveryTask(ResultSet rs, int rowNum) throws SQLException {
     Timestamp nextTick = rs.getTimestamp("next_tick_at");
     Timestamp completedAt = rs.getTimestamp("completed_at");
@@ -1028,17 +1069,17 @@ class TradeRepository {
         completedAt == null ? null : completedAt.toLocalDateTime());
   }
 
-  record AddressRow(Long id, Long userId, String contactName, String contactPhone, String province, String city, String district, String detailAddress, String tagName, boolean isDefault, String deliveryNote) {}
+  record AddressRow(Long id, Long userId, String contactName, String contactPhone, String province, String city, String district, String detailAddress, BigDecimal longitude, BigDecimal latitude, String tagName, boolean isDefault, String deliveryNote) {}
 
   record ItemRow(Long id, Long storeId, String storeName, String businessType, Long categoryId, String categoryName, String title, String subtitle, BigDecimal price, BigDecimal originalPrice, String coverUrl, String ruleText, int salesCount, String status) {}
 
   record MerchantItemRow(Long id, Long storeId, String title, String subtitle, String categoryName, BigDecimal price, BigDecimal originalPrice, int stock, String status, int salesCount) {}
 
-  record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, String distanceText, BigDecimal rating, int monthlySales, BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl) {}
+  record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, String distanceText, BigDecimal longitude, BigDecimal latitude, BigDecimal rating, int monthlySales, BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl) {}
 
-  record OrderInsertRow(Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, String voucherSummary, String remark, String idempotencyKey, String orderNo) {}
+  record OrderInsertRow(Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt, String voucherSummary, String remark, String idempotencyKey, String orderNo) {}
 
-  record OrderRow(Long id, String orderNo, Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, String voucherSummary, String remark, LocalDateTime paidAt, LocalDateTime completedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {}
+  record OrderRow(Long id, String orderNo, Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt, String voucherSummary, String remark, LocalDateTime paidAt, LocalDateTime completedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {}
 
   record OrderItemRow(Long id, Long orderId, Long itemId, String itemName, String itemSubtitle, String businessType, Long categoryId, int quantity, BigDecimal unitPrice, BigDecimal totalPrice, String coverUrl, boolean isReviewed) {}
 
@@ -1058,5 +1099,5 @@ class TradeRepository {
 
   record CartItemRow(Long itemId, String itemName, String subtitle, String categoryName, BigDecimal unitPrice, int stock, String status, int quantity) {}
 
-  record DeliveryRuleRow(BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {}
+  record DeliveryRuleRow(BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, BigDecimal maxDeliveryDistanceKm, String deliveryText) {}
 }

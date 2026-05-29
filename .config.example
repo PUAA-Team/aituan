@@ -16,4 +16,5 @@ aituan.map.provider=local
 aituan.map.amap.web-api-key=
 aituan.map.amap.geocode-url=https://restapi.amap.com/v3/geocode/geo
 aituan.map.amap.distance-url=https://restapi.amap.com/v3/distance
+aituan.map.amap.regeo-url=https://restapi.amap.com/v3/geocode/regeo
 aituan.map.amap.route-url=https://restapi.amap.com/v5/direction/electrobike

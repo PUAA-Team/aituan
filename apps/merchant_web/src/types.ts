@@ -204,5 +204,6 @@ export interface DeliveryRule {
   deliveryFee: number;
   startPrice: number;
   estimatedMinutes: number;
+  maxDeliveryDistanceKm: number;
   deliveryText: string;
 }

@@ -118,7 +118,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       bottomNavigationBar: AppBottomActionBar(
         primaryText: _submitting ? '提交中' : '提交并支付',
-        onPrimary: _canUseBackend && !_loading && _error == null && !_submitting
+        onPrimary: _canUseBackend && !_loading && _error == null && !_submitting && (preview?.deliverable ?? true)
             ? _pay
             : null,
         price: payable,
@@ -194,6 +194,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Future<void> _pay() async {
     if (widget.args.kind == OrderKind.takeaway && _selectedAddress == null) {
       showAppSnackBar(context, '请先新增或选择收货地址');
+      return;
+    }
+    final preview = _preview;
+    if (preview != null && !preview.deliverable) {
+      showAppSnackBar(context, preview.unavailableReason ?? '当前地址暂不可配送');
       return;
     }
     try {
@@ -426,6 +431,21 @@ class _FeeCard extends StatelessWidget {
           _FeeRow('配送费', preview!.deliveryFee),
         if ((preview?.discountAmount ?? 0) > 0)
           _FeeRow('优惠', -preview!.discountAmount),
+        if (preview != null && preview!.estimatedArrivalText != null)
+          _InfoRow('预计送达', preview!.estimatedArrivalText!),
+        if (preview != null && preview!.deliveryDistanceKm != null)
+          _InfoRow('配送距离', '${preview!.deliveryDistanceKm!.toStringAsFixed(2)}km'),
+        if (preview != null && !preview!.deliverable)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              preview!.unavailableReason ?? '当前地址暂不可配送',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.brand,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         const Divider(),
         Row(
           children: [
@@ -434,6 +454,25 @@ class _FeeCard extends StatelessWidget {
             PriceText(preview?.payableAmount ?? fallbackAmount, size: 22),
           ],
         ),
+      ],
+    ),
+  );
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow(this.label, this.value);
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const Spacer(),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
     ),
   );

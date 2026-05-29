@@ -36,6 +36,9 @@ const certification = ref<MerchantCertification | null>(null);
 const materialType = ref('business_license');
 const materialName = ref('营业执照');
 const materialBusy = ref(false);
+const storeCoverFile = ref<File | null>(null);
+const storeCoverPreviewUrl = ref('');
+const coverUploading = ref(false);
 
 watch([() => props.profile, () => props.store], syncForms, { immediate: true });
 watch(() => props.profile.merchantId, loadCertification);
@@ -89,18 +92,29 @@ async function saveStore() {
   }
 }
 
-async function onCoverChange(event: Event) {
+function onCoverChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
+  storeCoverFile.value = file;
+  if (storeCoverPreviewUrl.value) URL.revokeObjectURL(storeCoverPreviewUrl.value);
+  storeCoverPreviewUrl.value = URL.createObjectURL(file);
+}
+
+async function saveStoreCover() {
+  if (!storeCoverFile.value) return;
   try {
-    await uploadStoreCover(file);
+    coverUploading.value = true;
+    await uploadStoreCover(storeCoverFile.value);
     emit('notice', '门店图片已更新');
+    storeCoverFile.value = null;
+    if (storeCoverPreviewUrl.value) URL.revokeObjectURL(storeCoverPreviewUrl.value);
+    storeCoverPreviewUrl.value = '';
     emit('changed');
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   } finally {
-    input.value = '';
+    coverUploading.value = false;
   }
 }
 
@@ -151,13 +165,19 @@ function numericOrNull(value: string) {
     <article class="panel-card">
       <div class="panel-toolbar"><h2>门店封面</h2></div>
       <div class="store-cover">
-        <img v-if="props.store.coverUrl" :src="resolveAssetUrl(props.store.coverUrl)" :alt="props.store.storeName" />
+        <img v-if="storeCoverPreviewUrl || props.store.coverUrl" :src="storeCoverPreviewUrl || resolveAssetUrl(props.store.coverUrl)" :alt="props.store.storeName" />
         <span v-else>{{ props.store.storeName }}</span>
       </div>
       <label>
-        上传图片
+        选择门店图片
         <input type="file" accept="image/png,image/jpeg,image/webp" @change="onCoverChange" />
       </label>
+      <p class="form-hint">选择图片后点击保存门店图片，才会上传并替换当前封面。</p>
+      <div class="form-actions">
+        <button class="primary-btn" :disabled="!storeCoverFile || coverUploading" @click="saveStoreCover">
+          {{ coverUploading ? '上传中' : '保存门店图片' }}
+        </button>
+      </div>
     </article>
 
     <form class="panel-card" @submit.prevent="saveProfile">

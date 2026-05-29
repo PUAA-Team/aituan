@@ -173,6 +173,7 @@ export function updateDeliveryRule(storeId: number, rule: DeliveryRule) {
       deliveryFee: rule.deliveryFee,
       startPrice: rule.startPrice,
       estimatedMinutes: rule.estimatedMinutes,
+      maxDeliveryDistanceKm: rule.maxDeliveryDistanceKm,
       deliveryText: rule.deliveryText,
     },
   });
