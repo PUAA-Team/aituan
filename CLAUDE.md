@@ -1,7 +1,36 @@
 # 开发环境
 
-- Windows / PowerShell
-- 已经安装Andriod Studio、Andriod SDK、Flutter、Java、Python
+## 本机（当前对话使用）
+
+- macOS 15 (Darwin 25.x) / Apple Silicon **M5 芯片**（arm64）
+- 默认 Shell：zsh
+- 工作目录：`/Users/camellia/Desktop/puaa/aituan/aituan`
+- 已安装或需要的工具：JDK 17+（建议 arm64 版本）、Maven 3.9+、Flutter SDK（macOS arm64）、Android Studio / Android SDK、Node.js + npm（构建 `merchant_web` / `admin_web`）
+- 没有 `D:` 盘；所有需要写盘的产物改用本机路径，详见「跨平台路径约定」。
+- 没有 PowerShell；仓库里 `scripts/**.ps1` 仅供 Windows 队友执行，本机不直接调用，必要时改用等价的 shell/Maven/Flutter 命令。
+
+## 队友（Windows，需保持兼容）
+
+- Windows 10/11 + PowerShell
+- 已安装 Android Studio、Android SDK、Flutter、Java、Python
+- 仓库内 PowerShell 脚本约定的 `D:` 盘路径（`D:/aituan_build`、`D:/aituan_cache`、`D:/aituan_runtime`、`D:/aituan_release`）**继续保留**，不要在 macOS 端"顺手"重命名或删除；动 `scripts/` 之前先在文档里说明双端差异。
+
+## 跨平台路径约定
+
+| 用途 | Windows 队友（保留） | macOS 本机（当前使用） |
+| --- | --- | --- |
+| 后端构建缓存 | `D:/aituan_cache/m2/` | `~/.m2/`（默认即可） |
+| 后端 jar 产物 | `D:/aituan_release/backend/aituan-backend.jar` | `services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar` |
+| 后端运行日志 | `D:/aituan_runtime/backend/backend.log` | `services/backend/logs/backend.log`（或前台运行） |
+| Flutter Pub 缓存 | `D:/aituan_cache/pub/` | 默认 `~/.pub-cache/` |
+| Gradle 缓存 | `D:/aituan_cache/gradle/` | 默认 `~/.gradle/` |
+| Android APK 产物 | `D:/aituan_release/apk/aituan-user-debug.apk` | `apps/user_app/build/app/outputs/flutter-apk/app-debug.apk` |
+| 文件上传目录（后端 `app.upload.dir`） | `D:/aituan_runtime/uploads` | `~/aituan_runtime/uploads`（启动时通过 `--app.upload.dir=` 或环境变量覆盖） |
+
+- 在 macOS 上跑后端：`mvn -f services/backend/pom.xml clean package` 然后 `java -jar services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar`
+- 在 macOS 上跑 Flutter：`cd apps/user_app && flutter pub get && flutter run --dart-define=API_BASE_URL=http://localhost:8080`
+- 在 macOS 上跑前端管理台：`npm --prefix apps/merchant_web install && npm --prefix apps/merchant_web run dev`（admin_web 同）
+- **不要**在 macOS 端运行 `scripts/build/*.ps1`、`scripts/dev/*.ps1`；要改这些脚本时必须双端兼容并在交付说明里写清楚。
 
 # 工作流程
 
@@ -16,8 +45,9 @@
 
 ## 确认机制
 
-- **重大变更须确认**：文件结构增删、新功能、新页面UI、核心算法、新依赖、API 定义——先提方案问”您同意吗？”，批准后再动
+- **重大变更须确认**：文件结构增删、新功能、新页面UI、核心算法、新依赖、API 定义——先提方案问"您同意吗？"，批准后再动
 - **局部优化可自主**：函数内部重构、命名优化等不影响外部调用的可以直接做，报告里说明即可
+- **本仓库（爱团/丑团）授权例外**：在 `/Users/camellia/Desktop/puaa` 目录下执行操作无需逐项请批，危险动作仍需透明告知（详见 auto memory `feedback_choutuan_autonomy`）
 
 ## 遇到问题必须停
 
@@ -38,15 +68,15 @@
 - 开工前必读：`docs/ReadMe.md`，里面包含项目介绍和已有文档索引
 - 新增前端/后端/功能设计需要写到文档里，需要通过文件夹分类文档，并添加到索引中
 - 遇到问题多查文档库，解决后也往文档库里记录
-- 任何接下来需要用户自己做的事情都要写好完整文档，包括编译、后端部署等，尽可能完成你可以完成的所有功能，比如打包后APP，APP打包最好在D盘完成，减少C盘占用。
-- 当前 C 盘空间特别少；后端本地测试、打包、运行、Gradle 缓存、临时日志等不要放在 C 盘，优先同步到 D 盘英文路径下的项目子目录（例如 `D:/aituan_build/`、`D:/aituan_cache/`、`D:/aituan_runtime/`、`D:/aituan_release/`），不要直接散落在 D 盘根目录。
-- 本机没有 Docker Compose 环境；后端日常本地测试不要依赖 Docker Compose，应在 D 盘手动构建实时测试。Docker Compose 只作为后续部署方式提供。
-- 用户明确说“之后再做”的功能不要只留在对话里，必须记录到 `docs/后续功能待办.md`，不要写散在某个 stage 文档里。
-- 后端 Stage4 开发在 `stage4-dev` 分支进行；开发过程中要经常提交小步 commit，但未经用户明确确认，不能在 `main` 主分支上提交。
-- 每次前端重构或影响用户端界面的改动完成后，都必须重新打包 APP，优先在 D 盘英文路径执行打包，并在交付时明确给出 APK 完整路径。
+- 任何接下来需要用户自己做的事情都要写好完整文档，包括编译、后端部署等，尽可能完成你可以完成的所有功能。
+- **APK 打包**：macOS 本机使用 `flutter build apk --debug`，产物在 `apps/user_app/build/app/outputs/flutter-apk/`；Windows 队友走 `D:/aituan_release/apk/` 路径，由 PowerShell 脚本输出。两端打包结果同等可用，交付时明确给出实际路径。
+- 用户明确说"之后再做"的功能不要只留在对话里，必须记录到 `docs/后续功能待办.md`，不要写散在某个 stage 文档里。
+- 后端 Stage4 开发在 `stage4-dev` 分支进行；Stage5 各分工各自的分支（详见 stage5 实施计划）。开发过程中要经常提交小步 commit，但未经用户明确确认，不能在 `main` 主分支上提交。
+- 每次前端重构或影响用户端界面的改动完成后，都必须重新打包 APP，交付时明确给出 APK 完整路径。
 - 每次完成 APP 打包后，都要清理本次打包产生的冗余构建目录与临时文件，只保留最终需要交付的 APK 成品。
 - 所有代码新的设计都要服从高内聚低耦合的设计理念，严禁形成单个代码文件上千行，严格遵守项目结构，提高代码的可扩展性与简洁性、可维护性。
 - 所有代码的必要位置请使用中文注释，不要太多，只在必要位置使用。
+- 本机没有 Docker Compose 环境；后端日常本地测试不要依赖 Docker Compose。
 
 # 高风险操作（须确认）
 

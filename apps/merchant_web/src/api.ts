@@ -8,12 +8,17 @@ import type {
   MerchantApplicationForm,
   MerchantApplicationView,
   MerchantCertification,
+  MerchantDashboardView,
   MerchantProfile,
   MerchantStore,
   OpsOrder,
   OrderDetail,
   OrderStatusCount,
   PageResponse,
+  ReviewView,
+  SupportMessageView,
+  SupportSessionDetailView,
+  SupportSessionView,
   TakeawaySetting,
 } from './types';
 
@@ -227,6 +232,68 @@ export function createCategory(payload: { storeId?: number; businessType: string
     method: 'POST',
     body: payload,
   });
+}
+
+// ============ 评价管理（成员E） ============
+
+export function fetchMerchantReviews(params: { status?: string; replied?: boolean; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 20),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.replied !== undefined) query.set('replied', String(params.replied));
+  return request<PageResponse<ReviewView>>(`/api/merchant/ops/reviews?${query}`);
+}
+
+export function fetchMerchantReviewDetail(reviewId: number) {
+  return request<ReviewView>(`/api/merchant/ops/reviews/${reviewId}`);
+}
+
+export function replyMerchantReview(reviewId: number, content: string) {
+  return request<ReviewView>(`/api/merchant/ops/reviews/${reviewId}/reply`, {
+    method: 'POST',
+    body: { content },
+  });
+}
+
+// ============ 客服会话（成员E） ============
+
+export function fetchMerchantSessions(params: { status?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 20),
+  });
+  if (params.status) query.set('status', params.status);
+  return request<PageResponse<SupportSessionView>>(`/api/merchant/ops/sessions?${query}`);
+}
+
+export function fetchMerchantSessionDetail(sessionId: number) {
+  return request<SupportSessionDetailView>(`/api/merchant/ops/sessions/${sessionId}`);
+}
+
+export function sendMerchantMessage(sessionId: number, content: string) {
+  return request<SupportMessageView>(`/api/merchant/ops/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: { content },
+  });
+}
+
+export function closeMerchantSession(sessionId: number, reason?: string) {
+  return request<SupportSessionView>(`/api/merchant/ops/sessions/${sessionId}/close`, {
+    method: 'POST',
+    body: reason ? { reason } : {},
+  });
+}
+
+export function fetchSessionTemplates() {
+  return request<string[]>('/api/merchant/ops/sessions/templates');
+}
+
+// ============ 驾驶舱（成员E） ============
+
+export function fetchMerchantDashboard() {
+  return request<MerchantDashboardView>('/api/merchant/ops/dashboard');
 }
 
 async function request<T>(path: string, options: RequestOptions = {}) {

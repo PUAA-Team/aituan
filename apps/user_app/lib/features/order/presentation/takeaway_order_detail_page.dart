@@ -8,6 +8,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
+import '../../../features/complaint/presentation/complaint_submit_page.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'takeaway_fulfillment_text.dart';
@@ -41,7 +42,17 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   Widget build(BuildContext context) {
     final detail = _detail;
     return Scaffold(
-      appBar: AppBar(title: const Text('外卖订单详情')),
+      appBar: AppBar(
+        title: const Text('外卖订单详情'),
+        actions: [
+          if (detail != null)
+            IconButton(
+              tooltip: '投诉/反馈',
+              icon: const Icon(Icons.report_outlined),
+              onPressed: () => _openComplaint(detail),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -222,6 +233,18 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       Routes.searchResult,
       arguments: SearchArgs(detail.storeName),
     ).then((_) => _load());
+  }
+
+  void _openComplaint(OrderDetailData detail) {
+    final orderId = int.tryParse(detail.id);
+    Navigator.pushNamed(
+      context,
+      Routes.complaintSubmit,
+      arguments: ComplaintSubmitArgs(
+        orderId: orderId,
+        orderTitle: detail.title,
+      ),
+    );
   }
 
   List<TimelineNodeData> _visibleTimeline(OrderDetailData detail) => detail

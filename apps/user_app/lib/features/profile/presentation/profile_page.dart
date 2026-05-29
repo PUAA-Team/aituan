@@ -100,12 +100,23 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () => _openAndRefresh(Routes.addressList),
                   ),
                   const Divider(),
-                  const _ToolRow(
+                  _ToolRow(
                     icon: Icons.rate_review_outlined,
                     title: '我的评价',
+                    onTap: () => _openAndRefresh(Routes.myReviews),
                   ),
                   const Divider(),
-                  const _ToolRow(icon: Icons.support_agent, title: '客服咨询'),
+                  _ToolRow(
+                    icon: Icons.support_agent,
+                    title: '客服咨询',
+                    onTap: () => _openAndRefresh(Routes.supportSessions),
+                  ),
+                  const Divider(),
+                  _ToolRow(
+                    icon: Icons.report_outlined,
+                    title: '投诉与建议',
+                    onTap: () => _openAndRefresh(Routes.complaintSubmit),
+                  ),
                   const Divider(),
                   const _ToolRow(
                     icon: Icons.workspace_premium_outlined,

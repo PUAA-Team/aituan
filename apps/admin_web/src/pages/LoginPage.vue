@@ -11,7 +11,7 @@ const emit = defineEmits<{
 }>();
 
 const account = ref('demo_admin');
-const password = ref('aituan123');
+const password = ref('123456');
 </script>
 
 <template>

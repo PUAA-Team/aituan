@@ -1,4 +1,15 @@
-export type AdminPage = 'dashboard' | 'orders' | 'merchants' | 'users' | 'catalog' | 'delivery' | 'announcements' | 'settings';
+export type AdminPage =
+  | 'dashboard'
+  | 'orders'
+  | 'merchants'
+  | 'users'
+  | 'catalog'
+  | 'delivery'
+  | 'announcements'
+  | 'reviews'
+  | 'complaints'
+  | 'audit'
+  | 'settings';
 
 export interface AuthSession {
   token: string;
@@ -300,4 +311,76 @@ export interface AuditLog {
   targetId: number;
   detail: string;
   createdAt: string;
+}
+
+// ============ 治理（成员E）================
+
+export interface AdminReviewView {
+  id: number;
+  orderId: number;
+  orderNo: string;
+  orderTitle: string;
+  storeId: number;
+  storeName: string;
+  rating: number;
+  content: string;
+  labels?: string[];
+  imageUrls?: string[];
+  helpfulCount?: number;
+  reportedCount?: number;
+  status: string;
+  replied: boolean;
+  replyContent?: string;
+  repliedAt?: string;
+  createdAt: string;
+  userMaskedNickname?: string;
+  reportReasons?: string[];
+}
+
+export interface AdminComplaintView {
+  id: number;
+  ticketNo: string;
+  orderId?: number;
+  orderNo?: string;
+  storeId?: number;
+  storeName?: string;
+  category: string;
+  title: string;
+  detail: string;
+  evidenceUrls?: string[];
+  status: string;
+  userMaskedNickname?: string;
+  acceptedBy?: number;
+  acceptedAt?: string;
+  resolvedBy?: number;
+  resolvedAt?: string;
+  closedAt?: string;
+  createdAt: string;
+}
+
+export interface AdminComplaintLogView {
+  id: number;
+  action: string;
+  operatorType: string;
+  operatorId?: number;
+  remark?: string;
+  createdAt: string;
+}
+
+export interface AdminComplaintDetailView {
+  complaint: AdminComplaintView;
+  logs: AdminComplaintLogView[];
+}
+
+export interface AdminGovernanceDashboardView {
+  todayOrders: number;
+  todayRevenue: number;
+  abnormalOrders: number;
+  totalMerchants: number;
+  totalUsers: number;
+  pendingReviews: number;
+  reportedReviews: number;
+  pendingComplaints: number;
+  openSessions: number;
+  ratingDistribution: Record<string, number>;
 }

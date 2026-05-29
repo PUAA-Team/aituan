@@ -47,7 +47,16 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
     final groups = groupItemsByCategory(_items);
     final active = _activeCategory(groups);
     return Scaffold(
-      appBar: AppBar(title: const Text('外卖点单')),
+      appBar: AppBar(
+        title: const Text('外卖点单'),
+        actions: [
+          IconButton(
+            tooltip: '咨询商家',
+            icon: const Icon(Icons.support_agent),
+            onPressed: () => _openSupport(merchant),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _loadMerchant,
         child: ListView(
@@ -190,5 +199,19 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _openSupport(MerchantModel merchant) {
+    if (!AppScope.of(context).requireLogin(context)) return;
+    final storeId = int.tryParse(merchant.id);
+    Navigator.pushNamed(
+      context,
+      Routes.supportSessions,
+      arguments: SupportLaunchArgs(
+        storeId: storeId,
+        storeName: merchant.name,
+        topicHint: '关于「${merchant.name}」',
+      ),
+    );
   }
 }

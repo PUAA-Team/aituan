@@ -77,6 +77,22 @@ class ReviewArgs {
   final String? orderId;
 }
 
+/// 从商家页/订单页进入客服入口时使用：把目标门店与关联订单带过去，
+/// 列表页可一键发起或定位到已有 open 会话。
+class SupportLaunchArgs {
+  const SupportLaunchArgs({
+    this.storeId,
+    this.storeName,
+    this.relatedOrderId,
+    this.topicHint,
+  });
+
+  final int? storeId;
+  final String? storeName;
+  final int? relatedOrderId;
+  final String? topicHint;
+}
+
 class AddressListArgs {
   const AddressListArgs({this.selectMode = false, this.selectedAddressId});
 

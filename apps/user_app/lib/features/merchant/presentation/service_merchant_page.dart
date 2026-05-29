@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_state.dart';
+import '../../../app/route_args.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../shared/enums/business_type.dart';
@@ -42,7 +45,16 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
     final groups = groupItemsByCategory(merchant.items);
     final active = _activeCategory(groups);
     return Scaffold(
-      appBar: AppBar(title: const Text('商家详情')),
+      appBar: AppBar(
+        title: const Text('商家详情'),
+        actions: [
+          IconButton(
+            tooltip: '咨询商家',
+            icon: const Icon(Icons.support_agent),
+            onPressed: () => _openSupport(merchant),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -115,6 +127,20 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
     return selected != null && groups.containsKey(selected)
         ? selected
         : groups.keys.first;
+  }
+
+  void _openSupport(MerchantModel merchant) {
+    if (!AppScope.of(context).requireLogin(context)) return;
+    final storeId = int.tryParse(merchant.id);
+    Navigator.pushNamed(
+      context,
+      Routes.supportSessions,
+      arguments: SupportLaunchArgs(
+        storeId: storeId,
+        storeName: merchant.name,
+        topicHint: '关于「${merchant.name}」',
+      ),
+    );
   }
 }
 

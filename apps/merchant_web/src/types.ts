@@ -1,4 +1,66 @@
-export type ConsolePage = 'orders' | 'catalog' | 'fulfillment' | 'store';
+export type ConsolePage = 'dashboard' | 'orders' | 'catalog' | 'fulfillment' | 'store' | 'reviews' | 'sessions';
+
+export interface ReviewView {
+  id: number;
+  orderId: number;
+  orderNo: string;
+  orderTitle: string;
+  storeId: number;
+  storeName: string;
+  rating: number;
+  content: string;
+  labels?: string[];
+  imageUrls?: string[];
+  helpfulCount?: number;
+  reportedCount?: number;
+  status: string;
+  replied: boolean;
+  replyContent?: string;
+  repliedAt?: string;
+  createdAt: string;
+  userMaskedNickname?: string;
+}
+
+export interface SupportSessionView {
+  id: number;
+  sessionNo: string;
+  storeId: number;
+  storeName: string;
+  topic: string;
+  status: string;
+  relatedOrderId?: number;
+  relatedOrderNo?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount: number;
+  userMaskedNickname?: string;
+  createdAt: string;
+  closeReason?: string;
+}
+
+export interface SupportMessageView {
+  id: number;
+  sessionId: number;
+  senderType: string;
+  senderId: number;
+  content: string;
+  messageKind: string;
+  createdAt: string;
+}
+
+export interface SupportSessionDetailView {
+  session: SupportSessionView;
+  messages: SupportMessageView[];
+}
+
+export interface MerchantDashboardView {
+  todayOrders: number;
+  todayRevenue: number | string;
+  pendingReviews: number;
+  openSessions: number;
+  averageRating: number;
+  weeklyOrders: Array<{ date: string; count: number }>;
+}
 
 export interface AuthSession {
   token: string;

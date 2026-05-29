@@ -8,6 +8,7 @@ import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
+import '../../../features/complaint/presentation/complaint_submit_page.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'service_order_detail_widgets.dart';
 
@@ -38,7 +39,17 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
   Widget build(BuildContext context) {
     final detail = _detail;
     return Scaffold(
-      appBar: AppBar(title: const Text('订单详情')),
+      appBar: AppBar(
+        title: const Text('订单详情'),
+        actions: [
+          if (detail != null)
+            IconButton(
+              tooltip: '投诉/反馈',
+              icon: const Icon(Icons.report_outlined),
+              onPressed: () => _openComplaint(detail),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -154,6 +165,18 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
       context,
       Routes.searchResult,
       arguments: SearchArgs(detail.storeName),
+    );
+  }
+
+  void _openComplaint(OrderDetailData detail) {
+    final orderId = int.tryParse(detail.id);
+    Navigator.pushNamed(
+      context,
+      Routes.complaintSubmit,
+      arguments: ComplaintSubmitArgs(
+        orderId: orderId,
+        orderTitle: detail.title,
+      ),
     );
   }
 

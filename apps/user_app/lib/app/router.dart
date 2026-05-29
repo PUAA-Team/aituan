@@ -12,12 +12,17 @@ import '../features/home/presentation/module_page.dart';
 import '../features/merchant/presentation/item_detail_page.dart';
 import '../features/merchant/presentation/service_merchant_page.dart';
 import '../features/merchant/presentation/takeaway_merchant_page.dart';
+import '../features/complaint/presentation/complaint_submit_page.dart';
 import '../features/order/presentation/delivery_tracking_page.dart';
 import '../features/order/presentation/service_order_detail_page.dart';
 import '../features/order/presentation/takeaway_order_detail_page.dart';
+import '../features/review/presentation/my_reviews_page.dart';
+import '../features/review/presentation/review_detail_page.dart';
 import '../features/review/presentation/review_publish_page.dart';
 import '../features/search/presentation/search_page.dart';
 import '../features/search/presentation/search_result_page.dart';
+import '../features/support/presentation/support_chat_page.dart';
+import '../features/support/presentation/support_sessions_page.dart';
 import '../shared/enums/business_type.dart';
 import '../shared/models/item_model.dart';
 import '../shared/models/module_entry.dart';
@@ -39,6 +44,11 @@ class AppRouter {
     Routes.addressEdit,
     Routes.profile,
     Routes.reviewPublish,
+    Routes.myReviews,
+    Routes.reviewDetail,
+    Routes.supportSessions,
+    Routes.supportChat,
+    Routes.complaintSubmit,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -85,8 +95,38 @@ class AppRouter {
         settings,
       ),
       Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
+      Routes.myReviews => _page(const MyReviewsPage(), settings),
+      Routes.reviewDetail => _page(
+        ReviewDetailPage(reviewId: _intArg(settings.arguments)),
+        settings,
+      ),
+      Routes.supportSessions => _page(
+        SupportSessionsPage(
+          launchArgs: settings.arguments is SupportLaunchArgs
+              ? settings.arguments as SupportLaunchArgs
+              : null,
+        ),
+        settings,
+      ),
+      Routes.supportChat => _page(
+        SupportChatPage(sessionId: _intArg(settings.arguments)),
+        settings,
+      ),
+      Routes.complaintSubmit => _page(
+        ComplaintSubmitPage(args: settings.arguments is ComplaintSubmitArgs
+            ? settings.arguments as ComplaintSubmitArgs
+            : null),
+        settings,
+      ),
       _ => _page(const SplashPage(), settings),
     };
+  }
+
+  static int _intArg(Object? args) {
+    if (args is int) return args;
+    if (args is num) return args.toInt();
+    if (args is String) return int.tryParse(args) ?? 0;
+    return 0;
   }
 
   static MaterialPageRoute<dynamic> _merchant(RouteSettings settings) {

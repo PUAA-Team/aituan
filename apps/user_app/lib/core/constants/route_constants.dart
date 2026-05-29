@@ -20,4 +20,9 @@ class Routes {
   static const addressEdit = '/address/edit';
   static const profile = '/profile';
   static const reviewPublish = '/review/publish';
+  static const myReviews = '/review/my';
+  static const reviewDetail = '/review/detail';
+  static const supportSessions = '/support/sessions';
+  static const supportChat = '/support/chat';
+  static const complaintSubmit = '/complaint/submit';
 }

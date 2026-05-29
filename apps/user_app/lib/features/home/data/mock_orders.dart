@@ -38,12 +38,32 @@ final orders = [
 
 const messages = [
   MessageItem(
+    id: 1,
+    type: 'order',
     title: '订单配送中',
     content: '塔斯汀中国汉堡正在为您配送，预计 18:45 送达。',
+    badge: '配送',
     time: '18:20',
+    unread: true,
   ),
-  MessageItem(title: '券码待使用', content: '江南小馆双人套餐已支付，请到店出示券码。', time: '17:42'),
-  MessageItem(title: '爱团提醒', content: '今晚附近团购热度上升，火锅和电影票更受欢迎。', time: '16:10'),
+  MessageItem(
+    id: 2,
+    type: 'order',
+    title: '券码待使用',
+    content: '江南小馆双人套餐已支付，请到店出示券码。',
+    badge: '券码',
+    time: '17:42',
+    unread: true,
+  ),
+  MessageItem(
+    id: 3,
+    type: 'system',
+    title: '爱团提醒',
+    content: '今晚附近团购热度上升，火锅和电影票更受欢迎。',
+    badge: '推荐',
+    time: '16:10',
+    unread: false,
+  ),
 ];
 
 OrderModel _order(

@@ -21,8 +21,11 @@ const navItems: Array<{ key: AdminPage; label: string; desc: string }> = [
   { key: 'users', label: '用户管理', desc: '账号状态与用户画像' },
   { key: 'catalog', label: '商品治理', desc: '商品查询与上下架' },
   { key: 'delivery', label: '配送任务', desc: '自动推进与异常处理' },
+  { key: 'reviews', label: '评价审核', desc: '违规评价屏蔽与恢复' },
+  { key: 'complaints', label: '投诉工单', desc: '受理、处理、关闭' },
   { key: 'announcements', label: '公告运营', desc: '客户端公告发布' },
-  { key: 'settings', label: '设置审计', desc: '平台配置与操作日志' },
+  { key: 'audit', label: '审计日志', desc: '全量操作回溯' },
+  { key: 'settings', label: '平台设置', desc: '运行参数配置' },
 ];
 </script>
 

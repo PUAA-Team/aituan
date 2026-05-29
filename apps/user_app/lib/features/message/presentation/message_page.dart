@@ -13,9 +13,19 @@ class MessagePage extends StatefulWidget {
 }
 
 class _MessagePageState extends State<MessagePage> {
+  static const _groups = <_GroupTab>[
+    _GroupTab(key: 'all', label: '全部', icon: Icons.inbox_outlined),
+    _GroupTab(key: 'review', label: '评价', icon: Icons.rate_review_outlined),
+    _GroupTab(key: 'support', label: '咨询', icon: Icons.support_agent),
+    _GroupTab(key: 'complaint', label: '投诉', icon: Icons.report_outlined),
+    _GroupTab(key: 'order', label: '订单', icon: Icons.receipt_long_outlined),
+    _GroupTab(key: 'system', label: '系统', icon: Icons.notifications_none),
+  ];
+
   bool _loading = true;
   Object? _error;
   List<MessageItem> _messages = const [];
+  String _activeGroup = 'all';
 
   @override
   void initState() {
@@ -24,32 +34,49 @@ class _MessagePageState extends State<MessagePage> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        children: [
-          Text('消息', style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 4),
-          Text(
-            '订单状态、优惠提醒和系统通知都会在这里展示',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          if (_loading)
-            const AppCard(child: Center(child: CircularProgressIndicator()))
-          else if (_error != null)
-            _ErrorCard(message: _error.toString(), onRetry: _load)
-          else if (_messages.isEmpty)
-            const AppCard(child: Text('暂无消息'))
-          else
-            for (final item in _messages) _MessageCard(item: item),
-        ],
+  Widget build(BuildContext context) {
+    final filtered = _activeGroup == 'all'
+        ? _messages
+        : _messages.where((m) => m.group == _activeGroup).toList();
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          children: [
+            Text('消息', style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 4),
+            Text(
+              '订单状态、评价回复、客服会话、投诉进度都会在这里展示',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            _GroupTabsBar(
+              groups: _groups,
+              countOf: _countOf,
+              active: _activeGroup,
+              onTap: (g) => setState(() => _activeGroup = g),
+            ),
+            const SizedBox(height: 12),
+            if (_loading)
+              const AppCard(child: Center(child: CircularProgressIndicator()))
+            else if (_error != null)
+              _ErrorCard(message: _error.toString(), onRetry: _load)
+            else if (filtered.isEmpty)
+              const AppCard(child: Text('该分组下暂无消息'))
+            else
+              for (final item in filtered) _MessageCard(item: item),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  int _countOf(String groupKey) {
+    if (groupKey == 'all') return _messages.length;
+    return _messages.where((m) => m.group == groupKey).length;
+  }
 
   Future<void> _load() async {
     try {
@@ -73,6 +100,47 @@ class _MessagePageState extends State<MessagePage> {
   }
 }
 
+class _GroupTab {
+  const _GroupTab({required this.key, required this.label, required this.icon});
+
+  final String key;
+  final String label;
+  final IconData icon;
+}
+
+class _GroupTabsBar extends StatelessWidget {
+  const _GroupTabsBar({
+    required this.groups,
+    required this.countOf,
+    required this.active,
+    required this.onTap,
+  });
+
+  final List<_GroupTab> groups;
+  final int Function(String) countOf;
+  final String active;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        for (final g in groups)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              avatar: Icon(g.icon, size: 16),
+              label: Text('${g.label}（${countOf(g.key)}）'),
+              selected: active == g.key,
+              onSelected: (_) => onTap(g.key),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
 class _MessageCard extends StatelessWidget {
   const _MessageCard({required this.item});
 
@@ -91,7 +159,7 @@ class _MessageCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(9),
             border: Border.all(color: AppColors.brandLine),
           ),
-          child: const Icon(Icons.notifications_none, color: AppColors.brand),
+          child: Icon(_iconOf(item.group), color: AppColors.brand),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -108,7 +176,16 @@ class _MessageCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  if (item.unread)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   Text(
                     item.time,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -124,12 +201,40 @@ class _MessageCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (item.badge.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.brandSoft,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    item.badge,
+                    style: const TextStyle(
+                      color: AppColors.brand,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ],
     ),
   );
+
+  IconData _iconOf(String group) => switch (group) {
+    'review' => Icons.rate_review_outlined,
+    'support' => Icons.support_agent,
+    'complaint' => Icons.report_outlined,
+    'order' => Icons.receipt_long_outlined,
+    _ => Icons.notifications_none,
+  };
 }
 
 class _ErrorCard extends StatelessWidget {
