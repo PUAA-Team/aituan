@@ -32,12 +32,16 @@ class _AddressEditPageState extends State<AddressEditPage> {
   bool _isDefault = false;
   bool _saving = false;
   bool _locating = false;
+  bool _syncingLocationFields = false;
 
   AddressData? get _address => widget.args.address;
 
   @override
   void initState() {
     super.initState();
+    for (final controller in [_province, _city, _district, _detailAddress]) {
+      controller.addListener(_clearLocationOnManualEdit);
+    }
     final address = _address;
     if (address != null) {
       _contactName.text = address.contactName;
@@ -56,6 +60,9 @@ class _AddressEditPageState extends State<AddressEditPage> {
 
   @override
   void dispose() {
+    for (final controller in [_province, _city, _district, _detailAddress]) {
+      controller.removeListener(_clearLocationOnManualEdit);
+    }
     _contactName.dispose();
     _contactPhone.dispose();
     _province.dispose();
@@ -95,6 +102,15 @@ class _AddressEditPageState extends State<AddressEditPage> {
               ),
               _Field(controller: _district, label: '区县'),
               _Field(controller: _detailAddress, label: '详细地址', maxLines: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _locationHint,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _longitude == null || _latitude == null ? AppColors.textSub : AppColors.brand,
+                  ),
+                ),
+              ),
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
@@ -109,16 +125,6 @@ class _AddressEditPageState extends State<AddressEditPage> {
                   label: Text(_locating ? '定位中' : '使用当前位置'),
                 ),
               ),
-              if (_longitude != null && _latitude != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 10),
-                  child: Text(
-                    '坐标：${_longitude!.toStringAsFixed(6)}, ${_latitude!.toStringAsFixed(6)}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSub,
-                    ),
-                  ),
-                ),
               _Field(controller: _tagName, label: '标签'),
               _Field(controller: _deliveryNote, label: '配送备注', maxLines: 2),
               SwitchListTile(
@@ -158,6 +164,7 @@ class _AddressEditPageState extends State<AddressEditPage> {
         throw const LocationException('未获取到当前位置');
       }
       setState(() {
+        _syncingLocationFields = true;
         if (current.province.isNotEmpty) _province.text = current.province;
         if (current.city.isNotEmpty) _city.text = current.city;
         if (current.district.isNotEmpty) _district.text = current.district;
@@ -166,6 +173,7 @@ class _AddressEditPageState extends State<AddressEditPage> {
         _longitude = current.longitude;
         _latitude = current.latitude;
         _locating = false;
+        _syncingLocationFields = false;
       });
       if (!mounted) return;
       showAppSnackBar(context, '已填入当前位置');
@@ -227,6 +235,21 @@ class _AddressEditPageState extends State<AddressEditPage> {
       setState(() => _saving = false);
       showAppSnackBar(context, '删除失败：$error');
     }
+  }
+
+  String get _locationHint {
+    if (_longitude != null && _latitude != null) {
+      return '已保存定位坐标：${_longitude!.toStringAsFixed(6)}, ${_latitude!.toStringAsFixed(6)}';
+    }
+    return '手动输入地址保存后，服务器会自动解析配送坐标';
+  }
+
+  void _clearLocationOnManualEdit() {
+    if (_syncingLocationFields || _longitude == null || _latitude == null) return;
+    setState(() {
+      _longitude = null;
+      _latitude = null;
+    });
   }
 
   AddressFormData? _formData() {
