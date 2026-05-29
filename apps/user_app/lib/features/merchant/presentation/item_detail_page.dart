@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
@@ -168,15 +169,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         _favorited = !_favorited;
         _favoriteBusy = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_favorited ? '已加入收藏' : '已取消收藏')));
+      showAppSnackBar(context, _favorited ? '已加入收藏' : '已取消收藏');
     } catch (error) {
       if (!mounted) return;
       setState(() => _favoriteBusy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('收藏操作失败：$error')));
+      showAppSnackBar(context, '收藏操作失败：$error');
     }
   }
 

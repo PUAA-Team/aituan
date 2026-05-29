@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
 import '../../../core/constants/route_constants.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
@@ -186,9 +187,5 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
     );
   }
 
-  void _showToast(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _showToast(String message) => showAppSnackBar(context, message);
 }

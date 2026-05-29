@@ -39,6 +39,9 @@ record StoreCardView(
     String address,
     List<String> tags,
     String coverUrl,
+    String estimatedTimeText,
+    BigDecimal longitude,
+    BigDecimal latitude,
     List<ItemCardView> matchedItems) {}
 
 record SearchResultView(PageResponse<StoreCardView> page) {}

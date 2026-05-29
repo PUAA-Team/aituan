@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/route_args.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/section_header.dart';
@@ -78,9 +79,7 @@ class _FavoritePageState extends State<FavoritePage> {
   Future<void> _openFavorite(FavoriteEntry favorite) async {
     final id = int.tryParse(favorite.targetId);
     if (id == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('收藏目标信息不完整')));
+      showAppSnackBar(context, '收藏目标信息不完整');
       return;
     }
     final type = favorite.favoriteType.toLowerCase();
@@ -116,9 +115,7 @@ class _FavoritePageState extends State<FavoritePage> {
         if (mounted) _load();
       } catch (error) {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('打开收藏失败：$error')));
+        showAppSnackBar(context, '打开收藏失败：$error');
       }
     }
   }

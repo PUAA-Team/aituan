@@ -104,6 +104,8 @@ export function updateCurrentStore(payload: Partial<MerchantStore>) {
       contactPhone: payload.contactPhone,
       announcement: payload.announcement,
       status: payload.status,
+      longitude: payload.longitude,
+      latitude: payload.latitude,
     },
   });
 }
@@ -242,7 +244,9 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   const text = await response.text();
   const json = text ? JSON.parse(text) : {};
   if (!response.ok || json.code !== 0) {
-    throw new Error(json.message || `请求失败：${response.status}`);
+    const error = new Error(json.message || `请求失败：${response.status}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
   }
   return json.data as T;
 }

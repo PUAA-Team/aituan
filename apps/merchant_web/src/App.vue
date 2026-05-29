@@ -58,7 +58,12 @@ async function loadShell() {
     store.value = nextStore;
     refreshKey.value += 1;
   } catch (error) {
-    notice.value = error instanceof Error ? error.message : String(error);
+    if ((error as Error & { status?: number }).status === 401) {
+      logout();
+      notice.value = '登录已过期，请重新登录';
+    } else {
+      notice.value = error instanceof Error ? error.message : String(error);
+    }
   } finally {
     loading.value = false;
   }

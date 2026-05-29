@@ -20,6 +20,13 @@ IconData businessIcon(BusinessType type) => switch (type) {
   BusinessType.groupBuy => Icons.local_activity,
 };
 
+String merchantDistanceText(MerchantModel merchant) =>
+    merchant.estimatedTimeText.isEmpty
+    ? merchant.distance
+    : '${merchant.distance} · ${merchant.estimatedTimeText}';
+
+String _distanceText(MerchantModel merchant) => merchantDistanceText(merchant);
+
 class ItemMiniCard extends StatelessWidget {
   const ItemMiniCard({
     super.key,
@@ -131,7 +138,7 @@ class MerchantAggregateCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${merchant.rating}分 · ${merchant.distance} · ${merchant.summary}',
+                    '${merchant.rating}分 · ${_distanceText(merchant)} · ${merchant.summary}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,

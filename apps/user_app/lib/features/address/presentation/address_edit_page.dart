@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
 
@@ -130,9 +131,7 @@ class _AddressEditPageState extends State<AddressEditPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      showAppSnackBar(context, '保存失败：$error');
     }
   }
 
@@ -165,9 +164,7 @@ class _AddressEditPageState extends State<AddressEditPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('删除失败：$error')));
+      showAppSnackBar(context, '删除失败：$error');
     }
   }
 
@@ -181,9 +178,7 @@ class _AddressEditPageState extends State<AddressEditPage> {
       _detailAddress.text,
     ];
     if (values.any((value) => value.trim().isEmpty)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请填写收货人、手机号和完整地址')));
+      showAppSnackBar(context, '请填写收货人、手机号和完整地址');
       return null;
     }
     return AddressFormData(

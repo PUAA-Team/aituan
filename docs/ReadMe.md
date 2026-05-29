@@ -76,6 +76,10 @@
 
 `./docs/stage5/Stage5-C闭环改进交付说明.md`
 
+`./docs/stage5/app位置设置图片上传/实施说明.md`
+
+`./docs/stage5/app位置设置图片上传/配置与验证说明.md`
+
 ### 6. 后续计划与长期待办
 
 `./docs/后续阶段五人模块分工计划.md`

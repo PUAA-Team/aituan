@@ -15,6 +15,8 @@ import '../features/merchant/presentation/takeaway_merchant_page.dart';
 import '../features/order/presentation/delivery_tracking_page.dart';
 import '../features/order/presentation/service_order_detail_page.dart';
 import '../features/order/presentation/takeaway_order_detail_page.dart';
+import '../features/profile/presentation/about_page.dart';
+import '../features/profile/presentation/settings_page.dart';
 import '../features/review/presentation/review_publish_page.dart';
 import '../features/search/presentation/search_page.dart';
 import '../features/search/presentation/search_result_page.dart';
@@ -38,6 +40,7 @@ class AppRouter {
     Routes.addressList,
     Routes.addressEdit,
     Routes.profile,
+    Routes.settings,
     Routes.reviewPublish,
   };
 
@@ -84,6 +87,8 @@ class AppRouter {
         AddressEditPage(args: _addressEditArgs(settings.arguments)),
         settings,
       ),
+      Routes.settings => _page(const SettingsPage(), settings),
+      Routes.about => _page(const AboutPage(), settings),
       Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
       _ => _page(const SplashPage(), settings),
     };

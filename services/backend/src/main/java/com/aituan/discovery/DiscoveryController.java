@@ -22,42 +22,60 @@ class DiscoveryController {
   }
 
   @GetMapping("/home")
-  ApiResponse<HomeView> home() {
-    return ApiResponse.ok(discoveryService.home());
+  ApiResponse<HomeView> home(
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.home(latitude, longitude));
   }
 
   @GetMapping("/recommendations")
   ApiResponse<PageResponse<ItemCardView>> recommendations(
       @RequestParam(defaultValue = "1") @Min(1) int page,
-      @RequestParam(defaultValue = "12") @Min(1) int pageSize) {
-    return ApiResponse.ok(discoveryService.recommendations(page, pageSize));
+      @RequestParam(defaultValue = "12") @Min(1) int pageSize,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.recommendations(page, pageSize, latitude, longitude));
   }
 
   @GetMapping("/modules/{moduleCode}")
-  ApiResponse<ModulePageView> module(@PathVariable @NotBlank String moduleCode) {
-    return ApiResponse.ok(discoveryService.module(moduleCode));
+  ApiResponse<ModulePageView> module(
+      @PathVariable @NotBlank String moduleCode,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.module(moduleCode, latitude, longitude));
   }
 
   @GetMapping("/stores/search")
   ApiResponse<PageResponse<StoreCardView>> search(
       @RequestParam String keyword,
       @RequestParam(defaultValue = "1") @Min(1) int page,
-      @RequestParam(defaultValue = "12") @Min(1) int pageSize) {
-    return ApiResponse.ok(discoveryService.search(keyword, page, pageSize));
+      @RequestParam(defaultValue = "12") @Min(1) int pageSize,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.search(keyword, page, pageSize, latitude, longitude));
   }
 
   @GetMapping("/stores/{storeId}")
-  ApiResponse<StoreDetailView> storeDetail(@PathVariable long storeId) {
-    return ApiResponse.ok(discoveryService.storeDetail(storeId));
+  ApiResponse<StoreDetailView> storeDetail(
+      @PathVariable long storeId,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.storeDetail(storeId, latitude, longitude));
   }
 
   @GetMapping("/stores/{storeId}/items")
-  ApiResponse<StoreDetailView> storeItems(@PathVariable long storeId) {
-    return ApiResponse.ok(discoveryService.storeDetail(storeId));
+  ApiResponse<StoreDetailView> storeItems(
+      @PathVariable long storeId,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.storeDetail(storeId, latitude, longitude));
   }
 
   @GetMapping("/items/{itemId}")
-  ApiResponse<ItemDetailView> itemDetail(@PathVariable long itemId) {
-    return ApiResponse.ok(discoveryService.itemDetail(itemId));
+  ApiResponse<ItemDetailView> itemDetail(
+      @PathVariable long itemId,
+      @RequestParam(required = false) Double latitude,
+      @RequestParam(required = false) Double longitude) {
+    return ApiResponse.ok(discoveryService.itemDetail(itemId, latitude, longitude));
   }
 }

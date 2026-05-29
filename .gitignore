@@ -9,6 +9,7 @@ apps/*/dist/
 
 # Local runtime/build handoff directories
 .aituan-local/
+.config
 
 # Server deployment local files
 /deploy/.env

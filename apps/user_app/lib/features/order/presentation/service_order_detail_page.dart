@@ -6,6 +6,7 @@ import '../../../shared/enums/business_type.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../home/data/backend_app_repository.dart';
@@ -118,9 +119,7 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _paying = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('支付失败：$error')));
+      showAppSnackBar(context, '支付失败：$error');
     }
   }
 
