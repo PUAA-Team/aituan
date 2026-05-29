@@ -19,5 +19,7 @@ class Routes {
   static const addressList = '/address/list';
   static const addressEdit = '/address/edit';
   static const profile = '/profile';
+  static const settings = '/settings';
+  static const about = '/about';
   static const reviewPublish = '/review/publish';
 }

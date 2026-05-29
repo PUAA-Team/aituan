@@ -5,6 +5,7 @@ import '../../../app/app_state.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../home/data/backend_app_repository.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -114,9 +115,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-            const AppCard(
+            AppCard(
               child: Column(
-                children: [_StaticRow('设置'), Divider(), _StaticRow('关于爱团')],
+                children: [
+                  _StaticRow(
+                    title: '设置',
+                    onTap: () => Navigator.pushNamed(context, Routes.settings),
+                  ),
+                  const Divider(),
+                  _StaticRow(
+                    title: '关于爱团',
+                    onTap: () => Navigator.pushNamed(context, Routes.about),
+                  ),
+                ],
               ),
             ),
           ],
@@ -201,9 +212,7 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _avatarBusy = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('头像上传失败：$error')));
+      showAppSnackBar(context, '头像上传失败：$error');
     }
   }
 
@@ -379,9 +388,10 @@ class _ToolRow extends StatelessWidget {
 }
 
 class _StaticRow extends StatelessWidget {
-  const _StaticRow(this.title);
+  const _StaticRow({required this.title, required this.onTap});
 
   final String title;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -389,6 +399,7 @@ class _StaticRow extends StatelessWidget {
     visualDensity: VisualDensity.compact,
     title: Text(title, style: Theme.of(context).textTheme.titleSmall),
     trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
+    onTap: onTap,
   );
 }
 

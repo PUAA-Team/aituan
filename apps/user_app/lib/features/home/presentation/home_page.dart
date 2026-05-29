@@ -7,6 +7,7 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../shared/models/item_model.dart';
 import '../../home/data/backend_app_repository.dart';
+import '../../location/application/location_scope.dart';
 import 'home_widgets.dart';
 
 class HomePage extends StatefulWidget {
@@ -27,7 +28,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _controller.addListener(_loadMoreIfNeeded);
-    _loadHome();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWithLocation());
   }
 
   @override
@@ -78,7 +79,7 @@ class _HomePageState extends State<HomePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           children: [
-            const HomeHeroHeader(),
+            HomeHeroHeader(onLocationChanged: _loadHome),
             HomeModuleGrid(modules: data.modules),
             HomeRecommendSection(
               items: items,
@@ -109,6 +110,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _loadWithLocation() async {
+    final location = LocationScope.of(context);
+    if (!location.hasLocation && !location.loading) {
+      await location.refresh();
+    }
+    if (!mounted) return;
+    await _loadHome();
+  }
+
   Future<void> _loadHome() async {
     try {
       setState(() {
@@ -137,7 +147,7 @@ class _HomePageState extends State<HomePage> {
     if (_visible >= data.recommendations.length) return;
     if (_controller.position.extentAfter < 260) {
       setState(() {
-        _visible = (_visible + 4).clamp(0, data.recommendations.length);
+        _visible = (_visible + 4).clamp(0, data.recommendations.length).toInt();
       });
     }
   }

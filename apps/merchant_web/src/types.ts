@@ -43,6 +43,8 @@ export interface MerchantStore {
   coverUrl: string;
   contactPhone: string;
   announcement: string;
+  longitude?: number | null;
+  latitude?: number | null;
   updatedAt: string;
 }
 

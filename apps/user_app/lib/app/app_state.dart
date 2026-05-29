@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants/route_constants.dart';
+import '../core/widgets/app_toast.dart';
 
 class AppState extends ChangeNotifier {
   bool _loggedIn = false;
@@ -73,9 +74,7 @@ class AppState extends ChangeNotifier {
 
   bool requireLogin(BuildContext context) {
     if (_loggedIn) return true;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('请先登录后继续操作')));
+    showAppSnackBar(context, '请先登录后继续操作');
     Navigator.of(context).pushNamed(Routes.login);
     return false;
   }

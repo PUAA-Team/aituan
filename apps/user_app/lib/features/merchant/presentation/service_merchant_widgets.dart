@@ -41,7 +41,7 @@ class ServiceMerchantHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${merchant.rating}分 · ${merchant.distance}',
+                    '${merchant.rating}分 · ${merchantDistanceText(merchant)}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),

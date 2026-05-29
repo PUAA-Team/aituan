@@ -68,22 +68,22 @@ INSERT INTO merchant_profile (id, merchant_no, account_id, merchant_name, contac
   (14, 'MCH014', 33, '悦己SPA', '林经理', '18810000014', 'L014', 'normal', 'approved', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE account_id = VALUES(account_id), merchant_name = VALUES(merchant_name), status = VALUES(status), updated_at = CURRENT_TIMESTAMP;
 
-INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary, address, distance_text, rating, monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url) VALUES
-  (1, 1, '塔斯汀中国汉堡', 'takeaway', '现烤汉堡，附近高复购外卖', '城市广场 1 层', '900m', 4.8, 3290, 28.00, 'open', '09:30-22:30', '35分钟送达,配送费¥4,满减', 'https://picsum.photos/seed/aituan-store-burger/900/520'),
-  (2, 2, '松记炸鸡饭', 'takeaway', '热卖炸鸡饭和能量套餐', '湖畔商业街 2 层', '1.2km', 4.7, 2180, 24.00, 'open', '10:00-21:30', '出餐快,套餐多,免预约', 'https://picsum.photos/seed/aituan-store-chicken-rice/900/520'),
-  (3, 3, '江南小馆', 'group_buy', '家常江南菜，到店套餐高性价比', '城市广场 4 层', '800m', 4.8, 1260, 86.00, 'open', '10:30-22:00', '团购,多人餐,可核销', 'https://picsum.photos/seed/aituan-store-jiangnan/900/520'),
-  (4, 4, '云栖酒店', 'hotel', '商圈舒适酒店，干净安静', '云栖路 88 号', '2.8km', 4.6, 960, 328.00, 'open', '全天营业', '酒店,大床房,可核销', 'https://picsum.photos/seed/aituan-store-hotel/900/520'),
-  (5, 5, '星盒密室', 'entertainment', '沉浸式剧情密室和桌游空间', '青年街 18 号 5 层', '1.9km', 4.9, 870, 118.00, 'open', '12:00-23:30', '休闲娱乐,密室,朋友聚会', 'https://picsum.photos/seed/aituan-store-escape/900/520'),
-  (6, 6, '光影剧场', 'movie', '热门电影演出优惠票', '时代中心 6 层', '1.5km', 4.7, 1420, 46.00, 'open', '10:00-24:00', '电影演出,优惠票,可核销', 'https://picsum.photos/seed/aituan-store-cinema/900/520'),
-  (7, 7, '轻颜护理', 'beauty', '皮肤护理和基础医美咨询', '望京街 66 号', '3.1km', 4.8, 760, 198.00, 'open', '10:00-21:00', '丽人医美,护理,到店核销', 'https://picsum.photos/seed/aituan-store-beauty/900/520'),
-  (8, 8, '城市观景', 'ticket', '城市地标观景门票', '中央公园南门', '4.5km', 4.6, 1680, 59.00, 'open', '09:00-20:00', '景点门票,亲子,电子券', 'https://picsum.photos/seed/aituan-store-ticket/900/520'),
-  (9, 9, '雅境足道', 'massage', '足疗按摩，环境安静', '湖畔路 9 号 3 层', '1.6km', 4.8, 1320, 128.00, 'open', '11:00-02:00', '洗脚,按摩,到店核销', 'https://picsum.photos/seed/aituan-store-massage/900/520'),
-  (10, 10, '米村拌饭', 'takeaway', '热气石锅拌饭，工作日晚餐热门', '时代里 B1 层', '1.1km', 4.7, 2410, 31.00, 'open', '10:00-21:30', '35分钟送达,拌饭,套餐', 'https://picsum.photos/seed/aituan-store-bibimbap/900/520'),
-  (11, 11, '琥珀烤肉', 'group_buy', '烤肉双人餐和家庭聚会套餐', '悦街 3 层 302', '2.2km', 4.8, 1120, 138.00, 'open', '11:00-22:30', '团购,烤肉,多人餐', 'https://picsum.photos/seed/aituan-store-bbq/900/520'),
-  (12, 12, '曼居影院酒店', 'hotel', '影音房和商旅房可在线购买到店核销', '新城路 16 号', '3.6km', 4.7, 690, 358.00, 'open', '全天营业', '酒店,影音房,可核销', 'https://picsum.photos/seed/aituan-store-room/900/520'),
-  (13, 13, '趣动电玩城', 'entertainment', '电玩城代币、VR 和双人畅玩套餐', '活力中心 4 层', '1.7km', 4.6, 980, 88.00, 'open', '10:00-23:00', '休闲娱乐,电玩城,朋友聚会', 'https://picsum.photos/seed/aituan-store-arcade/900/520'),
-  (14, 14, '悦己SPA', 'beauty', '身体护理和肩颈放松项目', '林荫路 12 号 2 层', '2.4km', 4.9, 540, 268.00, 'open', '10:00-22:00', '丽人医美,SPA,预约优先', 'https://picsum.photos/seed/aituan-store-spa/900/520')
-ON DUPLICATE KEY UPDATE summary = VALUES(summary), business_type = VALUES(business_type), tag_text = VALUES(tag_text), cover_url = VALUES(cover_url);
+INSERT INTO merchant_store (id, merchant_id, store_name, business_type, summary, address, distance_text, longitude, latitude, rating, monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url) VALUES
+  (1, 1, '塔斯汀中国汉堡', 'takeaway', '现烤汉堡，附近高复购外卖', '城市广场 1 层', '900m', 116.313600, 39.982300, 4.8, 3290, 28.00, 'open', '09:30-22:30', '35分钟送达,配送费¥4,满减', 'https://picsum.photos/seed/aituan-store-burger/900/520'),
+  (2, 2, '松记炸鸡饭', 'takeaway', '热卖炸鸡饭和能量套餐', '湖畔商业街 2 层', '1.2km', 116.310800, 39.985700, 4.7, 2180, 24.00, 'open', '10:00-21:30', '出餐快,套餐多,免预约', 'https://picsum.photos/seed/aituan-store-chicken-rice/900/520'),
+  (3, 3, '江南小馆', 'group_buy', '家常江南菜，到店套餐高性价比', '城市广场 4 层', '800m', 116.316100, 39.981100, 4.8, 1260, 86.00, 'open', '10:30-22:00', '团购,多人餐,可核销', 'https://picsum.photos/seed/aituan-store-jiangnan/900/520'),
+  (4, 4, '云栖酒店', 'hotel', '商圈舒适酒店，干净安静', '云栖路 88 号', '2.8km', 116.327400, 39.990800, 4.6, 960, 328.00, 'open', '全天营业', '酒店,大床房,可核销', 'https://picsum.photos/seed/aituan-store-hotel/900/520'),
+  (5, 5, '星盒密室', 'entertainment', '沉浸式剧情密室和桌游空间', '青年街 18 号 5 层', '1.9km', 116.304900, 39.977700, 4.9, 870, 118.00, 'open', '12:00-23:30', '休闲娱乐,密室,朋友聚会', 'https://picsum.photos/seed/aituan-store-escape/900/520'),
+  (6, 6, '光影剧场', 'movie', '热门电影演出优惠票', '时代中心 6 层', '1.5km', 116.321300, 39.984600, 4.7, 1420, 46.00, 'open', '10:00-24:00', '电影演出,优惠票,可核销', 'https://picsum.photos/seed/aituan-store-cinema/900/520'),
+  (7, 7, '轻颜护理', 'beauty', '皮肤护理和基础医美咨询', '望京街 66 号', '3.1km', 116.336800, 39.995200, 4.8, 760, 198.00, 'open', '10:00-21:00', '丽人医美,护理,到店核销', 'https://picsum.photos/seed/aituan-store-beauty/900/520'),
+  (8, 8, '城市观景', 'ticket', '城市地标观景门票', '中央公园南门', '4.5km', 116.289700, 39.967500, 4.6, 1680, 59.00, 'open', '09:00-20:00', '景点门票,亲子,电子券', 'https://picsum.photos/seed/aituan-store-ticket/900/520'),
+  (9, 9, '雅境足道', 'massage', '足疗按摩，环境安静', '湖畔路 9 号 3 层', '1.6km', 116.308200, 39.973900, 4.8, 1320, 128.00, 'open', '11:00-02:00', '洗脚,按摩,到店核销', 'https://picsum.photos/seed/aituan-store-massage/900/520'),
+  (10, 10, '米村拌饭', 'takeaway', '热气石锅拌饭，工作日晚餐热门', '时代里 B1 层', '1.1km', 116.318600, 39.986200, 4.7, 2410, 31.00, 'open', '10:00-21:30', '35分钟送达,拌饭,套餐', 'https://picsum.photos/seed/aituan-store-bibimbap/900/520'),
+  (11, 11, '琥珀烤肉', 'group_buy', '烤肉双人餐和家庭聚会套餐', '悦街 3 层 302', '2.2km', 116.302500, 39.988500, 4.8, 1120, 138.00, 'open', '11:00-22:30', '团购,烤肉,多人餐', 'https://picsum.photos/seed/aituan-store-bbq/900/520'),
+  (12, 12, '曼居影院酒店', 'hotel', '影音房和商旅房可在线购买到店核销', '新城路 16 号', '3.6km', 116.331700, 39.972400, 4.7, 690, 358.00, 'open', '全天营业', '酒店,影音房,可核销', 'https://picsum.photos/seed/aituan-store-room/900/520'),
+  (13, 13, '趣动电玩城', 'entertainment', '电玩城代币、VR 和双人畅玩套餐', '活力中心 4 层', '1.7km', 116.299400, 39.979800, 4.6, 980, 88.00, 'open', '10:00-23:00', '休闲娱乐,电玩城,朋友聚会', 'https://picsum.photos/seed/aituan-store-arcade/900/520'),
+  (14, 14, '悦己SPA', 'beauty', '身体护理和肩颈放松项目', '林荫路 12 号 2 层', '2.4km', 116.324000, 39.969200, 4.9, 540, 268.00, 'open', '10:00-22:00', '丽人医美,SPA,预约优先', 'https://picsum.photos/seed/aituan-store-spa/900/520')
+ON DUPLICATE KEY UPDATE summary = VALUES(summary), business_type = VALUES(business_type), distance_text = VALUES(distance_text), longitude = VALUES(longitude), latitude = VALUES(latitude), tag_text = VALUES(tag_text), cover_url = VALUES(cover_url);
 
 INSERT INTO merchant_delivery_rule (id, store_id, delivery_fee, start_price, estimated_minutes, delivery_text) VALUES
   (1, 1, 4.00, 20.00, 35, '骑手模拟配送，预计 35 分钟送达'),

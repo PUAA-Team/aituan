@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/address_model.dart';
@@ -192,9 +193,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _pay() async {
     if (widget.args.kind == OrderKind.takeaway && _selectedAddress == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先新增或选择收货地址')));
+      showAppSnackBar(context, '请先新增或选择收货地址');
       return;
     }
     try {
@@ -221,9 +220,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('提交失败：$error')));
+      showAppSnackBar(context, '提交失败：$error');
     }
   }
 }

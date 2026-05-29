@@ -13,6 +13,9 @@ class MerchantModel {
     required this.tags,
     required this.items,
     this.coverUrl,
+    this.estimatedTimeText = '',
+    this.longitude,
+    this.latitude,
     this.status = 'open',
     this.businessHours = '10:00-22:00',
     this.monthlySales = 0,
@@ -30,6 +33,9 @@ class MerchantModel {
   final List<String> tags;
   final List<ItemModel> items;
   final String? coverUrl;
+  final String estimatedTimeText;
+  final double? longitude;
+  final double? latitude;
   final String status;
   final String businessHours;
   final int monthlySales;

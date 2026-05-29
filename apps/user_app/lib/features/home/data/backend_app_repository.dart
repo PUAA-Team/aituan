@@ -2,6 +2,7 @@ import 'dart:io';
 
 import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
+import '../../location/application/location_state.dart';
 import '../../../core/network/app_api_client.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/address_model.dart';
@@ -63,7 +64,7 @@ class BackendAppRepository {
   }
 
   Future<HomeData> fetchHome() async {
-    final json = await _get('/api/app/discovery/home');
+    final json = await _get(_withLocation('/api/app/discovery/home'));
     final data = _map(json['data']);
     final recommendations = _pageItems(data['recommendations']);
     return HomeData(
@@ -75,13 +76,13 @@ class BackendAppRepository {
 
   Future<List<ItemModel>> fetchRecommendations() async {
     final json = await _get(
-      '/api/app/discovery/recommendations?page=1&pageSize=12',
+      _withLocation('/api/app/discovery/recommendations?page=1&pageSize=12'),
     );
     return _pageItems(_map(json['data']));
   }
 
   Future<ModuleData> fetchModule(String moduleCode) async {
-    final json = await _get('/api/app/discovery/modules/$moduleCode');
+    final json = await _get(_withLocation('/api/app/discovery/modules/$moduleCode'));
     final data = _map(json['data']);
     return ModuleData(
       moduleCode: _string(data['moduleCode'], fallback: moduleCode),
@@ -93,7 +94,7 @@ class BackendAppRepository {
 
   Future<List<MerchantModel>> searchStores(String keyword) async {
     final json = await _get(
-      '/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=1&pageSize=12',
+      _withLocation('/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=1&pageSize=12'),
     );
     final page = _map(json['data']);
     return _merchants(page['list']);
@@ -101,11 +102,11 @@ class BackendAppRepository {
 
   Future<MerchantModel> fetchStore(int storeId) async =>
       _merchantFromStoreDetail(
-        _map((await _get('/api/app/discovery/stores/$storeId'))['data']),
+        _map((await _get(_withLocation('/api/app/discovery/stores/$storeId')))['data']),
       );
 
   Future<ItemDetailData> fetchItem(int itemId) async {
-    final json = await _get('/api/app/discovery/items/$itemId');
+    final json = await _get(_withLocation('/api/app/discovery/items/$itemId'));
     final data = _map(json['data']);
     return ItemDetailData(
       item: ItemModel.fromApi(_map(data['item'])),
@@ -324,6 +325,14 @@ class BackendAppRepository {
   }
 
   Future<Map<String, dynamic>> _get(String path) => _client.get(path);
+
+  String _withLocation(String path) {
+    final latitude = locationState.latitude;
+    final longitude = locationState.longitude;
+    if (latitude == null || longitude == null) return path;
+    final separator = path.contains('?') ? '&' : '?';
+    return '$path${separator}latitude=$latitude&longitude=$longitude';
+  }
 
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) =>
       _client.post(path, body);
@@ -802,6 +811,9 @@ MerchantModel _merchantFromStoreCard(
   tags: _strings(json['tags']),
   items: items,
   coverUrl: _nullableString(json['coverUrl']),
+  estimatedTimeText: _string(json['estimatedTimeText']),
+  longitude: _nullableDouble(json['longitude']),
+  latitude: _nullableDouble(json['latitude']),
   status: _string(json['status'], fallback: 'open'),
   businessHours: _string(json['businessHoursText'], fallback: '10:00-22:00'),
   monthlySales: _int(json['monthlySales']),
@@ -921,6 +933,12 @@ int _int(dynamic value) =>
 double _double(dynamic value) => value is num
     ? value.toDouble()
     : double.tryParse(value?.toString() ?? '') ?? 0;
+
+double? _nullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
 
 bool _bool(dynamic value) =>
     value is bool ? value : value?.toString() == 'true';

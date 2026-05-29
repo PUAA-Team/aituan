@@ -28,6 +28,8 @@ const storeForm = reactive({
   contactPhone: '',
   announcement: '',
   status: 'open',
+  longitude: '',
+  latitude: '',
 });
 
 const certification = ref<MerchantCertification | null>(null);
@@ -51,6 +53,8 @@ function syncForms() {
   storeForm.contactPhone = props.store.contactPhone || '';
   storeForm.announcement = props.store.announcement || '';
   storeForm.status = props.store.status || 'open';
+  storeForm.longitude = props.store.longitude == null ? '' : String(props.store.longitude);
+  storeForm.latitude = props.store.latitude == null ? '' : String(props.store.latitude);
 }
 
 async function loadCertification() {
@@ -73,7 +77,11 @@ async function saveProfile() {
 
 async function saveStore() {
   try {
-    await updateCurrentStore(storeForm);
+    await updateCurrentStore({
+      ...storeForm,
+      longitude: numericOrNull(storeForm.longitude),
+      latitude: numericOrNull(storeForm.latitude),
+    });
     emit('notice', '门店资料已保存');
     emit('changed');
   } catch (error) {
@@ -130,6 +138,11 @@ function statusText(value: string) {
     rejected: '已驳回',
   };
   return map[value] || value;
+}
+
+function numericOrNull(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : null;
 }
 </script>
 
@@ -224,6 +237,17 @@ function statusText(value: string) {
         门店地址
         <input v-model="storeForm.address" required />
       </label>
+      <div class="form-grid two">
+        <label>
+          经度
+          <input v-model="storeForm.longitude" type="number" step="0.000001" min="-180" max="180" placeholder="留空则保存时自动解析" />
+        </label>
+        <label>
+          纬度
+          <input v-model="storeForm.latitude" type="number" step="0.000001" min="-90" max="90" placeholder="留空则保存时自动解析" />
+        </label>
+      </div>
+      <p class="form-hint">经纬度用于附近商家排序、距离和预计送达；留空时后端会尝试根据门店地址自动解析，解析不准可手动修正。</p>
       <div class="form-grid two">
         <label>
           营业时间

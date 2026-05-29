@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
@@ -270,11 +271,7 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     return detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪';
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _showSnackBar(String message) => showAppSnackBar(context, message);
 }
 
 class _StatusCard extends StatelessWidget {

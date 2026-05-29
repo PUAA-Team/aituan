@@ -32,6 +32,8 @@ record MerchantStoreView(
     String coverUrl,
     String contactPhone,
     String announcement,
+    BigDecimal longitude,
+    BigDecimal latitude,
     LocalDateTime updatedAt) {}
 
 record MerchantApplicationSubmitRequest(
@@ -87,4 +89,6 @@ record MerchantStoreUpdateRequest(
     String tagText,
     String contactPhone,
     String announcement,
-    String status) {}
+    String status,
+    BigDecimal longitude,
+    BigDecimal latitude) {}

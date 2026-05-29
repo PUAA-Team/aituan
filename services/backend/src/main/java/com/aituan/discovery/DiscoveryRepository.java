@@ -32,7 +32,7 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from member_recommend_config r
         join catalog_item i on i.id = r.item_id and i.is_deleted = 0 and i.status = 'on_sale'
@@ -65,7 +65,7 @@ class DiscoveryRepository {
   List<StoreRow> listStoresByBusinessType(String businessType, int limit) {
     return jdbcTemplate.query(
         """
-        select id, merchant_id, store_name, business_type, summary, address, distance_text, rating,
+        select id, merchant_id, store_name, business_type, summary, address, distance_text, longitude, latitude, rating,
                monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url
         from merchant_store
         where business_type = ? and is_deleted = 0 and status = 'open'
@@ -81,7 +81,7 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
@@ -106,7 +106,7 @@ class DiscoveryRepository {
   Optional<StoreRow> findStore(long storeId) {
     List<StoreRow> rows = jdbcTemplate.query(
         """
-        select id, merchant_id, store_name, business_type, summary, address, distance_text, rating,
+        select id, merchant_id, store_name, business_type, summary, address, distance_text, longitude, latitude, rating,
                monthly_sales, avg_price, status, business_hours_text, tag_text, cover_url
         from merchant_store
         where id = ? and is_deleted = 0
@@ -121,7 +121,7 @@ class DiscoveryRepository {
     List<ItemRow> rows = jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
@@ -158,7 +158,7 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
@@ -183,7 +183,7 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, i.sort_order,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
         from catalog_item i
         join catalog_category c on c.id = i.category_id
@@ -214,7 +214,7 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select distinct s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
-               s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
+               s.longitude, s.latitude, s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
         from merchant_store s
         left join catalog_item i on i.store_id = s.id and i.is_deleted = 0 and i.status = 'on_sale'
         where s.is_deleted = 0 and s.status = 'open'
@@ -311,6 +311,8 @@ class DiscoveryRepository {
         rs.getString("summary"),
         rs.getString("address"),
         rs.getString("distance_text"),
+        rs.getBigDecimal("longitude"),
+        rs.getBigDecimal("latitude"),
         rs.getBigDecimal("rating"),
         rs.getInt("monthly_sales"),
         rs.getBigDecimal("avg_price"),
@@ -338,6 +340,10 @@ class DiscoveryRepository {
         rs.getString("tag_text"),
         rs.getLong("store_id"),
         rs.getString("store_name"),
+        rs.getBigDecimal("store_longitude"),
+        rs.getBigDecimal("store_latitude"),
+        rs.getBigDecimal("store_rating"),
+        rs.getInt("store_monthly_sales"),
         rs.getInt("sort_order"),
         rs.getInt("stock"),
         rs.getString("sku_status"));
@@ -353,6 +359,8 @@ class DiscoveryRepository {
       String summary,
       String address,
       String distanceText,
+      BigDecimal longitude,
+      BigDecimal latitude,
       BigDecimal rating,
       int monthlySales,
       BigDecimal avgPrice,
@@ -376,6 +384,10 @@ class DiscoveryRepository {
       String tagText,
       Long storeId,
       String storeName,
+      BigDecimal storeLongitude,
+      BigDecimal storeLatitude,
+      BigDecimal storeRating,
+      int storeMonthlySales,
       int sortOrder,
       int stock,
       String skuStatus) {}

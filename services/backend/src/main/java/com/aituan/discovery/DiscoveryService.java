@@ -7,6 +7,7 @@ import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUserContext;
 import com.aituan.message.MessageRepository;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,13 +17,18 @@ import org.springframework.stereotype.Service;
 class DiscoveryService {
   private final DiscoveryRepository discoveryRepository;
   private final MessageRepository messageRepository;
+  private final MapDistanceService mapDistanceService;
 
-  DiscoveryService(DiscoveryRepository discoveryRepository, MessageRepository messageRepository) {
+  DiscoveryService(
+      DiscoveryRepository discoveryRepository,
+      MessageRepository messageRepository,
+      MapDistanceService mapDistanceService) {
     this.discoveryRepository = discoveryRepository;
     this.messageRepository = messageRepository;
+    this.mapDistanceService = mapDistanceService;
   }
 
-  HomeView home() {
+  HomeView home(Double latitude, Double longitude) {
     List<ModuleView> modules = discoveryRepository.listModules().stream()
         .map(row -> new ModuleView(
             row.id(),
@@ -32,7 +38,7 @@ class DiscoveryService {
             row.name() + "精选推荐",
             moduleIcon(row.businessType())))
         .toList();
-    PageResponse<ItemCardView> recommendations = recommendations(1, 12);
+    PageResponse<ItemCardView> recommendations = recommendations(1, 12, latitude, longitude);
     long unread = CurrentUserContext.optional()
         .map(currentUser -> messageRepository.countUnreadMessages(currentUser.userId()))
         .orElseGet(() -> discoveryRepository.countUnreadMessages(1L));
@@ -40,17 +46,32 @@ class DiscoveryService {
   }
 
   PageResponse<ItemCardView> recommendations(int page, int pageSize) {
-    long total = discoveryRepository.countRecommendations();
-    List<ItemCardView> list = discoveryRepository.listRecommendations((page - 1) * pageSize, pageSize).stream()
-        .map(this::toItemCard)
-        .toList();
-    return PageResponse.of(list, page, pageSize, total);
+    return recommendations(page, pageSize, null, null);
   }
 
-  ModulePageView module(String moduleCode) {
+  PageResponse<ItemCardView> recommendations(int page, int pageSize, Double latitude, Double longitude) {
+    long total = discoveryRepository.countRecommendations();
+    LocationContext location = locationContext(latitude, longitude);
+    if (location == null) {
+      List<ItemCardView> list = discoveryRepository.listRecommendations((page - 1) * pageSize, pageSize).stream()
+          .map(this::toItemCard)
+          .toList();
+      return PageResponse.of(list, page, pageSize, total);
+    }
+    List<DiscoveryRepository.ItemRow> sorted = sortItems(discoveryRepository.listRecommendations(0, (int) Math.min(total, Integer.MAX_VALUE)), location);
+    int fromIndex = Math.max(0, (page - 1) * pageSize);
+    int toIndex = Math.min(sorted.size(), fromIndex + pageSize);
+    List<ItemCardView> pageItems = fromIndex >= sorted.size()
+        ? List.of()
+        : sorted.subList(fromIndex, toIndex).stream().map(this::toItemCard).toList();
+    return PageResponse.of(pageItems, page, pageSize, total);
+  }
+
+  ModulePageView module(String moduleCode, Double latitude, Double longitude) {
     BusinessType businessType = businessTypeByModuleCode(moduleCode);
-    List<DiscoveryRepository.StoreRow> storeRows = discoveryRepository.listStoresByBusinessType(businessType.code(), 10);
-    List<StoreCardView> stores = storeRows.stream().map(this::toStoreCard).toList();
+    LocationContext location = locationContext(latitude, longitude);
+    List<DiscoveryRepository.StoreRow> storeRows = sortStores(discoveryRepository.listStoresByBusinessType(businessType.code(), 50), location);
+    List<StoreCardView> stores = storeRows.stream().limit(10).map(row -> toStoreCard(row, location, true)).toList();
     List<ItemCardView> featuredItems = discoveryRepository.listItemsByBusinessType(businessType.code(), 12).stream()
         .map(this::toItemCard)
         .toList();
@@ -61,13 +82,14 @@ class DiscoveryService {
         PageResponse.of(featuredItems, 1, 12, featuredItems.size()));
   }
 
-  PageResponse<StoreCardView> search(String keyword, int page, int pageSize) {
-    List<DiscoveryRepository.StoreRow> stores = discoveryRepository.searchStores(keyword, 50);
+  PageResponse<StoreCardView> search(String keyword, int page, int pageSize, Double latitude, Double longitude) {
+    LocationContext location = locationContext(latitude, longitude);
+    List<DiscoveryRepository.StoreRow> stores = sortStores(discoveryRepository.searchStores(keyword, 50), location);
     List<StoreCardView> mapped = stores.stream().map(store -> {
       List<ItemCardView> matchedItems = discoveryRepository.searchItems(store.id(), keyword, 6).stream()
           .map(this::toItemCard)
           .toList();
-      return toStoreCard(store, matchedItems);
+      return toStoreCard(store, matchedItems, location, true);
     }).toList();
     int fromIndex = Math.max(0, (page - 1) * pageSize);
     int toIndex = Math.min(mapped.size(), fromIndex + pageSize);
@@ -75,7 +97,8 @@ class DiscoveryService {
     return PageResponse.of(pageItems, page, pageSize, mapped.size());
   }
 
-  StoreDetailView storeDetail(long storeId) {
+  StoreDetailView storeDetail(long storeId, Double latitude, Double longitude) {
+    LocationContext location = locationContext(latitude, longitude);
     DiscoveryRepository.StoreRow storeRow = discoveryRepository.findStore(storeId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     List<DiscoveryRepository.CategoryRow> categoryRows = discoveryRepository.listStoreCategories(storeId);
@@ -103,15 +126,16 @@ class DiscoveryService {
         deliveryRuleRow.estimatedMinutes(),
         deliveryRuleRow.startPrice(),
         deliveryRuleRow.deliveryText());
-    return new StoreDetailView(toStoreCard(storeRow), storeRow.businessType(), categories, itemGroups, reviewSummary, deliveryRule);
+    return new StoreDetailView(toStoreCard(storeRow, location), storeRow.businessType(), categories, itemGroups, reviewSummary, deliveryRule);
   }
 
-  ItemDetailView itemDetail(long itemId) {
+  ItemDetailView itemDetail(long itemId, Double latitude, Double longitude) {
+    LocationContext location = locationContext(latitude, longitude);
     DiscoveryRepository.ItemRow itemRow = discoveryRepository.findItem(itemId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     DiscoveryRepository.StoreRow storeRow = discoveryRepository.findStore(itemRow.storeId())
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    StoreCardView store = toStoreCard(storeRow);
+    StoreCardView store = toStoreCard(storeRow, location);
     List<CategoryView> categories = discoveryRepository.listStoreCategories(storeRow.id()).stream()
         .map(row -> new CategoryView(row.id(), row.name(), row.sortOrder()))
         .toList();
@@ -128,15 +152,28 @@ class DiscoveryService {
   }
 
   private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row) {
-    return toStoreCard(row, List.of());
+    return toStoreCard(row, List.of(), null, false);
   }
 
-  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, List<ItemCardView> matchedItems) {
+  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, LocationContext location) {
+    return toStoreCard(row, List.of(), location, false);
+  }
+
+  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, List<ItemCardView> matchedItems, LocationContext location) {
+    return toStoreCard(row, matchedItems, location, false);
+  }
+
+  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, LocationContext location, boolean localOnly) {
+    return toStoreCard(row, List.of(), location, localOnly);
+  }
+
+  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, List<ItemCardView> matchedItems, LocationContext location, boolean localOnly) {
+    MapDistanceService.DistanceEstimate estimate = estimate(row, location, localOnly);
     return new StoreCardView(
         row.id(),
         row.name(),
         row.businessType(),
-        row.distanceText(),
+        estimate == null ? row.distanceText() : estimate.distanceText(),
         row.rating(),
         row.monthlySales(),
         row.avgPrice(),
@@ -146,6 +183,9 @@ class DiscoveryService {
         row.address(),
         splitTags(row.tagText()),
         row.coverUrl(),
+        estimate == null ? "" : estimate.estimatedTimeText(),
+        row.longitude(),
+        row.latitude(),
         matchedItems);
   }
 
@@ -166,6 +206,80 @@ class DiscoveryService {
         row.stock() <= 0 || !"on_sale".equals(row.skuStatus()),
         row.storeId(),
         row.storeName());
+  }
+
+  private MapDistanceService.DistanceEstimate estimate(DiscoveryRepository.StoreRow row, LocationContext location, boolean localOnly) {
+    if (location == null || row.latitude() == null || row.longitude() == null) {
+      return null;
+    }
+    if (localOnly) {
+      return mapDistanceService.estimateLocally(
+          location.latitude(),
+          location.longitude(),
+          row.latitude().doubleValue(),
+          row.longitude().doubleValue());
+    }
+    return mapDistanceService.estimate(
+        location.latitude(),
+        location.longitude(),
+        row.latitude().doubleValue(),
+        row.longitude().doubleValue());
+  }
+
+  private double distanceForSort(DiscoveryRepository.StoreRow row, LocationContext location) {
+    if (location == null || row.latitude() == null || row.longitude() == null) {
+      return Double.MAX_VALUE;
+    }
+    return mapDistanceService.distanceKm(
+        location.latitude(),
+        location.longitude(),
+        row.latitude().doubleValue(),
+        row.longitude().doubleValue());
+  }
+
+  private List<DiscoveryRepository.StoreRow> sortStores(List<DiscoveryRepository.StoreRow> stores, LocationContext location) {
+    if (location == null) {
+      return stores;
+    }
+    return stores.stream()
+        .sorted(Comparator
+            .comparingDouble((DiscoveryRepository.StoreRow row) -> distanceForSort(row, location))
+            .thenComparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(DiscoveryRepository.StoreRow::monthlySales, Comparator.reverseOrder())
+            .thenComparing(DiscoveryRepository.StoreRow::id))
+        .toList();
+  }
+
+  private double itemDistanceForSort(DiscoveryRepository.ItemRow row, LocationContext location) {
+    if (location == null || row.storeLatitude() == null || row.storeLongitude() == null) {
+      return Double.MAX_VALUE;
+    }
+    return mapDistanceService.distanceKm(
+        location.latitude(),
+        location.longitude(),
+        row.storeLatitude().doubleValue(),
+        row.storeLongitude().doubleValue());
+  }
+
+  private List<DiscoveryRepository.ItemRow> sortItems(List<DiscoveryRepository.ItemRow> items, LocationContext location) {
+    if (location == null) {
+      return items;
+    }
+    return items.stream()
+        .sorted(Comparator
+            .comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location))
+            .thenComparing(DiscoveryRepository.ItemRow::storeRating, Comparator.nullsLast(Comparator.reverseOrder()))
+            .thenComparing(DiscoveryRepository.ItemRow::storeMonthlySales, Comparator.reverseOrder())
+            .thenComparing(DiscoveryRepository.ItemRow::sortOrder)
+            .thenComparing(DiscoveryRepository.ItemRow::id))
+        .toList();
+  }
+
+  private LocationContext locationContext(Double latitude, Double longitude) {
+    if (latitude == null || longitude == null) {
+      return null;
+    }
+    return new LocationContext(latitude, longitude);
   }
 
   private List<String> splitTags(String tagText) {
@@ -199,4 +313,6 @@ class DiscoveryService {
       default -> "爱";
     };
   }
+
+  private record LocationContext(double latitude, double longitude) {}
 }

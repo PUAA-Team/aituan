@@ -7,6 +7,7 @@ import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
+import 'merchant_item_cards.dart';
 
 class TakeawayMerchantHeader extends StatelessWidget {
   const TakeawayMerchantHeader({super.key, required this.merchant});
@@ -40,7 +41,7 @@ class TakeawayMerchantHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${merchant.rating.toStringAsFixed(1)}分 · 月售${merchant.monthlySales} · ${merchant.distance}',
+                      '${merchant.rating.toStringAsFixed(1)}分 · 月售${merchant.monthlySales} · ${merchantDistanceText(merchant)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),

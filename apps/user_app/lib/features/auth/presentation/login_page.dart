@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_state.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/utils/validator.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../home/data/backend_app_repository.dart';
@@ -159,15 +160,12 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       setState(() => _loading = true);
       switch (_mode) {
         case AuthMode.login:
           if (!Validator.isAccount(_account.text.trim())) {
-            messenger.showSnackBar(
-              const SnackBar(content: Text('请输入 11 位手机号或正确邮箱')),
-            );
+            showAppSnackBar(context, '请输入 11 位手机号或正确邮箱');
             return;
           }
           final session = await backendRepository.login(
@@ -180,17 +178,15 @@ class _LoginPageState extends State<LoginPage> {
           return;
         case AuthMode.register:
           if (!Validator.isPhone(_account.text.trim())) {
-            messenger.showSnackBar(
-              const SnackBar(content: Text('请填写 11 位手机号')),
-            );
+            showAppSnackBar(context, '请填写 11 位手机号');
             return;
           }
           if (!Validator.isEmail(_email.text.trim())) {
-            messenger.showSnackBar(const SnackBar(content: Text('请填写正确邮箱')));
+            showAppSnackBar(context, '请填写正确邮箱');
             return;
           }
           if (_code.text.trim().isEmpty) {
-            messenger.showSnackBar(const SnackBar(content: Text('请先获取邮箱验证码')));
+            showAppSnackBar(context, '请先获取邮箱验证码');
             return;
           }
           final session = await backendRepository.register(
@@ -205,11 +201,11 @@ class _LoginPageState extends State<LoginPage> {
           return;
         case AuthMode.reset:
           if (!Validator.isEmail(_email.text.trim())) {
-            messenger.showSnackBar(const SnackBar(content: Text('请填写正确邮箱')));
+            showAppSnackBar(context, '请填写正确邮箱');
             return;
           }
           if (_code.text.trim().isEmpty) {
-            messenger.showSnackBar(const SnackBar(content: Text('请先获取邮箱验证码')));
+            showAppSnackBar(context, '请先获取邮箱验证码');
             return;
           }
           await backendRepository.resetPassword(
@@ -218,22 +214,21 @@ class _LoginPageState extends State<LoginPage> {
             newPassword: _password.text,
           );
           if (!mounted) return;
-          messenger.showSnackBar(const SnackBar(content: Text('密码已更新，请重新登录')));
+          showAppSnackBar(context, '密码已更新，请重新登录');
           _setMode(AuthMode.login);
           return;
       }
     } catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+      showAppSnackBar(context, error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _sendCode() async {
-    final messenger = ScaffoldMessenger.of(context);
     if (!Validator.isEmail(_email.text.trim())) {
-      messenger.showSnackBar(const SnackBar(content: Text('请先填写正确邮箱')));
+      showAppSnackBar(context, '请先填写正确邮箱');
       return;
     }
     try {
@@ -244,10 +239,10 @@ class _LoginPageState extends State<LoginPage> {
       );
       if (!mounted) return;
       _code.text = code;
-      messenger.showSnackBar(SnackBar(content: Text('验证码已发送：$code')));
+      showAppSnackBar(context, '验证码已发送：$code');
     } catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+      showAppSnackBar(context, error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }

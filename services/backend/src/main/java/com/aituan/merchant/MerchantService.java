@@ -6,6 +6,8 @@ import com.aituan.common.file.FileAssetView;
 import com.aituan.common.file.FileStorageService;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.discovery.MapDistanceService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,10 +17,15 @@ import org.springframework.web.multipart.MultipartFile;
 class MerchantService {
   private final MerchantRepository merchantRepository;
   private final FileStorageService fileStorageService;
+  private final MapDistanceService mapDistanceService;
 
-  MerchantService(MerchantRepository merchantRepository, FileStorageService fileStorageService) {
+  MerchantService(
+      MerchantRepository merchantRepository,
+      FileStorageService fileStorageService,
+      MapDistanceService mapDistanceService) {
     this.merchantRepository = merchantRepository;
     this.fileStorageService = fileStorageService;
+    this.mapDistanceService = mapDistanceService;
   }
 
   @Transactional
@@ -65,7 +72,8 @@ class MerchantService {
     MerchantRepository.StoreRow store = merchantRepository.listStores(merchant.id()).stream()
         .findFirst()
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    merchantRepository.updateStore(store.id(), request);
+    StoreLocation location = resolveLocation(request, store);
+    merchantRepository.updateStore(store.id(), request, location.longitude(), location.latitude());
     return merchantRepository.findStore(merchant.id(), store.id())
         .map(this::toStoreView)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -138,6 +146,28 @@ class MerchantService {
     return value == null || value.isBlank() ? fallback : value.trim();
   }
 
+  private StoreLocation resolveLocation(MerchantStoreUpdateRequest request, MerchantRepository.StoreRow store) {
+    if (request.longitude() != null || request.latitude() != null) {
+      validateLocation(request.longitude(), request.latitude());
+      return new StoreLocation(request.longitude(), request.latitude());
+    }
+    MapDistanceService.GeocodeResult geocoded = mapDistanceService.geocode(request.address());
+    if (geocoded != null) {
+      return new StoreLocation(geocoded.longitude(), geocoded.latitude());
+    }
+    return new StoreLocation(store.longitude(), store.latitude());
+  }
+
+  private void validateLocation(BigDecimal longitude, BigDecimal latitude) {
+    if (longitude == null || latitude == null) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "经纬度需要同时填写");
+    }
+    if (longitude.compareTo(BigDecimal.valueOf(-180)) < 0 || longitude.compareTo(BigDecimal.valueOf(180)) > 0
+        || latitude.compareTo(BigDecimal.valueOf(-90)) < 0 || latitude.compareTo(BigDecimal.valueOf(90)) > 0) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "经纬度范围不正确");
+    }
+  }
+
   private MerchantApplicationView toApplicationView(MerchantRepository.ApplicationRow row) {
     return new MerchantApplicationView(
         row.id(),
@@ -169,6 +199,8 @@ class MerchantService {
         row.auditedAt());
   }
 
+  private record StoreLocation(BigDecimal longitude, BigDecimal latitude) {}
+
   private MerchantStoreView toStoreView(MerchantRepository.StoreRow row) {
     return new MerchantStoreView(
         row.id(),
@@ -186,6 +218,8 @@ class MerchantService {
         row.coverUrl(),
         row.contactPhone(),
         row.announcement(),
+        row.longitude(),
+        row.latitude(),
         row.updatedAt());
   }
 }

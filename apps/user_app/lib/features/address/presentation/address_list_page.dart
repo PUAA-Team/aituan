@@ -4,6 +4,7 @@ import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
@@ -125,9 +126,7 @@ class _AddressListPageState extends State<AddressListPage> {
       if (mounted) await _load();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('设置失败：$error')));
+      showAppSnackBar(context, '设置失败：$error');
     }
   }
 }

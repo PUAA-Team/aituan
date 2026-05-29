@@ -2,6 +2,7 @@ package com.aituan.merchant;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,7 +36,7 @@ class MerchantRepository {
     return jdbcTemplate.query(
         """
         select id, merchant_id, store_name, business_type, summary, address, rating, monthly_sales, avg_price,
-               status, business_hours_text, tag_text, cover_url, contact_phone, announcement, updated_at
+               status, business_hours_text, tag_text, cover_url, contact_phone, announcement, longitude, latitude, updated_at
         from merchant_store
         where merchant_id = ? and is_deleted = 0
         order by case when business_type = 'takeaway' then 0 else 1 end, id
@@ -48,7 +49,7 @@ class MerchantRepository {
     List<StoreRow> rows = jdbcTemplate.query(
         """
         select id, merchant_id, store_name, business_type, summary, address, rating, monthly_sales, avg_price,
-               status, business_hours_text, tag_text, cover_url, contact_phone, announcement, updated_at
+               status, business_hours_text, tag_text, cover_url, contact_phone, announcement, longitude, latitude, updated_at
         from merchant_store
         where merchant_id = ? and id = ? and is_deleted = 0
         limit 1
@@ -140,11 +141,11 @@ class MerchantRepository {
         merchantId);
   }
 
-  void updateStore(long storeId, MerchantStoreUpdateRequest request) {
+  void updateStore(long storeId, MerchantStoreUpdateRequest request, BigDecimal longitude, BigDecimal latitude) {
     jdbcTemplate.update(
         """
         update merchant_store
-        set store_name = ?, summary = ?, address = ?, business_hours_text = ?, tag_text = ?, contact_phone = ?, announcement = ?, status = ?, updated_at = current_timestamp
+        set store_name = ?, summary = ?, address = ?, business_hours_text = ?, tag_text = ?, contact_phone = ?, announcement = ?, status = ?, longitude = ?, latitude = ?, updated_at = current_timestamp
         where id = ? and is_deleted = 0
         """,
         request.storeName().trim(),
@@ -155,6 +156,8 @@ class MerchantRepository {
         clean(request.contactPhone()),
         clean(request.announcement()),
         normalizeStatus(request.status()),
+        longitude,
+        latitude,
         storeId);
   }
 
@@ -197,6 +200,8 @@ class MerchantRepository {
         rs.getString("cover_url"),
         rs.getString("contact_phone"),
         rs.getString("announcement"),
+        rs.getBigDecimal("longitude"),
+        rs.getBigDecimal("latitude"),
         updatedAt == null ? null : updatedAt.toLocalDateTime());
   }
 
@@ -249,7 +254,7 @@ class MerchantRepository {
 
   record MerchantRow(Long id, Long accountId, String merchantName, String contactName, String contactPhone, String licenseNo, String status, String auditStatus, LocalDateTime settledAt) {}
 
-  record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, java.math.BigDecimal rating, int monthlySales, java.math.BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl, String contactPhone, String announcement, LocalDateTime updatedAt) {}
+  record StoreRow(Long id, Long merchantId, String storeName, String businessType, String summary, String address, BigDecimal rating, int monthlySales, BigDecimal avgPrice, String status, String businessHoursText, String tagText, String coverUrl, String contactPhone, String announcement, BigDecimal longitude, BigDecimal latitude, LocalDateTime updatedAt) {}
 
   record ApplicationRow(Long id, String applicationNo, Long accountId, String merchantName, String contactName, String contactPhone, String businessType, String storeName, String address, String status, String auditRemark, LocalDateTime submittedAt, LocalDateTime auditedAt) {}
 
