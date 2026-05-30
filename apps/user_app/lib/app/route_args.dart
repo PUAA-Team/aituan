@@ -89,3 +89,15 @@ class AddressEditArgs {
 
   final AddressData? address;
 }
+
+class VoucherDetailArgs {
+  const VoucherDetailArgs({required this.orderId});
+
+  final String orderId;
+}
+
+class BookingDetailArgs {
+  const BookingDetailArgs({required this.orderId});
+
+  final String orderId;
+}

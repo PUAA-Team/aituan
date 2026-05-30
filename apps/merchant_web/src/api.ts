@@ -1,5 +1,6 @@
 import type {
   AuthSession,
+  BookingView,
   CatalogCategory,
   CatalogItem,
   CatalogItemForm,
@@ -10,11 +11,14 @@ import type {
   MerchantCertification,
   MerchantProfile,
   MerchantStore,
+  OpsBooking,
   OpsOrder,
+  OpsVoucher,
   OrderDetail,
   OrderStatusCount,
   PageResponse,
   TakeawaySetting,
+  VoucherLookup,
 } from './types';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -146,6 +150,37 @@ export function redeemVoucher(voucherCode: string) {
   return request<OrderDetail>(`/api/merchant/trade/vouchers/${encodeURIComponent(voucherCode)}/redeem`, {
     method: 'POST',
     body: {},
+  });
+}
+
+export function lookupVoucher(voucherCode: string) {
+  return request<VoucherLookup>(`/api/merchant/trade/vouchers/${encodeURIComponent(voucherCode)}`);
+}
+
+export function fetchVouchers(params: { status?: string; keyword?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.keyword) query.set('keyword', params.keyword);
+  return request<PageResponse<OpsVoucher>>(`/api/merchant/trade/vouchers?${query}`);
+}
+
+export function fetchBookings(params: { status?: string; businessType?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.businessType) query.set('businessType', params.businessType);
+  return request<PageResponse<OpsBooking>>(`/api/merchant/trade/bookings?${query}`);
+}
+
+export function confirmBooking(orderId: number, remark = '') {
+  return request<BookingView>(`/api/merchant/trade/orders/${orderId}/booking/confirm`, {
+    method: 'POST',
+    body: remark ? { remark } : {},
   });
 }
 

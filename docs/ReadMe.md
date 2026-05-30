@@ -74,6 +74,8 @@
 
 `./docs/stage5/Stage5-C闭环改进交付说明.md`
 
+`./docs/stage5/Stage5-D非外卖差异化与券码预约交付说明.md`
+
 ### 6. 后续计划与长期待办
 
 `./docs/后续阶段五人模块分工计划.md`

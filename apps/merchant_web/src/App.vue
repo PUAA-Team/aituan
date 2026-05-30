@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue';
 import { clearToken, fetchCurrentStore, fetchMerchantProfile, getToken, login } from './api';
 import ConsoleFrame from './components/ConsoleFrame.vue';
+import BookingPage from './pages/BookingPage.vue';
 import CatalogPage from './pages/CatalogPage.vue';
 import FulfillmentPage from './pages/FulfillmentPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import OrderPage from './pages/OrderPage.vue';
 import StorePage from './pages/StorePage.vue';
+import VoucherPage from './pages/VoucherPage.vue';
 import type { ConsolePage, MerchantProfile, MerchantStore } from './types';
 
 const token = ref(getToken());
@@ -24,6 +26,8 @@ const pageTitle = computed(() => {
     orders: '订单中心',
     catalog: isTakeaway.value ? '商品管理' : '服务与套餐',
     fulfillment: '履约设置',
+    vouchers: '券码核销',
+    bookings: '预约确认',
     store: '门店资料',
   };
   return map[activePage.value];
@@ -100,6 +104,8 @@ function setNotice(message: string) {
     <OrderPage v-if="activePage === 'orders'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <CatalogPage v-else-if="activePage === 'catalog'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <FulfillmentPage v-else-if="activePage === 'fulfillment'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
+    <VoucherPage v-else-if="activePage === 'vouchers'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
+    <BookingPage v-else-if="activePage === 'bookings'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <StorePage v-else :profile="profile" :store="store" @notice="setNotice" @changed="loadShell" />
   </ConsoleFrame>
 

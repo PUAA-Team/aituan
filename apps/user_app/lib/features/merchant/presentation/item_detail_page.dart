@@ -11,6 +11,7 @@ import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/business_attributes.dart';
 import '../../../shared/models/item_model.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'merchant_item_cards.dart';
@@ -74,6 +75,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               ),
               const SizedBox(height: 10),
               _InfoCard(item: item, categories: detail.categories),
+              if (!item.type.isTakeaway) _ServiceDetailCard(item: item),
               _MerchantCard(detail: detail),
               const SectionHeader(title: '同店推荐', action: '更多选择'),
               if (related.isEmpty)
@@ -306,4 +308,88 @@ class _ErrorCard extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _ServiceDetailCard extends StatelessWidget {
+  const _ServiceDetailCard({required this.item});
+
+  final ItemModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    final parsed = BusinessAttributes.parse(item.businessAttributes);
+    final pairs = parsed.isEmpty ? fallbackAttributes(item.type) : parsed.pairs;
+    final title = businessAttributesSectionTitle(item.type);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              for (final pair in pairs)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 84,
+                        child: Text(
+                          pair.key,
+                          style: const TextStyle(color: AppColors.textSub),
+                        ),
+                      ),
+                      Expanded(child: Text(pair.value)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (item.usageRules.isNotEmpty)
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('使用规则', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 6),
+                Text(item.usageRules),
+                if (item.validityDays > 0) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '券码自购买起 ${item.validityDays} 天内有效',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        if (item.refundPolicy.isNotEmpty)
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('退改规则', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 6),
+                Text(item.refundPolicy),
+              ],
+            ),
+          ),
+        if (item.notice.isNotEmpty)
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('注意事项', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 6),
+                Text(item.notice),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 }

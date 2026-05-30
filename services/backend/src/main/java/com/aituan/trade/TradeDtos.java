@@ -152,6 +152,72 @@ record DeliveryTimelineView(String orderNo, String currentStage, List<TimelineNo
 
 record VoucherView(String voucherCode, String qrPayload, String status, LocalDateTime effectiveFrom, LocalDateTime effectiveTo) {}
 
+record BookingRequest(
+    String contactName,
+    String contactPhone,
+    String bookingDate,
+    String bookingTimeSlot,
+    @Min(1) Integer guestCount,
+    String remark) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record BookingView(
+    Long orderId,
+    String orderNo,
+    String storeName,
+    String businessType,
+    String contactName,
+    String contactPhone,
+    String bookingDate,
+    String bookingTimeSlot,
+    Integer guestCount,
+    String storeConfirmStatus,
+    String storeConfirmRemark,
+    LocalDateTime confirmedAt,
+    LocalDateTime createdAt) {}
+
+record BookingConfirmRequest(String remark) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record OpsBookingView(
+    BookingView booking,
+    String orderTitle,
+    String displayStatus,
+    String paymentStatus,
+    java.math.BigDecimal payableAmount) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record OpsVoucherView(
+    String voucherCode,
+    String qrPayload,
+    String status,
+    LocalDateTime effectiveFrom,
+    LocalDateTime effectiveTo,
+    LocalDateTime verifiedAt,
+    Long verifiedBy,
+    Long orderId,
+    String orderNo,
+    String orderTitle,
+    String storeName,
+    String businessType,
+    java.math.BigDecimal payableAmount,
+    String displayStatus,
+    LocalDateTime orderCreatedAt) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record VoucherLookupView(
+    String voucherCode,
+    String qrPayload,
+    String status,
+    LocalDateTime effectiveFrom,
+    LocalDateTime effectiveTo,
+    String orderNo,
+    String orderTitle,
+    String storeName,
+    String businessType,
+    java.math.BigDecimal payableAmount,
+    String usageRulesSnapshot) {}
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record OrderDetailView(
     Long id,
@@ -175,4 +241,5 @@ record OrderDetailView(
     LocalDateTime completedAt,
     List<OrderItemView> items,
     DeliveryTimelineView deliveryTimeline,
-    VoucherView voucher) {}
+    VoucherView voucher,
+    BookingView booking) {}

@@ -165,7 +165,12 @@ class DiscoveryService {
         row.skuStatus(),
         row.stock() <= 0 || !"on_sale".equals(row.skuStatus()),
         row.storeId(),
-        row.storeName());
+        row.storeName(),
+        row.businessAttributes(),
+        row.usageRules(),
+        row.refundPolicy(),
+        row.notice(),
+        row.validityDays());
   }
 
   private List<String> splitTags(String tagText) {

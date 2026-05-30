@@ -1052,6 +1052,25 @@ class TradeRepository {
 
   record DeliveryTaskRow(Long id, Long orderId, String currentStage, String currentStageText, int etaMinutes, LocalDateTime nextTickAt, LocalDateTime completedAt) {}
 
+  record BookingRow(
+      Long id,
+      Long orderId,
+      String businessType,
+      String contactName,
+      String contactPhone,
+      String bookingDate,
+      String bookingTimeSlot,
+      int guestCount,
+      String storeConfirmStatus,
+      String storeConfirmRemark,
+      LocalDateTime confirmedAt,
+      Long confirmedBy,
+      LocalDateTime createdAt) {}
+
+  record OpsVoucherRow(VoucherRow voucher, OrderRow order, String storeBusinessType) {}
+
+  record OpsBookingRow(BookingRow booking, OrderRow order, String storeBusinessType) {}
+
   record TimelineRow(String code, String text, LocalDateTime reachedAt) {}
 
   record SkuRow(Long id, Long itemId, String skuName, BigDecimal price, int stock, String status) {}
@@ -1059,4 +1078,261 @@ class TradeRepository {
   record CartItemRow(Long itemId, String itemName, String subtitle, String categoryName, BigDecimal unitPrice, int stock, String status, int quantity) {}
 
   record DeliveryRuleRow(BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {}
+
+  // ---------- Stage5-D：预约记录、券码运营查询 ----------
+
+  void upsertBooking(long orderId, String businessType, String contactName, String contactPhone, String bookingDate, String bookingTimeSlot, int guestCount, String remark) {
+    jdbcTemplate.update(
+        """
+        insert into order_booking_record(order_id, business_type, contact_name, contact_phone, booking_date, booking_time_slot, guest_count, store_confirm_status, store_confirm_remark)
+        values (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        on duplicate key update
+          contact_name = values(contact_name),
+          contact_phone = values(contact_phone),
+          booking_date = values(booking_date),
+          booking_time_slot = values(booking_time_slot),
+          guest_count = values(guest_count),
+          store_confirm_remark = values(store_confirm_remark),
+          updated_at = current_timestamp
+        """,
+        orderId,
+        businessType,
+        contactName,
+        contactPhone,
+        bookingDate == null || bookingDate.isBlank() ? null : bookingDate,
+        bookingTimeSlot,
+        guestCount,
+        remark);
+  }
+
+  Optional<BookingRow> findBookingByOrder(long orderId) {
+    List<BookingRow> rows = jdbcTemplate.query(
+        """
+        select id, order_id, business_type, contact_name, contact_phone, booking_date, booking_time_slot,
+               guest_count, store_confirm_status, store_confirm_remark, confirmed_at, confirmed_by, created_at
+        from order_booking_record
+        where order_id = ? and is_deleted = 0
+        limit 1
+        """,
+        this::mapBooking,
+        orderId);
+    return rows.stream().findFirst();
+  }
+
+  int confirmBooking(long orderId, String remark, long operatorId) {
+    return jdbcTemplate.update(
+        """
+        update order_booking_record
+        set store_confirm_status = 'confirmed',
+            store_confirm_remark = coalesce(?, store_confirm_remark),
+            confirmed_at = current_timestamp,
+            confirmed_by = ?,
+            updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0 and store_confirm_status <> 'confirmed'
+        """,
+        remark,
+        operatorId,
+        orderId);
+  }
+
+  List<OpsBookingRow> listOpsBookings(Long merchantAccountId, String status, String businessType, int offset, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select b.id, b.order_id, b.business_type, b.contact_name, b.contact_phone,
+               b.booking_date, b.booking_time_slot, b.guest_count, b.store_confirm_status,
+               b.store_confirm_remark, b.confirmed_at, b.confirmed_by, b.created_at,
+               o.order_no, o.user_id, o.store_id, o.store_name, o.order_type, o.title,
+               o.display_status, o.payment_status, o.fulfillment_status, o.payment_method,
+               o.amount, o.delivery_fee, o.discount_amount, o.payable_amount,
+               o.address_snapshot, o.voucher_summary, o.remark, o.paid_at, o.completed_at,
+               o.created_at as order_created_at, o.updated_at,
+               s.business_type as store_business_type
+        from order_booking_record b
+        join order_main o on o.id = b.order_id
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        where b.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    if (merchantAccountId != null) {
+      sql.append(" and m.account_id = ?");
+      params.add(merchantAccountId);
+    }
+    if (status != null && !status.isBlank()) {
+      sql.append(" and b.store_confirm_status = ?");
+      params.add(status);
+    }
+    if (businessType != null && !businessType.isBlank()) {
+      sql.append(" and b.business_type = ?");
+      params.add(businessType);
+    }
+    sql.append(" order by b.created_at desc, b.id desc limit ? offset ?");
+    params.add(limit);
+    params.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapOpsBooking, params.toArray());
+  }
+
+  long countOpsBookings(Long merchantAccountId, String status, String businessType) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from order_booking_record b
+        join order_main o on o.id = b.order_id
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        where b.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    if (merchantAccountId != null) {
+      sql.append(" and m.account_id = ?");
+      params.add(merchantAccountId);
+    }
+    if (status != null && !status.isBlank()) {
+      sql.append(" and b.store_confirm_status = ?");
+      params.add(status);
+    }
+    if (businessType != null && !businessType.isBlank()) {
+      sql.append(" and b.business_type = ?");
+      params.add(businessType);
+    }
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+    return count == null ? 0 : count;
+  }
+
+  List<OpsVoucherRow> listOpsVouchers(Long merchantAccountId, String status, String keyword, int offset, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select v.id, v.order_id, v.voucher_code, v.qr_payload, v.status,
+               v.effective_from, v.effective_to, v.verified_at, v.verified_by,
+               o.order_no, o.user_id, o.store_id, o.store_name, o.order_type, o.title,
+               o.display_status, o.payment_status, o.fulfillment_status, o.payment_method,
+               o.amount, o.delivery_fee, o.discount_amount, o.payable_amount,
+               o.address_snapshot, o.voucher_summary, o.remark, o.paid_at, o.completed_at,
+               o.created_at as order_created_at, o.updated_at,
+               s.business_type as store_business_type
+        from order_voucher v
+        join order_main o on o.id = v.order_id
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        where v.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    if (merchantAccountId != null) {
+      sql.append(" and m.account_id = ?");
+      params.add(merchantAccountId);
+    }
+    if (status != null && !status.isBlank()) {
+      sql.append(" and v.status = ?");
+      params.add(status);
+    }
+    if (keyword != null && !keyword.isBlank()) {
+      String like = "%" + keyword.trim() + "%";
+      sql.append(" and (v.voucher_code like ? or o.order_no like ? or o.title like ?)");
+      params.add(like);
+      params.add(like);
+      params.add(like);
+    }
+    sql.append(" order by v.id desc limit ? offset ?");
+    params.add(limit);
+    params.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapOpsVoucher, params.toArray());
+  }
+
+  long countOpsVouchers(Long merchantAccountId, String status, String keyword) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from order_voucher v
+        join order_main o on o.id = v.order_id
+        join merchant_store s on s.id = o.store_id
+        left join merchant_profile m on m.id = s.merchant_id
+        where v.is_deleted = 0
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    if (merchantAccountId != null) {
+      sql.append(" and m.account_id = ?");
+      params.add(merchantAccountId);
+    }
+    if (status != null && !status.isBlank()) {
+      sql.append(" and v.status = ?");
+      params.add(status);
+    }
+    if (keyword != null && !keyword.isBlank()) {
+      String like = "%" + keyword.trim() + "%";
+      sql.append(" and (v.voucher_code like ? or o.order_no like ? or o.title like ?)");
+      params.add(like);
+      params.add(like);
+      params.add(like);
+    }
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+    return count == null ? 0 : count;
+  }
+
+  Optional<String> findItemUsageRules(long itemId) {
+    List<String> rows = jdbcTemplate.queryForList(
+        "select usage_rules from catalog_item where id = ? and is_deleted = 0 limit 1",
+        String.class,
+        itemId);
+    return rows.stream().findFirst();
+  }
+
+  private BookingRow mapBooking(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp confirmedAt = rs.getTimestamp("confirmed_at");
+    long confirmedBy = rs.getLong("confirmed_by");
+    Timestamp createdAt = rs.getTimestamp("created_at");
+    return new BookingRow(
+        rs.getLong("id"),
+        rs.getLong("order_id"),
+        rs.getString("business_type"),
+        rs.getString("contact_name"),
+        rs.getString("contact_phone"),
+        rs.getDate("booking_date") == null ? null : rs.getDate("booking_date").toString(),
+        rs.getString("booking_time_slot"),
+        rs.getInt("guest_count"),
+        rs.getString("store_confirm_status"),
+        rs.getString("store_confirm_remark"),
+        confirmedAt == null ? null : confirmedAt.toLocalDateTime(),
+        rs.wasNull() ? null : confirmedBy,
+        createdAt == null ? null : createdAt.toLocalDateTime());
+  }
+
+  private OpsBookingRow mapOpsBooking(ResultSet rs, int rowNum) throws SQLException {
+    BookingRow booking = mapBooking(rs, rowNum);
+    OrderRow order = mapOrderForOps(rs);
+    String storeBusinessType = rs.getString("store_business_type");
+    return new OpsBookingRow(booking, order, storeBusinessType);
+  }
+
+  private OpsVoucherRow mapOpsVoucher(ResultSet rs, int rowNum) throws SQLException {
+    VoucherRow voucher = mapVoucher(rs, rowNum);
+    OrderRow order = mapOrderForOps(rs);
+    String storeBusinessType = rs.getString("store_business_type");
+    return new OpsVoucherRow(voucher, order, storeBusinessType);
+  }
+
+  private OrderRow mapOrderForOps(ResultSet rs) throws SQLException {
+    Timestamp paidAt = rs.getTimestamp("paid_at");
+    Timestamp completedAt = rs.getTimestamp("completed_at");
+    Timestamp createdAt = rs.getTimestamp("order_created_at");
+    Timestamp updatedAt = rs.getTimestamp("updated_at");
+    return new OrderRow(
+        rs.getLong("order_id"),
+        rs.getString("order_no"),
+        rs.getLong("user_id"),
+        rs.getLong("store_id"),
+        rs.getString("store_name"),
+        rs.getString("order_type"),
+        rs.getString("title"),
+        rs.getString("display_status"),
+        rs.getString("payment_status"),
+        rs.getString("fulfillment_status"),
+        rs.getString("payment_method"),
+        rs.getBigDecimal("amount"),
+        rs.getBigDecimal("delivery_fee"),
+        rs.getBigDecimal("discount_amount"),
+        rs.getBigDecimal("payable_amount"),
+        rs.getString("address_snapshot"),
+        rs.getString("voucher_summary"),
+        rs.getString("remark"),
+        paidAt == null ? null : paidAt.toLocalDateTime(),
+        completedAt == null ? null : completedAt.toLocalDateTime(),
+        createdAt == null ? null : createdAt.toLocalDateTime(),
+        updatedAt == null ? null : updatedAt.toLocalDateTime());
+  }
 }

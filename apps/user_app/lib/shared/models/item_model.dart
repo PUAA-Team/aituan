@@ -15,6 +15,11 @@ class ItemModel {
     this.coverUrl,
     this.stock = 999,
     this.saleStatus = 'on_sale',
+    this.businessAttributes = '',
+    this.usageRules = '',
+    this.refundPolicy = '',
+    this.notice = '',
+    this.validityDays = 90,
   });
 
   final String id;
@@ -30,6 +35,12 @@ class ItemModel {
   final String? coverUrl;
   final int stock;
   final String saleStatus;
+  // Stage5-D 非外卖差异化字段（key:value;key:value 串）
+  final String businessAttributes;
+  final String usageRules;
+  final String refundPolicy;
+  final String notice;
+  final int validityDays;
 
   bool get soldOut => stock <= 0 || saleStatus != 'on_sale';
 
@@ -47,6 +58,11 @@ class ItemModel {
     coverUrl: _nullableText(json['coverUrl']),
     stock: _int(json['stock'], fallback: 999),
     saleStatus: _text(json['saleStatus'], fallback: 'on_sale'),
+    businessAttributes: _text(json['businessAttributes']),
+    usageRules: _text(json['usageRules']),
+    refundPolicy: _text(json['refundPolicy']),
+    notice: _text(json['notice']),
+    validityDays: _int(json['validityDays'], fallback: 90),
   );
 }
 

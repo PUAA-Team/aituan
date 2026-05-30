@@ -1,4 +1,4 @@
-export type ConsolePage = 'orders' | 'catalog' | 'fulfillment' | 'store';
+export type ConsolePage = 'orders' | 'catalog' | 'fulfillment' | 'vouchers' | 'bookings' | 'store';
 
 export interface AuthSession {
   token: string;
@@ -203,4 +203,61 @@ export interface DeliveryRule {
   startPrice: number;
   estimatedMinutes: number;
   deliveryText: string;
+}
+
+// Stage5-D：券码与预约
+export interface OpsVoucher {
+  voucherCode: string;
+  qrPayload: string;
+  status: 'unused' | 'used' | string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  verifiedAt?: string;
+  verifiedBy?: number;
+  orderId: number;
+  orderNo: string;
+  orderTitle: string;
+  storeName: string;
+  businessType: string;
+  payableAmount: number;
+  displayStatus: string;
+  orderCreatedAt?: string;
+}
+
+export interface VoucherLookup {
+  voucherCode: string;
+  qrPayload: string;
+  status: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  orderNo: string;
+  orderTitle: string;
+  storeName: string;
+  businessType: string;
+  payableAmount: number;
+  usageRulesSnapshot?: string;
+}
+
+export interface BookingView {
+  orderId: number;
+  orderNo: string;
+  storeName: string;
+  businessType: string;
+  contactName?: string;
+  contactPhone?: string;
+  bookingDate?: string;
+  bookingTimeSlot?: string;
+  guestCount: number;
+  storeConfirmStatus: string;
+  storeConfirmRemark?: string;
+  confirmedAt?: string;
+  createdAt?: string;
+}
+
+export interface OpsBooking {
+  booking: BookingView;
+  orderTitle: string;
+  displayStatus: string;
+  paymentStatus: string;
+  payableAmount: number;
 }

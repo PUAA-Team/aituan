@@ -20,4 +20,6 @@ class Routes {
   static const addressEdit = '/address/edit';
   static const profile = '/profile';
   static const reviewPublish = '/review/publish';
+  static const voucherDetail = '/order/voucher';
+  static const bookingDetail = '/order/booking';
 }

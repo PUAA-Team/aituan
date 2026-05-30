@@ -12,13 +12,16 @@ import type {
   AnnouncementForm,
   AuditLog,
   AuthSession,
+  BookingView,
   CatalogCategory,
   CatalogItem,
   CatalogItemForm,
   DashboardView,
   DeliverySetting,
   DeliveryTask,
+  OpsBooking,
   OpsOrder,
+  OpsVoucher,
   OrderDetail,
   OrderStatusCount,
   PageResponse,
@@ -323,6 +326,40 @@ export function fetchAuditLogs(actionType = '') {
   const query = new URLSearchParams({ page: '1', pageSize: '60' });
   if (actionType) query.set('actionType', actionType);
   return request<PageResponse<AuditLog>>(`/api/admin/audit-logs?${query}`);
+}
+
+export function fetchVouchers(params: { status?: string; keyword?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.keyword) query.set('keyword', params.keyword);
+  return request<PageResponse<OpsVoucher>>(`/api/admin/trade/vouchers?${query}`);
+}
+
+export function adminRedeemVoucher(voucherCode: string) {
+  return request<OrderDetail>(`/api/admin/trade/vouchers/${encodeURIComponent(voucherCode)}/redeem`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
+export function fetchBookings(params: { status?: string; businessType?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.businessType) query.set('businessType', params.businessType);
+  return request<PageResponse<OpsBooking>>(`/api/admin/trade/bookings?${query}`);
+}
+
+export function confirmBooking(orderId: number, remark = '') {
+  return request<BookingView>(`/api/admin/trade/orders/${orderId}/booking/confirm`, {
+    method: 'POST',
+    body: remark ? { remark } : {},
+  });
 }
 
 async function request<T>(path: string, options: RequestOptions = {}) {

@@ -21,6 +21,8 @@ const navItems: Array<{ key: AdminPage; label: string; desc: string }> = [
   { key: 'users', label: '用户管理', desc: '账号状态与用户画像' },
   { key: 'catalog', label: '商品治理', desc: '商品查询与上下架' },
   { key: 'delivery', label: '配送任务', desc: '自动推进与异常处理' },
+  { key: 'vouchers', label: '券码治理', desc: '券码查询与平台核销' },
+  { key: 'bookings', label: '预约治理', desc: '预约确认与到店时间' },
   { key: 'announcements', label: '公告运营', desc: '客户端公告发布' },
   { key: 'settings', label: '设置审计', desc: '平台配置与操作日志' },
 ];
