@@ -103,4 +103,14 @@ class TradeController {
   ApiResponse<DeliveryTimelineView> deliveryTimeline(@PathVariable long orderId) {
     return ApiResponse.ok(tradeService.deliveryTimeline(orderId));
   }
+
+  @GetMapping("/orders/{orderId}/booking")
+  ApiResponse<BookingView> getBooking(@PathVariable long orderId) {
+    return ApiResponse.ok(tradeService.getBookingForUser(orderId));
+  }
+
+  @PostMapping("/orders/{orderId}/booking")
+  ApiResponse<BookingView> upsertBooking(@PathVariable long orderId, @Valid @RequestBody BookingRequest request) {
+    return ApiResponse.ok(tradeService.upsertBooking(orderId, request));
+  }
 }

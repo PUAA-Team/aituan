@@ -4,6 +4,7 @@ import { clearToken, getToken, login } from './api';
 import AdminFrame from './components/AdminFrame.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import AuditLogsPage from './pages/AuditLogsPage.vue';
+import BookingsPage from './pages/BookingsPage.vue';
 import CatalogPage from './pages/CatalogPage.vue';
 import ComplaintsPage from './pages/ComplaintsPage.vue';
 import DashboardPage from './pages/DashboardPage.vue';
@@ -14,6 +15,7 @@ import OrdersPage from './pages/OrdersPage.vue';
 import ReviewsPage from './pages/ReviewsPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
 import UsersPage from './pages/UsersPage.vue';
+import VouchersPage from './pages/VouchersPage.vue';
 import type { AdminPage } from './types';
 
 const token = ref(getToken());
@@ -31,6 +33,8 @@ const pageTitle = computed(() => {
     users: '用户管理',
     catalog: '商品治理',
     delivery: '配送任务',
+    vouchers: '券码治理',
+    bookings: '预约治理',
     announcements: '公告运营',
     reviews: '评价审核',
     complaints: '投诉工单',
@@ -92,6 +96,8 @@ function setNotice(message: string) {
     <UsersPage v-else-if="activePage === 'users'" :refresh-key="refreshKey" @notice="setNotice" />
     <CatalogPage v-else-if="activePage === 'catalog'" :refresh-key="refreshKey" @notice="setNotice" />
     <DeliveryPage v-else-if="activePage === 'delivery'" :refresh-key="refreshKey" @notice="setNotice" />
+    <VouchersPage v-else-if="activePage === 'vouchers'" :refresh-key="refreshKey" @notice="setNotice" />
+    <BookingsPage v-else-if="activePage === 'bookings'" :refresh-key="refreshKey" @notice="setNotice" />
     <AnnouncementsPage v-else-if="activePage === 'announcements'" :refresh-key="refreshKey" @notice="setNotice" />
     <ReviewsPage v-else-if="activePage === 'reviews'" :refresh-key="refreshKey" @notice="setNotice" />
     <ComplaintsPage v-else-if="activePage === 'complaints'" :refresh-key="refreshKey" @notice="setNotice" />

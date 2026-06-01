@@ -32,8 +32,12 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
-               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from member_recommend_config r
         join catalog_item i on i.id = r.item_id and i.is_deleted = 0 and i.status = 'on_sale'
         join catalog_category c on c.id = i.category_id
@@ -81,8 +85,12 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
-               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
@@ -121,8 +129,12 @@ class DiscoveryRepository {
     List<ItemRow> rows = jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
-               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
@@ -158,8 +170,12 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
-               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
@@ -183,8 +199,12 @@ class DiscoveryRepository {
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
-               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name, s.longitude as store_longitude, s.latitude as store_latitude, s.rating as store_rating, s.monthly_sales as store_monthly_sales, i.sort_order,
-               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
         join catalog_category c on c.id = i.category_id
         join merchant_store s on s.id = i.store_id
@@ -346,7 +366,12 @@ class DiscoveryRepository {
         rs.getInt("store_monthly_sales"),
         rs.getInt("sort_order"),
         rs.getInt("stock"),
-        rs.getString("sku_status"));
+        rs.getString("sku_status"),
+        rs.getString("business_attributes"),
+        rs.getString("usage_rules"),
+        rs.getString("refund_policy"),
+        rs.getString("notice"),
+        rs.getInt("validity_days"));
   }
 
   record ModuleRow(Long id, String code, String name, String businessType, int sortOrder) {}
@@ -390,7 +415,12 @@ class DiscoveryRepository {
       int storeMonthlySales,
       int sortOrder,
       int stock,
-      String skuStatus) {}
+      String skuStatus,
+      String businessAttributes,
+      String usageRules,
+      String refundPolicy,
+      String notice,
+      int validityDays) {}
 
   record ReviewSummaryRow(BigDecimal rating, long count, List<String> highlights) {}
 

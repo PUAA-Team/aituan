@@ -477,3 +477,161 @@ INSERT INTO sys_config (id, config_key, config_value, remark) VALUES
   (2, 'delivery_tick_minutes', '3', '配送模拟推进间隔'),
   (3, 'upload_storage_type', 'local', '当前图片上传使用本地文件夹，后续可替换对象存储实现')
 ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), remark = VALUES(remark);
+
+-- Stage5-D：补齐 7 类非外卖差异化字段
+-- business_attributes 串格式：`key:value;key:value`，由用户端按业务类型解析
+UPDATE catalog_item SET
+  business_attributes = '套餐内容:招牌鱼头、东坡肉、时蔬六道;适用门店:江南小馆全部门店;有效期:购买后 90 天内;不可用日期:除夕、春节当日',
+  usage_rules = '到店出示券码，可与节假日通用，单单一码',
+  refund_policy = '未核销随时申请退款；已核销不支持退款',
+  notice = '高峰建议提前电话留位；可拼桌',
+  validity_days = 90
+WHERE id = 2001;
+
+UPDATE catalog_item SET
+  business_attributes = '套餐内容:双人精选菜品 4 道 + 例汤;适用门店:本店通用;有效期:购买后 60 天内',
+  usage_rules = '工作日通用，节假日补差 20 元',
+  refund_policy = '未核销支持原路退款',
+  notice = '节假日预约请提前 1 天电话确认',
+  validity_days = 60
+WHERE id = 2002;
+
+UPDATE catalog_item SET
+  business_attributes = '房型:大床房 30㎡;床型:1.8m 大床;入住时间:14:00 起;离店时间:次日 12:00;包含:免费早餐 1 人份',
+  usage_rules = '请提前 1 天提交预约信息，到店出示券码办理入住',
+  refund_policy = '入住前 24 小时支持取消，否则收取首晚费用',
+  notice = '法定节假日房态紧张，建议尽早预约',
+  validity_days = 180
+WHERE id = 3001;
+
+UPDATE catalog_item SET
+  business_attributes = '项目类型:沉浸剧情密室;人数:4 人;时长:60-90 分钟;包间:整场独立场地;到店须知:提前 15 分钟到店签字',
+  usage_rules = '请提前 1 天电话预约场次，到店核销',
+  refund_policy = '未核销前 2 小时支持改期',
+  notice = '幽闭恐惧症慎玩；建议穿运动鞋',
+  validity_days = 90
+WHERE id = 4001;
+
+UPDATE catalog_item SET
+  business_attributes = '影片/演出:2D/3D 普通厅通兑;影院/场馆:光影剧场全部门店;日期:购买后 30 天内任选;票档:成人;入场规则:凭券到柜台取票',
+  usage_rules = '特殊厅（IMAX、CINITY）补差 30 元',
+  refund_policy = '未取票前可申请退款',
+  notice = '工作日 22:00 后不可入场',
+  validity_days = 30
+WHERE id = 5001;
+
+UPDATE catalog_item SET
+  business_attributes = '项目流程:清洁-补水-冷膜-头部放松;服务时长:60 分钟;适用人群:一般肌肤;禁忌:严重过敏期、术后恢复期不建议;资质说明:技师持证上岗',
+  usage_rules = '请提前 1 天预约时段',
+  refund_policy = '未核销前支持退款',
+  notice = '过敏体质请提前告知；建议素颜到店',
+  validity_days = 90
+WHERE id = 6001;
+
+UPDATE catalog_item SET
+  business_attributes = '票种:成人电子票;入园日期:购买后 30 天内任选一天;开放时间:09:00-18:00;成人/儿童规则:身高 1.2m 以上按成人;入园地址:中央公园南门;退改规则:入园当日不可退',
+  usage_rules = '凭电子票二维码闸机入园',
+  refund_policy = '入园前 24 小时支持原路退款',
+  notice = '景区高峰建议错峰入园；雨天观景台关闭',
+  validity_days = 30
+WHERE id = 7001;
+
+UPDATE catalog_item SET
+  business_attributes = '项目时长:60 分钟;到店/上门:到店;预约时间:11:00-02:00 自选;技师说明:可指定;注意事项:饭后 1 小时再做;地址要求:仅本店',
+  usage_rules = '请提前 30 分钟到店登记',
+  refund_policy = '未核销前可改期一次',
+  notice = '高血压、孕期不建议；可指定男女技师',
+  validity_days = 90
+WHERE id = 8001;
+
+UPDATE catalog_item SET
+  business_attributes = '项目:肩颈放松;时长:45 分钟;适用人群:久坐人群;到店/上门:到店',
+  usage_rules = '到店出示券码即可核销',
+  refund_policy = '未核销前支持退款',
+  notice = '颈椎严重退变请先就医评估',
+  validity_days = 90
+WHERE id = 8002;
+
+UPDATE catalog_item SET
+  business_attributes = '套餐内容:精选牛五花、梅花肉、蔬菜拼盘、米饭、饮品;适用门店:琥珀烤肉全部门店;有效期:购买后 90 天内',
+  usage_rules = '周末通用，节假日不另收差价',
+  refund_policy = '未核销随时退款',
+  notice = '工作日大堂排位，节假日建议预约包间',
+  validity_days = 90
+WHERE id = 2101;
+
+UPDATE catalog_item SET
+  business_attributes = '套餐内容:多肉拼盘 + 主食 + 饮品;人数:4 人;适用门店:本店通用',
+  usage_rules = '到店出示券码核销',
+  refund_policy = '未核销支持退款',
+  notice = '4 人以上请提前 30 分钟到店',
+  validity_days = 90
+WHERE id = 2102;
+
+UPDATE catalog_item SET
+  business_attributes = '房型:影音大床房 35㎡;床型:1.8m 大床;入住时间:14:00 起;离店时间:次日 12:00;设备:百寸投影 + 杜比音响',
+  usage_rules = '入住前 1 天电话确认房态',
+  refund_policy = '入住前 24 小时支持取消',
+  notice = '影音房需提前 1 天预约，节假日不接散客',
+  validity_days = 180
+WHERE id = 3101;
+
+UPDATE catalog_item SET
+  business_attributes = '房型:商旅双床房;床型:1.5m 双床;入住时间:14:00 起;离店时间:次日 12:00;包含:双早 2 人份',
+  usage_rules = '到店出示券码办理入住',
+  refund_policy = '入住前 24 小时支持取消',
+  notice = '法定节假日不接散客',
+  validity_days = 180
+WHERE id = 3102;
+
+UPDATE catalog_item SET
+  business_attributes = '项目:电玩城游戏币 120 枚;人数:2 人推荐;时长:不限;场地说明:大厅自选机台',
+  usage_rules = '到前台核销后凭票据取币',
+  refund_policy = '未核销前支持退款',
+  notice = '电玩币使用后不退还现金',
+  validity_days = 180
+WHERE id = 4101;
+
+UPDATE catalog_item SET
+  business_attributes = '项目:VR 双人畅玩;时长:90 分钟;场地说明:VR 区域 2 号机',
+  usage_rules = '节假日 19:00 后可用',
+  refund_policy = '未核销前可改期',
+  notice = '心脏病、3D 眩晕慎玩',
+  validity_days = 60
+WHERE id = 4102;
+
+UPDATE catalog_item SET
+  business_attributes = '项目:全身舒缓 SPA;时长:90 分钟;适用人群:一般体质;预约方式:电话或门店预约',
+  usage_rules = '请提前 1 天预约时段',
+  refund_policy = '未核销前可退',
+  notice = '孕期、严重高血压不建议',
+  validity_days = 90
+WHERE id = 6101;
+
+UPDATE catalog_item SET
+  business_attributes = '项目:肩颈热敷放松;时长:45 分钟',
+  usage_rules = '到店核销',
+  refund_policy = '未核销前可退',
+  notice = '颈椎严重退变请先就医',
+  validity_days = 90
+WHERE id = 6102;
+
+-- Stage5-D：补齐七类业务的演示券码（在已支付未核销订单上）
+-- 团购、酒店、娱乐、电影、丽人、景点、按摩各至少一张
+INSERT INTO order_voucher (id, order_id, voucher_code, qr_payload, status, effective_to, verified_at, verified_by) VALUES
+  (9201, 9008, '88009008', 'AITUAN:VOUCHER:88009008', 'unused', '2026-12-31 23:59:59', NULL, NULL),
+  (9202, 9006, '88009006', 'AITUAN:VOUCHER:88009006', 'unused', '2026-12-31 23:59:59', NULL, NULL)
+ON DUPLICATE KEY UPDATE qr_payload = VALUES(qr_payload), status = VALUES(status), effective_to = VALUES(effective_to);
+
+-- Stage5-D：演示预约记录（酒店、丽人、娱乐、按摩）
+INSERT INTO order_booking_record (id, order_id, business_type, contact_name, contact_phone, booking_date, booking_time_slot, guest_count, store_confirm_status, store_confirm_remark, confirmed_at, confirmed_by) VALUES
+  (9301, 9006, 'hotel', '李同学', '13800000001', '2026-06-08', '影音大床房 / 当日 14:00 入住', 2, 'pending', NULL, NULL, NULL),
+  (9302, 9008, 'beauty', '王小姐', '13800000002', '2026-05-30', '14:00-15:30', 1, 'confirmed', '已电话沟通，到店签字', CURRENT_TIMESTAMP, 3),
+  (9303, 4, 'massage', '李同学', '13800000001', '2026-05-25', '20:00-21:00', 1, 'confirmed', '已到店核销', CURRENT_TIMESTAMP, 2)
+ON DUPLICATE KEY UPDATE
+  contact_name = VALUES(contact_name),
+  contact_phone = VALUES(contact_phone),
+  booking_date = VALUES(booking_date),
+  booking_time_slot = VALUES(booking_time_slot),
+  guest_count = VALUES(guest_count),
+  store_confirm_status = VALUES(store_confirm_status);

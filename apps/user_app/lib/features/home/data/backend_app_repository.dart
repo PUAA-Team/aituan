@@ -219,6 +219,33 @@ class BackendAppRepository {
     return OrderDetailData.fromApi(_map(json['data']));
   }
 
+  Future<BookingData?> fetchBooking(String orderId) async {
+    final json = await _get('/api/app/trade/orders/$orderId/booking');
+    final data = json['data'];
+    if (data == null) return null;
+    return BookingData.fromApi(_map(data));
+  }
+
+  Future<BookingData> upsertBooking({
+    required String orderId,
+    String? contactName,
+    String? contactPhone,
+    String? bookingDate,
+    String? bookingTimeSlot,
+    int guestCount = 1,
+    String? remark,
+  }) async {
+    final json = await _post('/api/app/trade/orders/$orderId/booking', {
+      'contactName': contactName,
+      'contactPhone': contactPhone,
+      'bookingDate': bookingDate,
+      'bookingTimeSlot': bookingTimeSlot,
+      'guestCount': guestCount,
+      'remark': remark,
+    });
+    return BookingData.fromApi(_map(json['data']));
+  }
+
   Future<List<MessageItem>> fetchMessages() async {
     final json = await _get('/api/app/message/station?page=1&pageSize=20');
     final page = _map(json['data']);
@@ -615,6 +642,7 @@ class OrderDetailData {
     required this.items,
     required this.deliveryTimeline,
     required this.voucher,
+    required this.booking,
   });
 
   final String id;
@@ -641,6 +669,7 @@ class OrderDetailData {
   final List<OrderLineItemData> items;
   final List<TimelineNodeData> deliveryTimeline;
   final VoucherData? voucher;
+  final BookingData? booking;
 
   factory OrderDetailData.fromApi(Map<String, dynamic> json) => OrderDetailData(
     id: _string(json['id']),
@@ -671,6 +700,9 @@ class OrderDetailData {
     voucher: json['voucher'] == null
         ? null
         : VoucherData.fromApi(_map(json['voucher'])),
+    booking: json['booking'] == null
+        ? null
+        : BookingData.fromApi(_map(json['booking'])),
   );
 }
 
@@ -770,6 +802,56 @@ class VoucherData {
     status: _string(json['status']),
     effectiveFrom: _dateTime(json['effectiveFrom']),
     effectiveTo: _dateTime(json['effectiveTo']),
+  );
+}
+
+class BookingData {
+  const BookingData({
+    required this.orderId,
+    required this.orderNo,
+    required this.storeName,
+    required this.businessType,
+    required this.contactName,
+    required this.contactPhone,
+    required this.bookingDate,
+    required this.bookingTimeSlot,
+    required this.guestCount,
+    required this.storeConfirmStatus,
+    required this.storeConfirmRemark,
+    required this.confirmedAt,
+    required this.createdAt,
+  });
+
+  final String orderId;
+  final String orderNo;
+  final String storeName;
+  final String businessType;
+  final String? contactName;
+  final String? contactPhone;
+  final String? bookingDate;
+  final String? bookingTimeSlot;
+  final int guestCount;
+  final String storeConfirmStatus;
+  final String? storeConfirmRemark;
+  final DateTime? confirmedAt;
+  final DateTime? createdAt;
+
+  bool get isConfirmed => storeConfirmStatus.toLowerCase() == 'confirmed';
+
+  factory BookingData.fromApi(Map<String, dynamic> json) => BookingData(
+    orderId: _string(json['orderId']),
+    orderNo: _string(json['orderNo']),
+    storeName: _string(json['storeName']),
+    businessType: _string(json['businessType']),
+    contactName: _nullableString(json['contactName']),
+    contactPhone: _nullableString(json['contactPhone']),
+    bookingDate: _nullableString(json['bookingDate']),
+    bookingTimeSlot: _nullableString(json['bookingTimeSlot']),
+    guestCount: _int(json['guestCount']) <= 0 ? 1 : _int(json['guestCount']),
+    storeConfirmStatus: _string(json['storeConfirmStatus'], fallback: 'pending'),
+    storeConfirmRemark: _nullableString(json['storeConfirmRemark']),
+    confirmedAt: _dateTime(json['confirmedAt']),
+    createdAt: _dateTime(json['createdAt']),
   );
 }
 
