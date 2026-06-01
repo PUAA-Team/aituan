@@ -80,6 +80,8 @@
 
 `./docs/stage5/app位置设置图片上传/配置与验证说明.md`
 
+`./docs/stage5/Stage5-D非外卖差异化与券码预约交付说明.md`
+
 ### 6. Stage 6 成员 E 实施文档（评价 / 客服 / 投诉 / 驾驶舱 / 审计）
 
 `./docs/stage6-memberE/README.md`

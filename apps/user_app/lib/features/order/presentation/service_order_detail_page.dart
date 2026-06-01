@@ -73,6 +73,32 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
                   voucher: detail.voucher,
                   used: detail.status == OrderStatus.used,
                 ),
+              if (detail.voucher != null && detail.status != OrderStatus.unpaid)
+                _LinkCard(
+                  icon: Icons.qr_code,
+                  title: '查看券码完整详情',
+                  subtitle: '大图二维码、券码号和使用规则',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.voucherDetail,
+                    arguments: VoucherDetailArgs(orderId: detail.id),
+                  ),
+                ),
+              if (_supportsBooking(detail) && detail.status != OrderStatus.unpaid)
+                _LinkCard(
+                  icon: Icons.event_available,
+                  title: detail.booking == null ? '提交到店预约信息' : '查看预约详情',
+                  subtitle: detail.booking == null
+                      ? '提交联系人、日期和时段'
+                      : (detail.booking!.isConfirmed
+                            ? '商家已确认 ${detail.booking!.bookingDate ?? ''} ${detail.booking!.bookingTimeSlot ?? ''}'
+                            : '等待商家确认'),
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    Routes.bookingDetail,
+                    arguments: BookingDetailArgs(orderId: detail.id),
+                  ),
+                ),
               _StoreCard(detail: detail),
               _GoodsCard(detail: detail),
               _RuleCard(detail: detail),
@@ -198,6 +224,62 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
           : '支付成功，请到店出示二维码或券码完成核销。',
     _ => '券码已由商家核销，可以发布评价。',
   };
+
+  bool _supportsBooking(OrderDetailData detail) {
+    final type = (detail.items.isNotEmpty ? detail.items.first.businessType : '')
+        .toLowerCase();
+    // 酒店、休闲娱乐、丽人医美、洗脚按摩、电影演出需要预约/选场次
+    return const {
+      'hotel',
+      'entertainment',
+      'fun',
+      'beauty',
+      'massage',
+      'movie',
+    }.contains(type);
+  }
+}
+
+class _LinkCard extends StatelessWidget {
+  const _LinkCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
+    child: Row(
+      children: [
+        Icon(icon, color: AppColors.brand),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: AppColors.textSub),
+      ],
+    ),
+  );
 }
 
 class _StoreCard extends StatelessWidget {

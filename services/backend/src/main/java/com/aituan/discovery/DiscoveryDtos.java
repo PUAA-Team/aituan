@@ -23,7 +23,13 @@ record ItemCardView(
     String saleStatus,
     Boolean soldOut,
     Long storeId,
-    String storeName) {}
+    String storeName,
+    // Stage5-D 新增：非外卖业务差异化字段
+    String businessAttributes,
+    String usageRules,
+    String refundPolicy,
+    String notice,
+    Integer validityDays) {}
 
 record StoreCardView(
     Long id,

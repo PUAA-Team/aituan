@@ -13,9 +13,11 @@ import '../features/home/presentation/module_page.dart';
 import '../features/merchant/presentation/item_detail_page.dart';
 import '../features/merchant/presentation/service_merchant_page.dart';
 import '../features/merchant/presentation/takeaway_merchant_page.dart';
+import '../features/order/presentation/booking_detail_page.dart';
 import '../features/order/presentation/delivery_tracking_page.dart';
 import '../features/order/presentation/service_order_detail_page.dart';
 import '../features/order/presentation/takeaway_order_detail_page.dart';
+import '../features/order/presentation/voucher_detail_page.dart';
 import '../features/profile/presentation/about_page.dart';
 import '../features/profile/presentation/settings_page.dart';
 import '../features/review/presentation/my_reviews_page.dart';
@@ -52,6 +54,8 @@ class AppRouter {
     Routes.supportSessions,
     Routes.supportChat,
     Routes.complaintSubmit,
+    Routes.voucherDetail,
+    Routes.bookingDetail,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -118,9 +122,19 @@ class AppRouter {
         settings,
       ),
       Routes.complaintSubmit => _page(
-        ComplaintSubmitPage(args: settings.arguments is ComplaintSubmitArgs
-            ? settings.arguments as ComplaintSubmitArgs
-            : null),
+        ComplaintSubmitPage(
+          args: settings.arguments is ComplaintSubmitArgs
+              ? settings.arguments as ComplaintSubmitArgs
+              : null,
+        ),
+        settings,
+      ),
+      Routes.voucherDetail => _page(
+        VoucherDetailPage(args: _voucherArgs(settings.arguments)),
+        settings,
+      ),
+      Routes.bookingDetail => _page(
+        BookingDetailPage(args: _bookingArgs(settings.arguments)),
         settings,
       ),
       _ => _page(const SplashPage(), settings),
@@ -192,4 +206,10 @@ class AppRouter {
 
   static ItemModel _item(Object? args) =>
       args is ItemArgs ? args.item : serviceItems.first;
+
+  static VoucherDetailArgs _voucherArgs(Object? args) =>
+      args is VoucherDetailArgs ? args : const VoucherDetailArgs(orderId: '');
+
+  static BookingDetailArgs _bookingArgs(Object? args) =>
+      args is BookingDetailArgs ? args : const BookingDetailArgs(orderId: '');
 }

@@ -123,4 +123,32 @@ class TradeOpsController {
   ApiResponse<OrderDetailView> redeemVoucher(@PathVariable String voucherCode) {
     return ApiResponse.ok(tradeService.redeemVoucher(voucherCode));
   }
+
+  @GetMapping("/vouchers/{voucherCode}")
+  ApiResponse<VoucherLookupView> lookupVoucher(@PathVariable String voucherCode) {
+    return ApiResponse.ok(tradeService.lookupVoucher(voucherCode));
+  }
+
+  @GetMapping("/vouchers")
+  ApiResponse<PageResponse<OpsVoucherView>> listVouchers(
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String keyword,
+      @RequestParam(defaultValue = "1") @Min(1) int page,
+      @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
+    return ApiResponse.ok(tradeService.listOpsVouchers(status, keyword, page, pageSize));
+  }
+
+  @GetMapping("/bookings")
+  ApiResponse<PageResponse<OpsBookingView>> listBookings(
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String businessType,
+      @RequestParam(defaultValue = "1") @Min(1) int page,
+      @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
+    return ApiResponse.ok(tradeService.listOpsBookings(status, businessType, page, pageSize));
+  }
+
+  @PostMapping("/orders/{orderId}/booking/confirm")
+  ApiResponse<BookingView> confirmBooking(@PathVariable long orderId, @RequestBody(required = false) BookingConfirmRequest request) {
+    return ApiResponse.ok(tradeService.confirmBookingForStaff(orderId, request));
+  }
 }

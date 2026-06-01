@@ -398,11 +398,15 @@ class TradeService {
     List<OrderItemView> items = tradeRepository.listOrderItems(order.id()).stream().map(this::toOrderItemView).toList();
     DeliveryTimelineView deliveryTimeline = null;
     VoucherView voucher = null;
+    BookingView booking = null;
     if ("takeaway".equals(order.orderType())) {
       deliveryTimeline = buildDeliveryTimeline(order);
     } else {
       voucher = tradeRepository.findVoucher(order.id())
           .map(row -> new VoucherView(row.voucherCode(), row.qrPayload(), row.status(), row.effectiveFrom(), row.effectiveTo()))
+          .orElse(null);
+      booking = tradeRepository.findBookingByOrder(order.id())
+          .map(row -> toBookingView(order, row))
           .orElse(null);
     }
     return new OrderDetailView(
@@ -430,7 +434,8 @@ class TradeService {
         order.completedAt(),
         items,
         deliveryTimeline,
-        voucher);
+        voucher,
+        booking);
   }
 
   private void createTakeawayDeliveryAfterPaid(TradeRepository.OrderRow order) {
@@ -913,6 +918,176 @@ class TradeService {
 
   private String arrivalText(LocalDateTime estimatedArrivalAt) {
     return estimatedArrivalAt == null ? null : estimatedArrivalAt.format(ARRIVAL_TIME_FORMATTER);
+  }
+
+  // ---------- Stage5-D：预约与券码运营 ----------
+
+  @Transactional
+  BookingView upsertBooking(long orderId, BookingRequest request) {
+    TradeRepository.OrderRow order = requireOrder(orderId);
+    if ("takeaway".equals(order.orderType())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "外卖订单不支持预约");
+    }
+    if (request == null) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "预约信息不能为空");
+    }
+    int guestCount = request.guestCount() == null || request.guestCount() < 1 ? 1 : request.guestCount();
+    tradeRepository.upsertBooking(
+        orderId,
+        order.orderType(),
+        nullIfBlank(request.contactName()),
+        nullIfBlank(request.contactPhone()),
+        nullIfBlank(request.bookingDate()),
+        nullIfBlank(request.bookingTimeSlot()),
+        guestCount,
+        nullIfBlank(request.remark()));
+    return tradeRepository.findBookingByOrder(orderId)
+        .map(row -> toBookingView(order, row))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  BookingView getBookingForUser(long orderId) {
+    TradeRepository.OrderRow order = requireOrder(orderId);
+    return tradeRepository.findBookingByOrder(orderId)
+        .map(row -> toBookingView(order, row))
+        .orElse(null);
+  }
+
+  @Transactional
+  BookingView confirmBookingForStaff(long orderId, BookingConfirmRequest request) {
+    TradeRepository.OrderRow order = requireOrderForStaff(orderId);
+    String remark = request == null ? null : nullIfBlank(request.remark());
+    long operatorId = CurrentUserContext.required().accountId();
+    int updated = tradeRepository.confirmBooking(orderId, remark, operatorId);
+    if (updated == 0 && tradeRepository.findBookingByOrder(orderId).isEmpty()) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    if (updated > 0) {
+      tradeRepository.insertAuditLog(
+          CurrentUserContext.required().accountType().name().toLowerCase(),
+          operatorId,
+          "booking_confirm",
+          "order",
+          orderId,
+          remark);
+    }
+    return tradeRepository.findBookingByOrder(orderId)
+        .map(row -> toBookingView(order, row))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  PageResponse<OpsBookingView> listOpsBookings(String status, String businessType, int page, int pageSize) {
+    Long merchantAccountId = merchantAccountScope(CurrentUserContext.required());
+    long total = tradeRepository.countOpsBookings(merchantAccountId, status, businessType);
+    List<OpsBookingView> list = tradeRepository
+        .listOpsBookings(merchantAccountId, status, businessType, (page - 1) * pageSize, pageSize)
+        .stream()
+        .map(this::toOpsBookingView)
+        .toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  PageResponse<OpsVoucherView> listOpsVouchers(String status, String keyword, int page, int pageSize) {
+    Long merchantAccountId = merchantAccountScope(CurrentUserContext.required());
+    long total = tradeRepository.countOpsVouchers(merchantAccountId, status, keyword);
+    List<OpsVoucherView> list = tradeRepository
+        .listOpsVouchers(merchantAccountId, status, keyword, (page - 1) * pageSize, pageSize)
+        .stream()
+        .map(this::toOpsVoucherView)
+        .toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  VoucherLookupView lookupVoucher(String voucherCode) {
+    TradeRepository.VoucherRow voucher = tradeRepository.findVoucherByCode(voucherCode)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    // 校验商家身份，确保只能查到自己门店的券码
+    TradeRepository.OrderRow order = tradeRepository.findOrderById(voucher.orderId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    requireStoreAccess(order.storeId());
+    return new VoucherLookupView(
+        voucher.voucherCode(),
+        voucher.qrPayload(),
+        voucher.status(),
+        voucher.effectiveFrom(),
+        voucher.effectiveTo(),
+        order.orderNo(),
+        order.title(),
+        order.storeName(),
+        order.orderType(),
+        order.payableAmount(),
+        firstNonBlank(order.voucherSummary(), order.remark()));
+  }
+
+  private BookingView toBookingView(TradeRepository.OrderRow order, TradeRepository.BookingRow row) {
+    return new BookingView(
+        order.id(),
+        order.orderNo(),
+        order.storeName(),
+        row.businessType(),
+        row.contactName(),
+        row.contactPhone(),
+        row.bookingDate(),
+        row.bookingTimeSlot(),
+        row.guestCount(),
+        row.storeConfirmStatus(),
+        row.storeConfirmRemark(),
+        row.confirmedAt(),
+        row.createdAt());
+  }
+
+  private OpsBookingView toOpsBookingView(TradeRepository.OpsBookingRow row) {
+    TradeRepository.OrderRow order = row.order();
+    BookingView view = toBookingView(order, row.booking());
+    return new OpsBookingView(
+        view,
+        order.title(),
+        order.displayStatus(),
+        order.paymentStatus(),
+        order.payableAmount());
+  }
+
+  private OpsVoucherView toOpsVoucherView(TradeRepository.OpsVoucherRow row) {
+    TradeRepository.VoucherRow voucher = row.voucher();
+    TradeRepository.OrderRow order = row.order();
+    return new OpsVoucherView(
+        voucher.voucherCode(),
+        voucher.qrPayload(),
+        voucher.status(),
+        voucher.effectiveFrom(),
+        voucher.effectiveTo(),
+        voucher.verifiedAt(),
+        voucher.verifiedBy(),
+        order.id(),
+        order.orderNo(),
+        order.title(),
+        order.storeName(),
+        row.storeBusinessType() != null ? row.storeBusinessType() : order.orderType(),
+        order.payableAmount(),
+        order.displayStatus(),
+        order.createdAt());
+  }
+
+  private void requireStoreAccess(long storeId) {
+    CurrentUser current = CurrentUserContext.required();
+    if (current.accountType() == AccountType.ADMIN) {
+      return;
+    }
+    if (current.accountType() == AccountType.MERCHANT && tradeRepository.isStoreOwnedByAccount(storeId, current.accountId())) {
+      return;
+    }
+    throw new BusinessException(ErrorCode.FORBIDDEN);
+  }
+
+  private String nullIfBlank(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  private String firstNonBlank(String first, String second) {
+    if (first != null && !first.isBlank()) {
+      return first;
+    }
+    return second == null || second.isBlank() ? null : second;
   }
 
   private record TradeContext(TradeRepository.StoreRow store, TradeRepository.AddressRow address, TradeRepository.DeliveryRuleRow deliveryRule, List<TradeItem> items) {}
