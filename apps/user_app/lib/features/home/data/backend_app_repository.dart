@@ -252,6 +252,18 @@ class BackendAppRepository {
     return ProfileData.fromApi(_map(json['data']));
   }
 
+  /// 通用文件上传，返回可公开访问的 URL。评价/投诉等模块复用。
+  Future<String> uploadCommonFile(String filePath, {required String bizType}) async {
+    final json = await _client.postMultipart(
+      '/api/common/files/upload',
+      fileField: 'file',
+      file: File(filePath),
+      fields: {'bizType': bizType},
+    );
+    final data = _map(json['data']);
+    return _string(data['publicUrl']);
+  }
+
   Future<List<AddressData>> fetchAddresses() async {
     final json = await _get('/api/app/account/addresses');
     return _list(

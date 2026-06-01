@@ -62,7 +62,7 @@ try {
   Invoke-Step 'pub-get' { flutter pub get }
   Invoke-Step 'analyze' { flutter analyze }
   Invoke-Step 'test' { flutter test }
-  Invoke-Step 'build-apk-debug-server' { flutter build apk --debug "--dart-define=API_BASE_URL=$Origin" }
+  Invoke-Step 'build-apk-debug-server' { flutter build apk --debug "--dart-define=API_BASE_URL=$Origin" "--dart-define=LOCATION_DEBUG_ERRORS=true" }
 } finally {
   Pop-Location
 }

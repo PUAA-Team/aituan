@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import PanelModal from '../components/PanelModal.vue';
-import { fetchAuditLogs, fetchConfigs, updateConfig } from '../api';
-import type { AdminConfig, AuditLog } from '../types';
+import { fetchConfigs, updateConfig } from '../api';
+import type { AdminConfig } from '../types';
 
 const props = defineProps<{
   refreshKey: number;
@@ -13,28 +13,14 @@ const emit = defineEmits<{
 }>();
 
 const configs = ref<AdminConfig[]>([]);
-const audits = ref<AuditLog[]>([]);
-const actionType = ref('');
 const creating = ref(false);
 const newConfig = ref({ configKey: '', configValue: '', remark: '' });
 
 watch(() => props.refreshKey, load, { immediate: true });
 
 async function load() {
-  await Promise.all([loadConfigs(), loadAudits()]);
-}
-
-async function loadConfigs() {
   try {
     configs.value = await fetchConfigs();
-  } catch (error) {
-    emit('notice', error instanceof Error ? error.message : String(error));
-  }
-}
-
-async function loadAudits() {
-  try {
-    audits.value = (await fetchAuditLogs(actionType.value)).list;
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   }
@@ -65,14 +51,10 @@ async function saveConfig(item: AdminConfig) {
     emit('notice', error instanceof Error ? error.message : String(error));
   }
 }
-
-function timeText(value: string | undefined) {
-  return value ? value.replace('T', ' ').slice(0, 16) : '-';
-}
 </script>
 
 <template>
-  <section class="page-grid two-col">
+  <section class="page-grid">
     <section class="panel-card">
       <div class="panel-toolbar">
         <h2>平台设置</h2>
@@ -89,24 +71,7 @@ function timeText(value: string | undefined) {
         </form>
         <div v-if="configs.length === 0" class="empty-card">暂无配置</div>
       </div>
-    </section>
-
-    <section class="panel-card">
-      <div class="panel-toolbar">
-        <h2>审计日志</h2>
-        <div class="toolbar-actions">
-          <input v-model="actionType" class="search-input" placeholder="动作类型" @keyup.enter="loadAudits" />
-          <button class="secondary-btn" @click="loadAudits">查询</button>
-        </div>
-      </div>
-      <div class="audit-list">
-        <div v-for="item in audits" :key="item.id" class="audit-row">
-          <strong>{{ item.actionType }}</strong>
-          <span>{{ item.actorType }} #{{ item.actorId }} → {{ item.targetType }} #{{ item.targetId }}</span>
-          <small>{{ timeText(item.createdAt) }} {{ item.detail }}</small>
-        </div>
-        <div v-if="audits.length === 0" class="empty-card">暂无审计日志</div>
-      </div>
+      <p class="hint">审计日志已独立为「审计日志」菜单，方便按操作人 / 动作类型筛选。</p>
     </section>
   </section>
 
@@ -122,3 +87,11 @@ function timeText(value: string | undefined) {
     </form>
   </PanelModal>
 </template>
+
+<style scoped>
+.hint {
+  margin-top: 12px;
+  color: #86909c;
+  font-size: 12px;
+}
+</style>
