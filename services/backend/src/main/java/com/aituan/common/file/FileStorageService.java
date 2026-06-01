@@ -46,22 +46,26 @@ public class FileStorageService {
     String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
     String filename = UUID.randomUUID() + (extension == null || extension.isBlank() ? defaultExtension(contentType) : "." + extension.toLowerCase(Locale.ROOT));
     StoredImage stored = storageClient().save(file, normalizedBizType, filename);
-    jdbcTemplate.update(
-        """
-        insert into file_asset(owner_type, owner_id, biz_type, original_name, storage_type, object_key, public_url, mime_type, size_bytes)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        current.accountType().name().toLowerCase(Locale.ROOT),
-        current.accountId(),
-        normalizedBizType,
-        file.getOriginalFilename() == null ? filename : file.getOriginalFilename(),
-        stored.storageType(),
-        stored.objectKey(),
-        stored.publicUrl(),
-        contentType,
-        file.getSize());
-    Long id = jdbcTemplate.queryForObject("select max(id) from file_asset where object_key = ?", Long.class, stored.objectKey());
-    return new FileAssetView(id, normalizedBizType, file.getOriginalFilename(), stored.publicUrl(), contentType, file.getSize(), LocalDateTime.now());
+    try {
+      jdbcTemplate.update(
+          """
+          insert into file_asset(owner_type, owner_id, biz_type, original_name, storage_type, object_key, public_url, mime_type, size_bytes)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """,
+          current.accountType().name().toLowerCase(Locale.ROOT),
+          current.accountId(),
+          normalizedBizType,
+          file.getOriginalFilename() == null ? filename : file.getOriginalFilename(),
+          stored.storageType(),
+          stored.objectKey(),
+          stored.publicUrl(),
+          contentType,
+          file.getSize());
+      Long id = jdbcTemplate.queryForObject("select max(id) from file_asset where object_key = ?", Long.class, stored.objectKey());
+      return new FileAssetView(id, normalizedBizType, file.getOriginalFilename(), stored.publicUrl(), contentType, file.getSize(), LocalDateTime.now());
+    } catch (RuntimeException ex) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "图片记录保存失败，请检查图片地址长度或数据库配置");
+    }
   }
 
   public Resource load(String objectKey) {

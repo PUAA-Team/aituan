@@ -21,9 +21,24 @@ const isTakeaway = computed(() => props.store.businessType === 'takeaway');
 
 const navItems = computed<Array<{ key: ConsolePage; label: string; desc: string }>>(() => [
   {
+    key: 'dashboard',
+    label: '驾驶舱',
+    desc: '今日订单、营业额、待办指标',
+  },
+  {
     key: 'orders',
     label: '订单中心',
     desc: isTakeaway.value ? '接单、备餐、配送推进' : '券码订单、预约记录',
+  },
+  {
+    key: 'reviews',
+    label: '评价管理',
+    desc: '查看、回复、关注被举报评价',
+  },
+  {
+    key: 'sessions',
+    label: '客服会话',
+    desc: '用户咨询、快捷回复模板',
   },
   {
     key: 'catalog',

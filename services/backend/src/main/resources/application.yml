@@ -15,6 +15,10 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
+      max-request-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
 
 springdoc:
   swagger-ui:
@@ -48,3 +52,4 @@ aituan:
     amap:
       web-api-key: ${AITUAN_MAP_AMAP_WEB_API_KEY:}
       distance-url: ${AITUAN_MAP_AMAP_DISTANCE_URL:https://restapi.amap.com/v3/distance}
+      regeo-url: ${AITUAN_MAP_AMAP_REGEO_URL:https://restapi.amap.com/v3/geocode/regeo}

@@ -6,6 +6,8 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
+import '../../location/application/location_scope.dart';
+import '../../location/application/location_service.dart';
 
 class AddressEditPage extends StatefulWidget {
   const AddressEditPage({super.key, required this.args});
@@ -25,14 +27,21 @@ class _AddressEditPageState extends State<AddressEditPage> {
   final _detailAddress = TextEditingController();
   final _tagName = TextEditingController(text: '家');
   final _deliveryNote = TextEditingController();
+  double? _longitude;
+  double? _latitude;
   bool _isDefault = false;
   bool _saving = false;
+  bool _locating = false;
+  bool _syncingLocationFields = false;
 
   AddressData? get _address => widget.args.address;
 
   @override
   void initState() {
     super.initState();
+    for (final controller in [_province, _city, _district, _detailAddress]) {
+      controller.addListener(_clearLocationOnManualEdit);
+    }
     final address = _address;
     if (address != null) {
       _contactName.text = address.contactName;
@@ -41,6 +50,8 @@ class _AddressEditPageState extends State<AddressEditPage> {
       _city.text = address.city;
       _district.text = address.district;
       _detailAddress.text = address.detailAddress;
+      _longitude = address.longitude;
+      _latitude = address.latitude;
       _tagName.text = address.tagName;
       _deliveryNote.text = address.deliveryNote;
       _isDefault = address.isDefault;
@@ -49,6 +60,9 @@ class _AddressEditPageState extends State<AddressEditPage> {
 
   @override
   void dispose() {
+    for (final controller in [_province, _city, _district, _detailAddress]) {
+      controller.removeListener(_clearLocationOnManualEdit);
+    }
     _contactName.dispose();
     _contactPhone.dispose();
     _province.dispose();
@@ -88,6 +102,29 @@ class _AddressEditPageState extends State<AddressEditPage> {
               ),
               _Field(controller: _district, label: '区县'),
               _Field(controller: _detailAddress, label: '详细地址', maxLines: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _locationHint,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _longitude == null || _latitude == null ? AppColors.textSub : AppColors.brand,
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _saving || _locating ? null : _useCurrentLocation,
+                  icon: _locating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location_outlined),
+                  label: Text(_locating ? '定位中' : '使用当前位置'),
+                ),
+              ),
               _Field(controller: _tagName, label: '标签'),
               _Field(controller: _deliveryNote, label: '配送备注', maxLines: 2),
               SwitchListTile(
@@ -114,6 +151,38 @@ class _AddressEditPageState extends State<AddressEditPage> {
       ],
     ),
   );
+
+  Future<void> _useCurrentLocation() async {
+    final location = LocationScope.of(context);
+    try {
+      setState(() => _locating = true);
+      if (!location.hasLocation || location.current?.addressText.isEmpty == true) {
+        await location.refresh();
+      }
+      final current = location.current;
+      if (current == null) {
+        throw const LocationException('未获取到当前位置');
+      }
+      setState(() {
+        _syncingLocationFields = true;
+        if (current.province.isNotEmpty) _province.text = current.province;
+        if (current.city.isNotEmpty) _city.text = current.city;
+        if (current.district.isNotEmpty) _district.text = current.district;
+        final detail = current.addressText;
+        if (detail.isNotEmpty) _detailAddress.text = detail;
+        _longitude = current.longitude;
+        _latitude = current.latitude;
+        _locating = false;
+        _syncingLocationFields = false;
+      });
+      if (!mounted) return;
+      showAppSnackBar(context, '已填入当前位置');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _locating = false);
+      showAppSnackBar(context, '定位失败：$error');
+    }
+  }
 
   Future<void> _save() async {
     final form = _formData();
@@ -168,6 +237,21 @@ class _AddressEditPageState extends State<AddressEditPage> {
     }
   }
 
+  String get _locationHint {
+    if (_longitude != null && _latitude != null) {
+      return '已保存定位坐标：${_longitude!.toStringAsFixed(6)}, ${_latitude!.toStringAsFixed(6)}';
+    }
+    return '手动输入地址保存后，服务器会自动解析配送坐标';
+  }
+
+  void _clearLocationOnManualEdit() {
+    if (_syncingLocationFields || _longitude == null || _latitude == null) return;
+    setState(() {
+      _longitude = null;
+      _latitude = null;
+    });
+  }
+
   AddressFormData? _formData() {
     final values = [
       _contactName.text,
@@ -188,6 +272,8 @@ class _AddressEditPageState extends State<AddressEditPage> {
       city: _city.text.trim(),
       district: _district.text.trim(),
       detailAddress: _detailAddress.text.trim(),
+      longitude: _longitude,
+      latitude: _latitude,
       tagName: _tagName.text.trim().isEmpty ? '家' : _tagName.text.trim(),
       isDefault: _isDefault,
       deliveryNote: _deliveryNote.text.trim(),

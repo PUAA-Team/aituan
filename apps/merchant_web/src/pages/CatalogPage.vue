@@ -128,11 +128,25 @@ async function saveItem() {
     const saved = editingId.value
       ? await updateCatalogItem(editingId.value, editing.value)
       : await createCatalogItem(editing.value);
-    const finalItem = coverFile.value ? await uploadItemCover(saved.id, coverFile.value) : saved;
-    replaceItem(finalItem);
-    editing.value = null;
-    emit('notice', editingId.value ? '商品已保存' : '商品已新增');
-    await load();
+    if (coverFile.value) {
+      try {
+        const finalItem = await uploadItemCover(saved.id, coverFile.value);
+        replaceItem(finalItem);
+        editing.value = null;
+        coverFile.value = null;
+        emit('notice', editingId.value ? '商品已保存，图片已更新' : '商品已新增，图片已上传');
+        await load();
+      } catch (uploadError) {
+        replaceItem(saved);
+        emit('notice', `商品已保存，图片上传失败：${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
+        return;
+      }
+    } else {
+      replaceItem(saved);
+      editing.value = null;
+      emit('notice', editingId.value ? '商品已保存' : '商品已新增');
+      await load();
+    }
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   } finally {
@@ -294,6 +308,7 @@ function money(value: number | undefined) {
         {{ imageLabel }}
         <input type="file" accept="image/png,image/jpeg,image/webp" @change="onFileChange" />
       </label>
+      <p class="form-hint">图片将在保存{{ itemNoun }}后上传；如果上传失败，基础信息会保留在弹窗中方便重试。</p>
       <div class="form-actions">
         <button class="secondary-btn" type="button" @click="editing = null">取消</button>
         <button class="primary-btn" :disabled="loading">保存</button>

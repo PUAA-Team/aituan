@@ -49,6 +49,7 @@ class HomeHeroHeader extends StatelessWidget {
                   borderColor: Colors.white,
                   onTap: () => Navigator.pushNamed(context, Routes.search),
                 ),
+                const _LocationDebugTip(),
               ],
             );
           },
@@ -56,6 +57,38 @@ class HomeHeroHeader extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _LocationDebugTip extends StatelessWidget {
+  const _LocationDebugTip();
+
+  @override
+  Widget build(BuildContext context) {
+    final location = LocationScope.of(context);
+    final message = location.debugNote.isNotEmpty
+        ? location.debugNote
+        : location.error?.toString() ?? '';
+    if (!location.debugErrors || message.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '开发定位诊断：\n$message\n当前使用位置：${location.label}',
+        style: const TextStyle(
+          color: AppColors.brand,
+          fontSize: 12,
+          height: 1.35,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
 }
 
 class _LocationButton extends StatelessWidget {
@@ -77,7 +110,11 @@ class _LocationButton extends StatelessWidget {
             final location = LocationScope.of(context);
             await location.refresh();
             if (!context.mounted) return;
-            showAppSnackBar(context, '已更新位置');
+            final error = location.error;
+            showAppSnackBar(
+              context,
+              error == null ? '已更新位置' : '开发提示：定位失败，当前使用默认位置：$error',
+            );
             final callback = onLocationChanged;
             if (callback != null) {
               await callback();

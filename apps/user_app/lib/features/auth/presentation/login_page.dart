@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   final _account = TextEditingController(text: '18800001111');
   final _email = TextEditingController(text: 'user@example.com');
   final _code = TextEditingController();
-  final _password = TextEditingController(text: 'aituan123');
+  final _password = TextEditingController(text: '123456');
 
   @override
   void dispose() {

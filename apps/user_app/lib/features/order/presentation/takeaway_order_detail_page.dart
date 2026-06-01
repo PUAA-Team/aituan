@@ -9,7 +9,9 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/price_text.dart';
+import '../../../features/complaint/presentation/complaint_submit_page.dart';
 import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'takeaway_fulfillment_text.dart';
 
@@ -42,7 +44,17 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   Widget build(BuildContext context) {
     final detail = _detail;
     return Scaffold(
-      appBar: AppBar(title: const Text('外卖订单详情')),
+      appBar: AppBar(
+        title: const Text('外卖订单详情'),
+        actions: [
+          if (detail != null)
+            IconButton(
+              tooltip: '投诉/反馈',
+              icon: const Icon(Icons.report_outlined),
+              onPressed: () => _openComplaint(detail),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
@@ -70,6 +82,11 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
               ),
               if (_visibleTimeline(detail).isNotEmpty)
                 _ProgressCard(nodes: _visibleTimeline(detail)),
+              _DeliveryAddressCard(
+                detail: detail,
+                canChange: _canChangeAddress(detail),
+                onChange: () => _changeAddress(detail),
+              ),
               _StoreCard(detail: detail),
               _GoodsCard(detail: detail),
               _FeeCard(detail: detail),
@@ -168,6 +185,32 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     }
   }
 
+  Future<void> _changeAddress(OrderDetailData detail) async {
+    final selected = await Navigator.pushNamed(
+      context,
+      Routes.addressList,
+      arguments: const AddressListArgs(selectMode: true),
+    );
+    if (selected is! AddressData || !mounted) return;
+    try {
+      setState(() => _acting = true);
+      final updated = await backendRepository.updateOrderDeliveryAddress(
+        orderId: detail.id,
+        addressId: selected.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _detail = updated;
+        _acting = false;
+      });
+      _showSnackBar('配送地址已更新');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('修改地址失败：$error');
+    }
+  }
+
   Future<void> _remind(OrderDetailData detail) async {
     try {
       setState(() => _acting = true);
@@ -225,6 +268,18 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     ).then((_) => _load());
   }
 
+  void _openComplaint(OrderDetailData detail) {
+    final orderId = int.tryParse(detail.id);
+    Navigator.pushNamed(
+      context,
+      Routes.complaintSubmit,
+      arguments: ComplaintSubmitArgs(
+        orderId: orderId,
+        orderTitle: detail.title,
+      ),
+    );
+  }
+
   List<TimelineNodeData> _visibleTimeline(OrderDetailData detail) => detail
       .deliveryTimeline
       .where(
@@ -244,6 +299,11 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       ),
     );
     await _load();
+  }
+
+  bool _canChangeAddress(OrderDetailData detail) {
+    if (detail.status == OrderStatus.unpaid) return true;
+    return detail.status == OrderStatus.pending && detail.fulfillmentStatus == 'merchant_pending';
   }
 
   bool _canCancel(OrderDetailData detail) {
@@ -342,6 +402,54 @@ class _ProgressCard extends StatelessWidget {
         : '${formatTimelineTime(node.reachedAt)} ';
     return '$time${node.text}';
   }
+}
+
+class _DeliveryAddressCard extends StatelessWidget {
+  const _DeliveryAddressCard({
+    required this.detail,
+    required this.canChange,
+    required this.onChange,
+  });
+
+  final OrderDetailData detail;
+  final bool canChange;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('配送地址', style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            if (canChange)
+              TextButton(onPressed: onChange, child: const Text('修改地址')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(detail.addressSnapshot ?? '暂无配送地址'),
+        if (detail.estimatedArrivalText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            '预计送达 ${detail.estimatedArrivalText}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.brand,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+        if (detail.deliveryDistanceKm != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            '配送距离 ${detail.deliveryDistanceKm!.toStringAsFixed(2)}km',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 class _StoreCard extends StatelessWidget {

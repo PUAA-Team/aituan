@@ -62,6 +62,7 @@ services:
       AITUAN_MAP_AMAP_WEB_API_KEY: "${AITUAN_MAP_AMAP_WEB_API_KEY:-}"
       AITUAN_MAP_AMAP_GEOCODE_URL: "${AITUAN_MAP_AMAP_GEOCODE_URL:-https://restapi.amap.com/v3/geocode/geo}"
       AITUAN_MAP_AMAP_DISTANCE_URL: "${AITUAN_MAP_AMAP_DISTANCE_URL:-https://restapi.amap.com/v3/distance}"
+      AITUAN_MAP_AMAP_REGEO_URL: "${AITUAN_MAP_AMAP_REGEO_URL:-https://restapi.amap.com/v3/geocode/regeo}"
       AITUAN_MAP_AMAP_ROUTE_URL: "${AITUAN_MAP_AMAP_ROUTE_URL:-https://restapi.amap.com/v5/direction/electrobike}"
       JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
       TZ: Asia/Shanghai

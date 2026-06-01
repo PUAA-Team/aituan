@@ -49,6 +49,8 @@ record PayOrderRequest(@NotBlank String paymentMode) {}
 
 record TakeawayOrderActionRequest(String remark) {}
 
+record OrderAddressUpdateRequest(@NotNull Long addressId) {}
+
 record TakeawaySettingRequest(@NotBlank String acceptMode) {}
 
 record MerchantItemUpdateRequest(
@@ -64,6 +66,7 @@ record DeliveryRuleUpdateRequest(
     @NotNull BigDecimal deliveryFee,
     @NotNull BigDecimal startPrice,
     @Min(1) Integer estimatedMinutes,
+    @NotNull BigDecimal maxDeliveryDistanceKm,
     String deliveryText) {}
 
 record TakeawaySettingView(Long storeId, String storeName, String acceptMode) {}
@@ -80,7 +83,7 @@ record MerchantItemView(
     String status,
     Integer salesCount) {}
 
-record DeliveryRuleOpsView(Long storeId, BigDecimal deliveryFee, BigDecimal startPrice, Integer estimatedMinutes, String deliveryText) {}
+record DeliveryRuleOpsView(Long storeId, BigDecimal deliveryFee, BigDecimal startPrice, Integer estimatedMinutes, BigDecimal maxDeliveryDistanceKm, String deliveryText) {}
 
 record PaymentMethodView(String code, String name, boolean enabled) {}
 
@@ -104,6 +107,13 @@ record CheckoutPreviewView(
     BigDecimal amount,
     BigDecimal payableAmount,
     BigDecimal discountAmount,
+    BigDecimal deliveryDistanceKm,
+    BigDecimal maxDeliveryDistanceKm,
+    Integer estimatedDeliveryMinutes,
+    LocalDateTime estimatedArrivalAt,
+    String estimatedArrivalText,
+    Boolean deliverable,
+    String unavailableReason,
     List<CheckoutItemView> items,
     String note) {}
 
@@ -168,6 +178,9 @@ record OrderDetailView(
     BigDecimal discountAmount,
     BigDecimal payableAmount,
     String addressSnapshot,
+    BigDecimal deliveryDistanceKm,
+    LocalDateTime estimatedArrivalAt,
+    String estimatedArrivalText,
     String voucherSummary,
     String remark,
     LocalDateTime createdAt,

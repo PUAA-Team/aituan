@@ -209,6 +209,16 @@ class BackendAppRepository {
     return OrderDetailData.fromApi(_map(json['data']));
   }
 
+  Future<OrderDetailData> updateOrderDeliveryAddress({
+    required String orderId,
+    required String addressId,
+  }) async {
+    final json = await _put('/api/app/trade/orders/$orderId/delivery-address', {
+      'addressId': int.parse(addressId),
+    });
+    return OrderDetailData.fromApi(_map(json['data']));
+  }
+
   Future<List<MessageItem>> fetchMessages() async {
     final json = await _get('/api/app/message/station?page=1&pageSize=20');
     final page = _map(json['data']);
@@ -240,6 +250,18 @@ class BackendAppRepository {
       file: File(filePath),
     );
     return ProfileData.fromApi(_map(json['data']));
+  }
+
+  /// 通用文件上传，返回可公开访问的 URL。评价/投诉等模块复用。
+  Future<String> uploadCommonFile(String filePath, {required String bizType}) async {
+    final json = await _client.postMultipart(
+      '/api/common/files/upload',
+      fileField: 'file',
+      file: File(filePath),
+      fields: {'bizType': bizType},
+    );
+    final data = _map(json['data']);
+    return _string(data['publicUrl']);
   }
 
   Future<List<AddressData>> fetchAddresses() async {
@@ -486,6 +508,12 @@ class CheckoutPreviewData {
     required this.amount,
     required this.payableAmount,
     required this.discountAmount,
+    required this.deliveryDistanceKm,
+    required this.maxDeliveryDistanceKm,
+    required this.estimatedDeliveryMinutes,
+    required this.estimatedArrivalText,
+    required this.deliverable,
+    required this.unavailableReason,
     required this.items,
     required this.note,
   });
@@ -498,6 +526,12 @@ class CheckoutPreviewData {
   final double amount;
   final double payableAmount;
   final double discountAmount;
+  final double? deliveryDistanceKm;
+  final double? maxDeliveryDistanceKm;
+  final int? estimatedDeliveryMinutes;
+  final String? estimatedArrivalText;
+  final bool deliverable;
+  final String? unavailableReason;
   final List<CheckoutLineItemData> items;
   final String? note;
 
@@ -511,6 +545,12 @@ class CheckoutPreviewData {
         amount: _double(json['amount']),
         payableAmount: _double(json['payableAmount']),
         discountAmount: _double(json['discountAmount']),
+        deliveryDistanceKm: _nullableDouble(json['deliveryDistanceKm']),
+        maxDeliveryDistanceKm: _nullableDouble(json['maxDeliveryDistanceKm']),
+        estimatedDeliveryMinutes: _nullableInt(json['estimatedDeliveryMinutes']),
+        estimatedArrivalText: _nullableString(json['estimatedArrivalText']),
+        deliverable: json['deliverable'] == null ? true : _bool(json['deliverable']),
+        unavailableReason: _nullableString(json['unavailableReason']),
         items: _list(
           json['items'],
         ).map((entry) => CheckoutLineItemData.fromApi(_map(entry))).toList(),
@@ -565,6 +605,8 @@ class OrderDetailData {
     required this.discountAmount,
     required this.payableAmount,
     required this.addressSnapshot,
+    required this.deliveryDistanceKm,
+    required this.estimatedArrivalText,
     required this.voucherSummary,
     required this.remark,
     required this.createdAt,
@@ -589,6 +631,8 @@ class OrderDetailData {
   final double discountAmount;
   final double payableAmount;
   final String? addressSnapshot;
+  final double? deliveryDistanceKm;
+  final String? estimatedArrivalText;
   final String? voucherSummary;
   final String? remark;
   final DateTime? createdAt;
@@ -613,6 +657,8 @@ class OrderDetailData {
     discountAmount: _double(json['discountAmount']),
     payableAmount: _double(json['payableAmount']),
     addressSnapshot: _nullableString(json['addressSnapshot']),
+    deliveryDistanceKm: _nullableDouble(json['deliveryDistanceKm']),
+    estimatedArrivalText: _nullableString(json['estimatedArrivalText']),
     voucherSummary: _nullableString(json['voucherSummary']),
     remark: _nullableString(json['remark']),
     createdAt: _dateTime(json['createdAt']),
@@ -929,6 +975,12 @@ String? _nullableString(dynamic value) {
 
 int _int(dynamic value) =>
     value is num ? value.toInt() : int.tryParse(value?.toString() ?? '') ?? 0;
+
+int? _nullableInt(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString());
+}
 
 double _double(dynamic value) => value is num
     ? value.toDouble()

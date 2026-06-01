@@ -23,20 +23,36 @@ class InteractionController {
     this.interactionService = interactionService;
   }
 
-  @GetMapping("/reviews")
-  ApiResponse<PageResponse<ReviewView>> reviews(
+  @GetMapping("/reviews/me")
+  ApiResponse<PageResponse<ReviewView>> myReviews(
+      @RequestParam(required = false) String status,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
-    return ApiResponse.ok(interactionService.reviews(page, pageSize));
+    return ApiResponse.ok(interactionService.myReviews(status, page, pageSize));
+  }
+
+  @GetMapping("/reviews/{id}")
+  ApiResponse<ReviewView> reviewDetail(@PathVariable long id) {
+    return ApiResponse.ok(interactionService.reviewDetail(id));
   }
 
   @GetMapping("/orders/{orderId}/review")
-  ApiResponse<ReviewView> review(@PathVariable long orderId) {
-    return ApiResponse.ok(interactionService.review(orderId));
+  ApiResponse<ReviewView> reviewByOrder(@PathVariable long orderId) {
+    return ApiResponse.ok(interactionService.reviewByOrder(orderId));
   }
 
   @PostMapping("/orders/{orderId}/review")
   ApiResponse<ReviewView> submitReview(@PathVariable long orderId, @Valid @RequestBody ReviewCreateRequest request) {
     return ApiResponse.ok(interactionService.submitReview(orderId, request));
+  }
+
+  @PostMapping("/reviews/{id}/helpful")
+  ApiResponse<ReviewHelpfulView> toggleHelpful(@PathVariable long id) {
+    return ApiResponse.ok(interactionService.toggleHelpful(id));
+  }
+
+  @PostMapping("/reviews/{id}/report")
+  ApiResponse<ReviewReportView> reportReview(@PathVariable long id, @Valid @RequestBody ReviewReportRequest request) {
+    return ApiResponse.ok(interactionService.reportReview(id, request));
   }
 }

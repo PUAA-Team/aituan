@@ -80,7 +80,25 @@
 
 `./docs/stage5/app位置设置图片上传/配置与验证说明.md`
 
-### 6. 后续计划与长期待办
+### 6. Stage 6 成员 E 实施文档（评价 / 客服 / 投诉 / 驾驶舱 / 审计）
+
+`./docs/stage6-memberE/README.md`
+
+`./docs/stage6-memberE/开发计划.md`
+
+`./docs/stage6-memberE/进度追踪.md`
+
+`./docs/stage6-memberE/接口契约.md`
+
+`./docs/stage6-memberE/数据库迁移设计.md`
+
+`./docs/stage6-memberE/风险与降级.md`
+
+`./docs/stage6-memberE/交付说明.md`
+
+`./docs/stage6-memberE/E修改.md`
+
+### 7. 后续计划与长期待办
 
 `./docs/后续阶段五人模块分工计划.md`
 

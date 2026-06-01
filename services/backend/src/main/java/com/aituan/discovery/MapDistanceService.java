@@ -22,19 +22,22 @@ public class MapDistanceService {
   private final String amapKey;
   private final String amapGeocodeUrl;
   private final String amapDistanceUrl;
+  private final String amapRegeoUrl;
 
   public MapDistanceService(
       ObjectMapper objectMapper,
       @Value("${aituan.map.provider:local}") String provider,
       @Value("${aituan.map.amap.web-api-key:}") String amapKey,
       @Value("${aituan.map.amap.geocode-url:https://restapi.amap.com/v3/geocode/geo}") String amapGeocodeUrl,
-      @Value("${aituan.map.amap.distance-url:https://restapi.amap.com/v3/distance}") String amapDistanceUrl) {
+      @Value("${aituan.map.amap.distance-url:https://restapi.amap.com/v3/distance}") String amapDistanceUrl,
+      @Value("${aituan.map.amap.regeo-url:https://restapi.amap.com/v3/geocode/regeo}") String amapRegeoUrl) {
     this.restClient = RestClient.create();
     this.objectMapper = objectMapper;
     this.provider = provider == null ? "local" : provider.trim().toLowerCase();
     this.amapKey = amapKey == null ? "" : amapKey.trim();
     this.amapGeocodeUrl = amapGeocodeUrl;
     this.amapDistanceUrl = amapDistanceUrl;
+    this.amapRegeoUrl = amapRegeoUrl;
   }
 
   public GeocodeResult geocode(String address) {
@@ -67,6 +70,44 @@ public class MapDistanceService {
           BigDecimal.valueOf(Double.parseDouble(parts[1])));
     } catch (IllegalArgumentException | RestClientException | IOException ex) {
       return null;
+    }
+  }
+
+  public ReverseGeocodeResult reverseGeocode(double longitude, double latitude) {
+    ReverseGeocodeResult fallback = new ReverseGeocodeResult(longitude, latitude, "当前位置", "", "", "", "", "");
+    if (!"amap".equals(provider) || !StringUtils.hasText(amapKey)) {
+      return fallback;
+    }
+    try {
+      URI uri = URI.create(amapRegeoUrl + separator(amapRegeoUrl)
+          + "key=" + encode(amapKey)
+          + "&location=" + longitude + "," + latitude
+          + "&extensions=base&output=JSON");
+      String body = restClient.get().uri(uri).retrieve().body(String.class);
+      JsonNode root = objectMapper.readTree(body);
+      if (!"1".equals(root.path("status").asText())) {
+        return fallback;
+      }
+      JsonNode regeocode = root.path("regeocode");
+      if (regeocode.isMissingNode() || regeocode.isNull()) {
+        return fallback;
+      }
+      JsonNode address = regeocode.path("addressComponent");
+      String formatted = regeocode.path("formatted_address").asText("");
+      String province = textNode(address.path("province"));
+      String city = textNode(address.path("city"));
+      if (!StringUtils.hasText(city)) {
+        city = province;
+      }
+      String district = textNode(address.path("district"));
+      String township = textNode(address.path("township"));
+      String street = textNode(address.path("streetNumber").path("street"));
+      String number = textNode(address.path("streetNumber").path("number"));
+      String streetText = StringUtils.hasText(number) ? street + number : street;
+      String label = firstText(streetText, township, district, formatted, "当前位置");
+      return new ReverseGeocodeResult(longitude, latitude, label, formatted, province, city, district, streetText);
+    } catch (IllegalArgumentException | RestClientException | IOException ex) {
+      return fallback;
     }
   }
 
@@ -147,7 +188,33 @@ public class MapDistanceService {
     return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
 
+  private String textNode(JsonNode node) {
+    if (node == null || node.isMissingNode() || node.isNull() || node.isArray()) {
+      return "";
+    }
+    return node.asText("").trim();
+  }
+
+  private String firstText(String... values) {
+    for (String value : values) {
+      if (StringUtils.hasText(value)) {
+        return value.trim();
+      }
+    }
+    return "";
+  }
+
   public record DistanceEstimate(String distanceText, String estimatedTimeText) {}
 
   public record GeocodeResult(BigDecimal longitude, BigDecimal latitude) {}
+
+  public record ReverseGeocodeResult(
+      double longitude,
+      double latitude,
+      String label,
+      String formattedAddress,
+      String province,
+      String city,
+      String district,
+      String street) {}
 }

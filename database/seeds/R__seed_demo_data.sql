@@ -355,11 +355,96 @@ INSERT INTO delivery_track_node (id, delivery_task_id, node_order, node_code, no
   (90176, 9017, 7, 'completed', '订单已完成', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE node_text = VALUES(node_text), reached_at = VALUES(reached_at);
 
-INSERT INTO review_record (id, order_id, store_id, user_id, rating, content, labels, status, replied) VALUES
-  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'published', 0),
-  (9005, 9005, 10, 1, 5, '拌饭送到还是热的，配菜足，适合工作日晚餐。', '送达快,份量足', 'published', 0),
-  (9009, 9009, 11, 1, 5, '双人餐肉量不错，核销顺利，店员会主动确认券码。', '核销快,适合聚会', 'published', 0)
-ON DUPLICATE KEY UPDATE content = VALUES(content), rating = VALUES(rating);
+INSERT INTO review_record (id, order_id, store_id, user_id, rating, content, labels, image_urls, helpful_count, reported_count, status, replied) VALUES
+  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'https://picsum.photos/seed/aituan-review-1-a/720/540,https://picsum.photos/seed/aituan-review-1-b/720/540', 12, 0, 'published', 1),
+  (9005, 9005, 10, 1, 5, '拌饭送到还是热的，配菜足，适合工作日晚餐。', '送达快,份量足', 'https://picsum.photos/seed/aituan-review-9005-a/720/540', 8, 0, 'published', 1),
+  (9009, 9009, 11, 1, 5, '双人餐肉量不错，核销顺利，店员会主动确认券码。', '核销快,适合聚会', 'https://picsum.photos/seed/aituan-review-9009-a/720/540,https://picsum.photos/seed/aituan-review-9009-b/720/540', 17, 1, 'published', 0),
+  (9017, 9017, 1, 1, 3, '配送等待较久，希望商家加快出餐节奏。', '出餐慢', 'https://picsum.photos/seed/aituan-review-9017-a/720/540', 2, 2, 'hidden', 0)
+ON DUPLICATE KEY UPDATE content = VALUES(content), rating = VALUES(rating), image_urls = VALUES(image_urls), helpful_count = VALUES(helpful_count), reported_count = VALUES(reported_count), status = VALUES(status), replied = VALUES(replied);
+
+-- 商家回复
+INSERT INTO review_reply (id, review_id, merchant_id, reply_content) VALUES
+  (1, 1, 9, '感谢您的肯定，欢迎下次光临雅境足道！'),
+  (9005, 9005, 10, '感谢您喜欢米村拌饭，欢迎继续点单！')
+ON DUPLICATE KEY UPDATE reply_content = VALUES(reply_content), is_deleted = 0;
+
+-- 点"有用"（仅用户 1，演示按钮高亮）
+INSERT INTO review_helpful (id, review_id, user_id) VALUES
+  (1, 9005, 1),
+  (2, 9009, 1)
+ON DUPLICATE KEY UPDATE is_deleted = 0;
+
+-- 评价举报（用户 1 举报 9009 与 9017，作为后台审核演示）
+INSERT INTO review_report (id, review_id, reporter_user_id, reason, detail, status, handled_by, handled_at) VALUES
+  (1, 9009, 1, '内容不实', '与到店实际情况不符，请核实', 'submitted', NULL, NULL),
+  (2, 9017, 1, '内容不实', '反复刷差评影响商家排序', 'handled', 3, CURRENT_TIMESTAMP),
+  (3, 9017, 1, '广告引流', '评价里夹带其他门店推广链接', 'handled', 3, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE reason = VALUES(reason), detail = VALUES(detail), status = VALUES(status), handled_by = VALUES(handled_by), handled_at = VALUES(handled_at), is_deleted = 0;
+
+-- 评价审核轨迹（review 9017 被屏蔽）
+INSERT INTO review_audit_log (id, review_id, action, from_status, to_status, operator_id, remark) VALUES
+  (1, 9017, 'hide', 'published', 'hidden', 3, '违规内容已屏蔽，已通知商家'),
+  (2, 9009, 'pass', 'published', 'published', 3, '举报核实后维持发布')
+ON DUPLICATE KEY UPDATE remark = VALUES(remark);
+
+-- 客服会话（2 个进行中 + 2 个已关闭）
+INSERT INTO support_session (id, session_no, user_id, store_id, merchant_id, topic, status, related_order_id, last_message_id, last_message_at, user_unread_count, merchant_unread_count, closed_at, closed_by_type, closed_by_id, close_reason) VALUES
+  (1, 'SS202605170001', 1, 1, 1, '想咨询配送时长能否再快一点', 'open', 9011, 3, CURRENT_TIMESTAMP, 1, 0, NULL, NULL, NULL, NULL),
+  (2, 'SS202605170002', 1, 10, 10, '订单完成后想申请补送一份小食', 'open', 9005, 6, CURRENT_TIMESTAMP, 0, 2, NULL, NULL, NULL, NULL),
+  (3, 'SS202605170003', 1, 3, 3, '团购套餐能否调整使用时间', 'closed', 3, 9, CURRENT_TIMESTAMP, 0, 0, CURRENT_TIMESTAMP, 'merchant', 22, '问题已解决'),
+  (4, 'SS202605170004', 1, 9, 9, '足道预约时段咨询', 'closed', 4, 12, CURRENT_TIMESTAMP, 0, 0, CURRENT_TIMESTAMP, 'user', 1, '已自行预约')
+ON DUPLICATE KEY UPDATE topic = VALUES(topic), status = VALUES(status), last_message_id = VALUES(last_message_id), last_message_at = VALUES(last_message_at), user_unread_count = VALUES(user_unread_count), merchant_unread_count = VALUES(merchant_unread_count), closed_at = VALUES(closed_at), closed_by_type = VALUES(closed_by_type), closed_by_id = VALUES(closed_by_id), close_reason = VALUES(close_reason), is_deleted = 0;
+
+-- 客服消息
+INSERT INTO support_message (id, session_id, sender_type, sender_id, content, message_kind) VALUES
+  (1, 1, 'user', 1, '你好，订单 AT202605179011 已经接单 30 分钟了，是不是要更久？', 'text'),
+  (2, 1, 'merchant', 2, '已经在加急出餐，预计还有 10 分钟出门，请耐心稍候。', 'text'),
+  (3, 1, 'user', 1, '好的，麻烦了。', 'text'),
+  (4, 2, 'user', 1, '上一单忘记加冰粉，能否补送？', 'text'),
+  (5, 2, 'merchant', 29, '您好，我们这边登记一下，下一单帮您带上。', 'text'),
+  (6, 2, 'merchant', 29, '已经登记完毕，请放心。', 'text'),
+  (7, 3, 'user', 1, '套餐能否改到周五晚上使用？', 'text'),
+  (8, 3, 'merchant', 22, '可以的，您到店时跟我们说一下即可。', 'text'),
+  (9, 3, 'user', 1, '收到，谢谢。', 'text'),
+  (10, 4, 'user', 1, '请问周末晚上还有空档吗？', 'text'),
+  (11, 4, 'merchant', 28, '周六 20:00 还有空，需要预约吗？', 'text'),
+  (12, 4, 'user', 1, '不用啦，我自己再约。', 'text')
+ON DUPLICATE KEY UPDATE content = VALUES(content), is_deleted = 0;
+
+-- 投诉工单（3 单：pending / processing / resolved）
+INSERT INTO complaint_ticket (id, ticket_no, user_id, order_id, store_id, merchant_id, category, title, detail, evidence_urls, status, accepted_by, accepted_at, resolved_by, resolved_at, closed_at) VALUES
+  (1, 'CP202605170001', 1, 9011, 1, 1, 'delivery', '配送等待时间过长', '订单接单后 30 分钟仍未出餐，希望平台协调商家。', 'https://picsum.photos/seed/aituan-complaint-1/720/540', 'pending', NULL, NULL, NULL, NULL, NULL),
+  (2, 'CP202605170002', 1, 9007, 6, 6, 'service', '电影票无法核销', '到影院后核销码扫描失败，现场排队 20 分钟未解决。', NULL, 'processing', 3, CURRENT_TIMESTAMP, NULL, NULL, NULL),
+  (3, 'CP202605170003', 1, 4, 9, 9, 'quality', '足疗按摩师傅迟到', '预约 19:00 到店，实际 19:30 才开始服务，希望补偿优惠券。', NULL, 'resolved', 3, CURRENT_TIMESTAMP, 3, CURRENT_TIMESTAMP, NULL)
+ON DUPLICATE KEY UPDATE category = VALUES(category), title = VALUES(title), detail = VALUES(detail), evidence_urls = VALUES(evidence_urls), status = VALUES(status), accepted_by = VALUES(accepted_by), accepted_at = VALUES(accepted_at), resolved_by = VALUES(resolved_by), resolved_at = VALUES(resolved_at), closed_at = VALUES(closed_at), is_deleted = 0;
+
+-- 投诉处理日志
+INSERT INTO complaint_log (id, ticket_id, action, operator_type, operator_id, remark) VALUES
+  (1, 1, 'submit', 'user', 1, NULL),
+  (2, 2, 'submit', 'user', 1, NULL),
+  (3, 2, 'accept', 'admin', 3, '已通知商家联系用户'),
+  (4, 3, 'submit', 'user', 1, NULL),
+  (5, 3, 'accept', 'admin', 3, '已联系商家'),
+  (6, 3, 'resolve', 'admin', 3, '商家承诺补送优惠券，工单完成')
+ON DUPLICATE KEY UPDATE remark = VALUES(remark);
+
+-- 平台审计日志（覆盖 user / merchant / admin 三类 actor，跨多种 action 演示）
+INSERT INTO sys_audit_log (id, actor_type, actor_id, action_type, target_type, target_id, detail) VALUES
+  (1, 'user', 1, 'review_report', 'review', 9009, '举报评价 9009：内容不实'),
+  (2, 'user', 1, 'review_report', 'review', 9017, '举报评价 9017：内容不实'),
+  (3, 'admin', 3, 'review_audit_hide', 'review', 9017, '评价 9017 审核：published->hidden'),
+  (4, 'admin', 3, 'review_audit_pass', 'review', 9009, '评价 9009 审核：published->published'),
+  (5, 'merchant', 2, 'review_reply', 'review', 9005, '商家回复评价 9005'),
+  (6, 'merchant', 28, 'review_reply', 'review', 1, '商家回复评价 1'),
+  (7, 'user', 1, 'support_session_create', 'support_session', 1, '用户发起咨询：想咨询配送时长能否再快一点'),
+  (8, 'user', 1, 'support_session_create', 'support_session', 2, '用户发起咨询：订单完成后想申请补送一份小食'),
+  (9, 'user', 1, 'complaint_submit', 'complaint', 1, '用户提交投诉：配送等待时间过长'),
+  (10, 'user', 1, 'complaint_submit', 'complaint', 2, '用户提交投诉：电影票无法核销'),
+  (11, 'admin', 3, 'complaint_accept', 'complaint', 2, '受理投诉 #CP202605170002'),
+  (12, 'user', 1, 'complaint_submit', 'complaint', 3, '用户提交投诉：足疗按摩师傅迟到'),
+  (13, 'admin', 3, 'complaint_accept', 'complaint', 3, '受理投诉 #CP202605170003'),
+  (14, 'admin', 3, 'complaint_resolve', 'complaint', 3, '处理完成 #CP202605170003')
+ON DUPLICATE KEY UPDATE detail = VALUES(detail);
 
 INSERT INTO support_station_message (id, user_id, message_type, title, content, badge_text, read_status, related_order_id) VALUES
   (1, 1, 'order', '外卖订单配送中', '塔斯汀中国汉堡订单正在配送，请留意电话。', '配送', 'unread', 2),

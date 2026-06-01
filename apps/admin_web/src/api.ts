@@ -1,9 +1,12 @@
 import type {
   AdminCertificationMaterial,
+  AdminComplaintView,
   AdminConfig,
+  AdminGovernanceDashboardView,
   AdminMerchant,
   AdminMerchantApplication,
   AdminMerchantForm,
+  AdminReviewView,
   AdminStore,
   AdminStoreForm,
   AdminUser,
@@ -323,6 +326,50 @@ export function fetchAuditLogs(actionType = '') {
   const query = new URLSearchParams({ page: '1', pageSize: '60' });
   if (actionType) query.set('actionType', actionType);
   return request<PageResponse<AuditLog>>(`/api/admin/audit-logs?${query}`);
+}
+
+// ============ 治理（成员E）============
+
+export function fetchGovernanceDashboard() {
+  return request<AdminGovernanceDashboardView>('/api/admin/governance/dashboard');
+}
+
+export function fetchGovernanceReviews(params: { status?: string; reported?: boolean; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.reported !== undefined) query.set('reported', String(params.reported));
+  return request<PageResponse<AdminReviewView>>(`/api/admin/governance/reviews?${query}`);
+}
+
+export function auditGovernanceReview(reviewId: number, action: 'pass' | 'hide' | 'restore', remark = '') {
+  return request<AdminReviewView>(`/api/admin/governance/reviews/${reviewId}/audit`, {
+    method: 'POST',
+    body: { action, remark },
+  });
+}
+
+export function fetchGovernanceComplaints(params: { status?: string; category?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.category) query.set('category', params.category);
+  return request<PageResponse<AdminComplaintView>>(`/api/admin/governance/complaints?${query}`);
+}
+
+export function complaintAction(
+  ticketId: number,
+  action: 'accept' | 'resolve' | 'close',
+  remark = '',
+) {
+  return request<AdminComplaintView>(`/api/admin/governance/complaints/${ticketId}/${action}`, {
+    method: 'POST',
+    body: remark ? { remark } : {},
+  });
 }
 
 async function request<T>(path: string, options: RequestOptions = {}) {

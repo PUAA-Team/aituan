@@ -71,6 +71,11 @@ class TradeController {
     return ApiResponse.ok(tradeService.pay(orderId, request));
   }
 
+  @PutMapping("/orders/{orderId}/delivery-address")
+  ApiResponse<OrderDetailView> updateDeliveryAddress(@PathVariable long orderId, @Valid @RequestBody OrderAddressUpdateRequest request) {
+    return ApiResponse.ok(tradeService.updateDeliveryAddress(orderId, request));
+  }
+
   @PostMapping("/orders/{orderId}/cancel")
   ApiResponse<OrderDetailView> cancel(@PathVariable long orderId, @RequestBody(required = false) TakeawayOrderActionRequest request) {
     return ApiResponse.ok(tradeService.cancelTakeawayOrder(orderId, request));

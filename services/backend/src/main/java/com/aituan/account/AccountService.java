@@ -7,6 +7,8 @@ import com.aituan.common.file.FileAssetView;
 import com.aituan.common.file.FileStorageService;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.discovery.MapDistanceService;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +18,15 @@ import org.springframework.web.multipart.MultipartFile;
 class AccountService {
   private final AccountRepository accountRepository;
   private final FileStorageService fileStorageService;
+  private final MapDistanceService mapDistanceService;
 
-  AccountService(AccountRepository accountRepository, FileStorageService fileStorageService) {
+  AccountService(
+      AccountRepository accountRepository,
+      FileStorageService fileStorageService,
+      MapDistanceService mapDistanceService) {
     this.accountRepository = accountRepository;
     this.fileStorageService = fileStorageService;
+    this.mapDistanceService = mapDistanceService;
   }
 
   AccountProfileView profile() {
@@ -63,11 +70,12 @@ class AccountService {
   @Transactional
   AddressView createAddress(AddressUpsertRequest request) {
     long userId = CurrentUserContext.required().userId();
-    boolean makeDefault = Boolean.TRUE.equals(request.isDefault()) || accountRepository.countAddresses(userId) == 0;
+    AddressUpsertRequest resolved = resolveAddressRequest(request);
+    boolean makeDefault = Boolean.TRUE.equals(resolved.isDefault()) || accountRepository.countAddresses(userId) == 0;
     if (makeDefault) {
       accountRepository.clearDefaultAddresses(userId);
     }
-    Long addressId = accountRepository.insertAddress(userId, request, makeDefault);
+    Long addressId = accountRepository.insertAddress(userId, resolved, makeDefault);
     return accountRepository.findAddress(userId, addressId)
         .map(this::toAddressView)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -77,11 +85,12 @@ class AccountService {
   AddressView updateAddress(long addressId, AddressUpsertRequest request) {
     long userId = CurrentUserContext.required().userId();
     AccountRepository.AddressRow current = requireAddress(userId, addressId);
-    boolean makeDefault = request.isDefault() == null ? current.isDefault() : request.isDefault();
+    AddressUpsertRequest resolved = resolveAddressRequest(request);
+    boolean makeDefault = resolved.isDefault() == null ? current.isDefault() : resolved.isDefault();
     if (makeDefault) {
       accountRepository.clearDefaultAddresses(userId);
     }
-    accountRepository.updateAddress(userId, addressId, request, makeDefault);
+    accountRepository.updateAddress(userId, addressId, resolved, makeDefault);
     if (makeDefault) {
       accountRepository.markAddressDefault(userId, addressId);
     }
@@ -178,6 +187,47 @@ class AccountService {
   private AccountRepository.AddressRow requireAddress(long userId, long addressId) {
     return accountRepository.findAddress(userId, addressId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  private AddressUpsertRequest resolveAddressRequest(AddressUpsertRequest request) {
+    boolean hasLongitude = request.longitude() != null;
+    boolean hasLatitude = request.latitude() != null;
+    if (hasLongitude || hasLatitude) {
+      validateLocation(request.longitude(), request.latitude());
+      return request;
+    }
+    MapDistanceService.GeocodeResult geocoded = mapDistanceService.geocode(fullAddress(request));
+    if (geocoded == null) {
+      return request;
+    }
+    return new AddressUpsertRequest(
+        request.contactName(),
+        request.contactPhone(),
+        request.province(),
+        request.city(),
+        request.district(),
+        request.detailAddress(),
+        geocoded.longitude().doubleValue(),
+        geocoded.latitude().doubleValue(),
+        request.tagName(),
+        request.isDefault(),
+        request.deliveryNote());
+  }
+
+  private String fullAddress(AddressUpsertRequest request) {
+    return request.province().trim() + request.city().trim() + request.district().trim() + request.detailAddress().trim();
+  }
+
+  private void validateLocation(Double longitude, Double latitude) {
+    if (longitude == null || latitude == null) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "经纬度需要同时填写");
+    }
+    if (BigDecimal.valueOf(longitude).compareTo(BigDecimal.valueOf(-180)) < 0
+        || BigDecimal.valueOf(longitude).compareTo(BigDecimal.valueOf(180)) > 0
+        || BigDecimal.valueOf(latitude).compareTo(BigDecimal.valueOf(-90)) < 0
+        || BigDecimal.valueOf(latitude).compareTo(BigDecimal.valueOf(90)) > 0) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "经纬度范围不正确");
+    }
   }
 
   private String normalizeFavoriteType(String favoriteType) {
