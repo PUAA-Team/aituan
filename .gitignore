@@ -7,5 +7,25 @@ services/backend/target/
 apps/*/node_modules/
 apps/*/dist/
 
+# Flutter/Android local outputs
+apps/user_app/.dart_tool/
+apps/user_app/.flutter-plugins-dependencies
+apps/user_app/.idea/
+apps/user_app/*.iml
+apps/user_app/android/.gradle/
+apps/user_app/android/*.iml
+apps/user_app/android/app/src/main/java/
+apps/user_app/android/local.properties
+apps/user_app/build/
+
 # Local runtime/build handoff directories
 .aituan-local/
+.config
+
+# Server deployment local files
+/deploy/.env
+/deploy/*.env
+/deploy/secrets/
+/deploy/artifacts/**
+!/deploy/artifacts/**/
+!/deploy/artifacts/**/.gitkeep
