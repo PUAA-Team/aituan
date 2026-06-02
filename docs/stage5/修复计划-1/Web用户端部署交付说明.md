@@ -36,25 +36,26 @@ apps/user_app/lib/main.dart
 `main.dart` 调用 `bootstrap()`。本轮将 `app_bootstrap.dart` 改为平台条件导出：
 
 - 非 Web：走 `app_bootstrap_mobile.dart`，启动完整 Android 用户端 App。
-- Web：走 `app_bootstrap_web.dart`，启动独立的 Web 提示页。
+- Web：走 `app_bootstrap_web.dart`，再进入 `web_bootstrap_gate.dart` 做浏览器宽度判断。
 
-这样可以避免 Web 构建导入完整业务路由和 `dart:io` 相关代码，保证当前 `/web/` 入口可以稳定编译发布。
+当前 Web 入口复用用户端 `AituanApp` 主源码：移动端/窄屏浏览器进入完整用户端；电脑端宽屏浏览器显示独立的“不支持电脑端用户服务”页面，避免把移动端布局直接暴露给 PC。
 
-### 3. Web 不支持页
+### 3. Web 启动门禁与电脑端不支持页
 
-新增页面：
+新增/保留页面：
 
 ```text
+apps/user_app/lib/web/web_bootstrap_gate.dart
 apps/user_app/lib/web/unsupported_web_app.dart
 ```
 
 页面能力：
 
-- 使用浏览器宽度判断桌面/移动布局。
-- 电脑端显示“暂时不支持电脑端用户服务”。
-- 移动浏览器端显示“请下载 App 使用完整服务”。
-- 提供 APK 下载按钮：`/downloads/aituan-user-server-debug.apk`。
-- 提供返回首页按钮：`/`。
+- Web 启动时使用浏览器宽度判断设备形态，当前阈值为 `840px`。
+- 电脑端宽屏浏览器显示“暂时不支持电脑端用户服务”。
+- 手机浏览器/窄屏浏览器进入完整 `AituanApp` 用户端功能。
+- 电脑端不支持页提供 APK 下载按钮：`/downloads/aituan-user-server-debug.apk`。
+- 电脑端不支持页提供返回首页按钮：`/`。
 - 视觉风格延续 landing 的暖白、品牌红、深墨和浅金风格，不使用蓝紫渐变。
 
 ### 4. 服务器构建输出
@@ -152,6 +153,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/
 
 线上验证结果：
 
+> 后续补充：已在隔离目录 `D:/aituan_build/user_web_full_trial` 验证完整 Web 最小适配，并将成功源码同步回当前仓库目录；`/web/` 已更新为“电脑端不支持页、移动/窄屏进入完整用户端”的版本。部署前服务器备份位置：`/opt/aituan/backups/web-desktop-gate-20260603-012114`，部署前后 `/opt/aituan/app/.config` 与 `/opt/aituan/app/deploy/.env` hash 保持一致。
+
 - `http://182.92.238.178/actuator/health`：HTTP 200，返回 `{"status":"UP"}`。
 - `http://182.92.238.178/`：HTTP 200，landing 顶部包含 `/web/` 入口，底部包含“进入网页版”。
 - `http://182.92.238.178/web`：HTTP 301，跳转到 `/web/`。
@@ -165,8 +168,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/
 - `http://182.92.238.178/`：landing 顶部出现 Web 按钮。
 - `http://182.92.238.178/`：底部按钮为“进入网页版”。
 - `http://182.92.238.178/web`：跳转到 `/web/`。
-- `http://182.92.238.178/web/`：加载用户端 Web 提示页。
+- `http://182.92.238.178/web/`：加载用户端 Flutter Web 入口。
 - 电脑端浏览器：显示“暂时不支持电脑端用户服务”。
+- 手机浏览器/窄屏浏览器：进入完整用户端 App 功能。
 - APK 下载按钮：可访问 `/downloads/aituan-user-server-debug.apk`。
 - `/merchant/`、`/admin/`、`/actuator/health` 保持正常。
 

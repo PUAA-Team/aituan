@@ -47,7 +47,9 @@ class AppApiClient {
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     required String fileField,
-    required File file,
+    required List<int> fileBytes,
+    required String filename,
+    required String contentType,
     Map<String, String> fields = const {},
   }) async {
     final uri = Uri.parse('$baseUrl$path');
@@ -73,17 +75,14 @@ class AppApiClient {
         ),
       );
     }
-    final filename = file.uri.pathSegments.isEmpty
-        ? 'upload.jpg'
-        : file.uri.pathSegments.last;
     body.add(utf8.encode('--$boundary\r\n'));
     body.add(
       utf8.encode(
         'Content-Disposition: form-data; name="$fileField"; filename="$filename"\r\n',
       ),
     );
-    body.add(utf8.encode('Content-Type: ${_mimeType(filename)}\r\n\r\n'));
-    body.add(await file.readAsBytes());
+    body.add(utf8.encode('Content-Type: $contentType\r\n\r\n'));
+    body.add(fileBytes);
     body.add(utf8.encode('\r\n--$boundary--\r\n'));
     request.add(body.takeBytes());
     return _handleResponse(await request.close());
@@ -130,13 +129,6 @@ class AppApiClient {
       );
     }
     return decoded;
-  }
-
-  String _mimeType(String filename) {
-    final lower = filename.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    return 'image/jpeg';
   }
 
   String _message(Map<String, dynamic> json, String fallback) {

@@ -210,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       if (picked == null) return;
       setState(() => _avatarBusy = true);
-      final profile = await backendRepository.uploadAvatar(picked.path);
+      final profile = await backendRepository.uploadAvatar(picked);
       appState.updateProfile(
         displayName: profile.nickname,
         avatarUrl: profile.avatarUrl,

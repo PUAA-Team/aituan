@@ -61,7 +61,7 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
     setState(() => _uploading = true);
     try {
       final url = await backendRepository.uploadCommonFile(
-        picked.path,
+        picked,
         bizType: 'review',
       );
       if (!mounted) return;

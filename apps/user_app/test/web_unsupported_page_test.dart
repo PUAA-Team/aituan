@@ -1,3 +1,5 @@
+import 'package:aituan_user_app/app/app.dart';
+import 'package:aituan_user_app/web/web_bootstrap_gate.dart';
 import 'package:aituan_user_app/web/unsupported_web_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,14 +25,27 @@ void main() {
     expect(opened, contains(AituanUnsupportedWebApp.apkDownloadPath));
   });
 
-  testWidgets('uses compact copy on narrow browser viewport', (tester) async {
+  testWidgets('runs full app on narrow web viewport', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(AituanUnsupportedWebApp(openUrl: (_) {}));
+    await tester.pumpWidget(AituanWebBootstrap(openUrl: (_) {}));
 
-    expect(find.text('请下载 App 使用完整服务'), findsOneWidget);
+    expect(find.byType(AituanApp), findsOneWidget);
+    expect(find.text('暂时不支持电脑端用户服务'), findsNothing);
+  });
+
+  testWidgets('shows unsupported page on desktop web viewport', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(AituanWebBootstrap(openUrl: (_) {}));
+
+    expect(find.text('暂时不支持电脑端用户服务'), findsOneWidget);
+    expect(find.byType(AituanApp), findsNothing);
   });
 }

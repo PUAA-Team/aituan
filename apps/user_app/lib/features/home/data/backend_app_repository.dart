@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
@@ -305,11 +305,14 @@ class BackendAppRepository {
     return ProfileData.fromApi(_map(json['data']));
   }
 
-  Future<ProfileData> uploadAvatar(String filePath) async {
+  Future<ProfileData> uploadAvatar(XFile file) async {
+    final upload = await _uploadFile(file);
     final json = await _client.postMultipart(
       '/api/app/account/avatar',
       fileField: 'file',
-      file: File(filePath),
+      fileBytes: upload.bytes,
+      filename: upload.filename,
+      contentType: upload.contentType,
     );
     return ProfileData.fromApi(_map(json['data']));
   }
@@ -326,13 +329,16 @@ class BackendAppRepository {
 
   /// 通用文件上传，返回可公开访问的 URL。评价/投诉等模块复用。
   Future<String> uploadCommonFile(
-    String filePath, {
+    XFile file, {
     required String bizType,
   }) async {
+    final upload = await _uploadFile(file);
     final json = await _client.postMultipart(
       '/api/common/files/upload',
       fileField: 'file',
-      file: File(filePath),
+      fileBytes: upload.bytes,
+      filename: upload.filename,
+      contentType: upload.contentType,
       fields: {'bizType': bizType},
     );
     final data = _map(json['data']);
@@ -1038,6 +1044,53 @@ class FavoriteEntry {
     coverUrl: _nullableString(json['coverUrl']),
     subtitle: _nullableString(json['subtitle']),
   );
+}
+
+Future<_UploadFile> _uploadFile(XFile file) async {
+  final filename = _uploadFilename(file);
+  return _UploadFile(
+    bytes: await file.readAsBytes(),
+    filename: filename,
+    contentType: _imageContentType(file.mimeType, filename),
+  );
+}
+
+String _uploadFilename(XFile file) {
+  final name = file.name.trim();
+  if (name.isNotEmpty) return name;
+  final path = file.path.trim();
+  if (path.isNotEmpty) {
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/');
+    final last = segments.isEmpty ? '' : segments.last.trim();
+    if (last.isNotEmpty) return last;
+  }
+  return 'upload.jpg';
+}
+
+String _imageContentType(String? mimeType, String filename) {
+  final normalized = mimeType?.trim().toLowerCase();
+  if (normalized == 'image/png' ||
+      normalized == 'image/webp' ||
+      normalized == 'image/jpeg') {
+    return normalized!;
+  }
+  final lower = filename.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
+class _UploadFile {
+  const _UploadFile({
+    required this.bytes,
+    required this.filename,
+    required this.contentType,
+  });
+
+  final List<int> bytes;
+  final String filename;
+  final String contentType;
 }
 
 List<ModuleEntry> _modules(dynamic value) => _list(value)

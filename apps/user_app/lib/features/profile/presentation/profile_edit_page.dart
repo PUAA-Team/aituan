@@ -116,7 +116,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       );
       if (picked == null) return;
       setState(() => _avatarBusy = true);
-      final profile = await backendRepository.uploadAvatar(picked.path);
+      final profile = await backendRepository.uploadAvatar(picked);
       _syncProfile(profile);
       if (!mounted) return;
       setState(() {

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io' show File;
 
 import 'package:http/http.dart' as http;
 
@@ -48,10 +47,45 @@ class AppApiClient {
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     required String fileField,
-    required File file,
+    required List<int> fileBytes,
+    required String filename,
+    required String contentType,
     Map<String, String> fields = const {},
-  }) {
-    throw const AppApiException('浏览器调试模式暂不支持本地文件上传，请使用 APK 验证上传功能');
+  }) async {
+    final boundary = 'aituan-${DateTime.now().microsecondsSinceEpoch}';
+    final body = <int>[];
+    for (final entry in fields.entries) {
+      body.addAll(utf8.encode('--$boundary\r\n'));
+      body.addAll(
+        utf8.encode(
+          'Content-Disposition: form-data; name="${entry.key}"\r\n\r\n${entry.value}\r\n',
+        ),
+      );
+    }
+    body.addAll(utf8.encode('--$boundary\r\n'));
+    body.addAll(
+      utf8.encode(
+        'Content-Disposition: form-data; name="$fileField"; filename="$filename"\r\n',
+      ),
+    );
+    body.addAll(utf8.encode('Content-Type: $contentType\r\n\r\n'));
+    body.addAll(fileBytes);
+    body.addAll(utf8.encode('\r\n--$boundary--\r\n'));
+
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      'Content-Type': 'multipart/form-data; boundary=$boundary',
+    };
+    final token = tokenProvider?.call();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    final response = await _client.send(
+      http.Request('POST', Uri.parse('$baseUrl$path'))
+        ..headers.addAll(headers)
+        ..bodyBytes = body,
+    );
+    return _handleResponse(await http.Response.fromStream(response));
   }
 
   Future<Map<String, dynamic>> _send(
