@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爱团-首页</title>
+  <link rel="stylesheet" href="./demo.css" />
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="topbar flat" style="background: var(--brand); border-bottom: none; color: #fff;">
+        <div class="row" style="margin-bottom: 12px;">
+          <div><div class="small" style="color:#ffe6ea;">当前位置</div><div class="topbar-title" style="font-size: 16px;">北京航空航天大学</div></div>
+          <a class="pill" href="./message_demo.html" style="border-color: rgba(255,255,255,.45); background:#fff; color: var(--brand-deep);">消息</a>
+        </div>
+        <a class="search-box" href="./search_demo.html" style="background:#fff; border-color:#fff; color:#667085;">搜索外卖、团购、景点、洗脚</a>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="category-grid">
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">外</div><div class="small">外卖</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">团</div><div class="small">团购</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">住</div><div class="small">酒店</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">玩</div><div class="small">娱乐</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">影</div><div class="small">电影</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">美</div><div class="small">丽人</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">票</div><div class="small">门票</div></a>
+            <a class="category-item" href="./module_demo.html"><div class="category-icon">足</div><div class="small">洗脚</div></a>
+          </div>
+        </div>
+        <div class="row" style="margin: 12px 0 10px;"><div class="title">猜你喜欢</div><div class="small muted">为你更新</div></div>
+        <div class="feed-grid" id="recommendFeed">
+          <a class="card feed-card" href="./item_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">江南小馆双人套餐</div><div class="tags"><span class="tag red">热卖</span><span class="tag gray">团购</span></div><div class="price"><small>￥</small>98</div><div class="subline">900m · 4.8分 · 已售2882</div></div></a>
+          <a class="card feed-card" href="./merchant_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">椒麻鸡排饭</div><div class="tags"><span class="tag">满25减8</span><span class="tag gray">外卖</span></div><div class="price"><small>￥</small>22.8</div><div class="subline">28分钟 · 月售2300+</div></div></a>
+          <a class="card feed-card" href="./item_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">洗脚按摩 60 分钟</div><div class="tags"><span class="tag green">可预约</span></div><div class="price"><small>￥</small>128</div><div class="subline">1.4km · 到店使用</div></div></a>
+          <a class="card feed-card" href="./item_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">光影夜场电影票</div><div class="tags"><span class="tag gray">门票</span></div><div class="price"><small>￥</small>45</div><div class="subline">今日可用 · 余票充足</div></div></a>
+          <a class="card feed-card" href="./item_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">轻氧健身体验课</div><div class="tags"><span class="tag red">新客</span></div><div class="price"><small>￥</small>39.9</div><div class="subline">1.5km · 教练带练</div></div></a>
+          <a class="card feed-card" href="./item_detail_demo.html"><div class="thumb square"></div><div class="feed-body"><div class="title">咖啡轻食双人券</div><div class="tags"><span class="tag gray">下午茶</span></div><div class="price"><small>￥</small>58</div><div class="subline">600m · 周末可用</div></div></a>
+        </div>
+        <button class="btn btn-light" id="loadMore" style="width:100%; margin-top:12px;">继续浏览</button>
+      </div>
+      <div class="bottom-bar"><div class="bottom-tabs"><a class="active" href="./home_demo.html">首页</a><a href="./message_demo.html">消息</a><a href="./orders_demo.html">订单</a><a href="./profile_demo.html">我的</a></div></div>
+    </div>
+  </div>
+  <script>
+    const moreItems = [
+      ['亲子乐园门票', '景点门票', '￥68', '今日可订 · 入园便捷'],
+      ['丽人护理体验', '丽人医美', '￥99', '1.8km · 新客专享'],
+      ['酒店钟点房', '酒店', '￥89', '2.1km · 可立即入住'],
+      ['烤肉双人套餐', '团购', '￥128', '1.1km · 晚市热卖']
+    ];
+    let cursor = 0;
+    document.getElementById('loadMore').addEventListener('click', () => {
+      const feed = document.getElementById('recommendFeed');
+      for (let i = 0; i < 2; i += 1) {
+        const item = moreItems[cursor % moreItems.length];
+        cursor += 1;
+        const card = document.createElement('a');
+        card.className = 'card feed-card';
+        card.href = './item_detail_demo.html';
+        card.innerHTML = `<div class="thumb square"></div><div class="feed-body"><div class="title">${item[0]}</div><div class="tags"><span class="tag gray">${item[1]}</span></div><div class="price"><small>${item[2][0]}</small>${item[2].slice(1)}</div><div class="subline">${item[3]}</div></div>`;
+        feed.appendChild(card);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爱团-外卖订单详情</title>
+  <link rel="stylesheet" href="./demo.css" />
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="topbar"><div class="row"><a class="back-btn" href="./orders_demo.html">‹</a><div class="topbar-title">外卖订单详情</div><span></span></div></div>
+      <div class="content">
+        <div class="segment"><button class="btn btn-light state-btn" data-state="unpaid">未支付</button><button class="btn btn-primary state-btn" data-state="pending">待完成</button><button class="btn btn-light state-btn" data-state="used">已使用</button></div>
+        <div class="card" style="background:var(--bg-brand-soft); border-color:var(--brand-line);"><div class="row"><div><div class="card-title" id="status-title">待完成</div><div class="subline" id="status-desc">商家已接单，正在准备餐品，预计 35 分钟送达。</div></div><span class="tag green" id="status-tag">配送中</span></div></div>
+        <div class="card" id="progress-card"><div class="card-title">配送履约</div><div class="step-list"><div class="step-item"><div class="title" style="font-size:14px;">商家已接单</div><div class="subline">18:12 商家确认订单</div></div><div class="step-item"><div class="title" style="font-size:14px;">备餐中</div><div class="subline">18:18 正在准备餐品</div></div><div class="step-item"><div class="title" style="font-size:14px;">等待配送</div><div class="subline">预计 18:45 送达</div></div></div></div>
+        <a class="card row" href="./merchant_detail_demo.html"><div><div class="card-title" style="margin-bottom:4px;">商家信息</div><div class="title" style="font-size:14px;">塔斯汀中国汉堡</div><div class="subline">联系电话：010-88886666</div></div><span class="link-text">进店</span></a>
+        <div class="card"><div class="card-title">商品明细</div><div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">招牌中国汉堡</div><div class="subline">微辣 · 标准份</div><div class="row" style="margin-top:8px;"><div class="price"><small>￥</small>18.8</div><span class="small muted">x1</span></div></div></div><div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">单人随心配</div><div class="row" style="margin-top:8px;"><div class="price"><small>￥</small>24.9</div><span class="small muted">x1</span></div></div></div></div>
+        <div class="card"><div class="card-title">金额明细</div><div class="kv"><span>商品金额</span><span>￥43.7</span></div><div class="kv"><span>配送费</span><span>￥4.0</span></div><div class="kv"><span>优惠</span><span>-￥8.0</span></div><div class="kv" style="font-weight:800;"><span>实付</span><span>￥39.7</span></div></div>
+        <div class="card"><div class="card-title">支付信息</div><div class="kv"><span>支付方式</span><span id="pay-method">模拟支付</span></div><div class="kv"><span>订单编号</span><span class="small">AT202605140001</span></div><div class="kv"><span>下单时间</span><span class="small">2026-05-14 18:06</span></div></div>
+      </div>
+      <div class="bottom-bar"><div class="row" id="action-bar"><a class="btn btn-light" href="./message_demo.html">联系客服</a><a class="btn btn-primary" href="./orders_demo.html">查看订单</a></div></div>
+    </div>
+  </div>
+  <script>
+    const states = {
+      unpaid: { title:'未支付', desc:'订单已创建，请在 15 分钟内完成支付。', tag:'等待付款', cls:'tag red', actions:'<a class="btn btn-light" href="./orders_demo.html">取消订单</a><a class="btn btn-primary" href="./orders_demo.html">模拟支付</a>', progress:false, pay:'未支付' },
+      pending: { title:'待完成', desc:'商家已接单，正在准备餐品，预计 35 分钟送达。', tag:'配送中', cls:'tag green', actions:'<a class="btn btn-light" href="./message_demo.html">联系客服</a><a class="btn btn-primary" href="./orders_demo.html">查看订单</a>', progress:true, pay:'模拟支付' },
+      used: { title:'已使用', desc:'订单已完成，可对本次服务进行评价。', tag:'可评价', cls:'tag gray', actions:'<a class="btn btn-light" href="./merchant_detail_demo.html">再来一单</a><a class="btn btn-primary" href="./review_publish_demo.html">去评价</a>', progress:false, pay:'模拟支付' }
+    };
+    const title = document.getElementById('status-title');
+    const desc = document.getElementById('status-desc');
+    const tag = document.getElementById('status-tag');
+    const actions = document.getElementById('action-bar');
+    const progress = document.getElementById('progress-card');
+    const pay = document.getElementById('pay-method');
+    document.querySelectorAll('.state-btn').forEach(btn => btn.addEventListener('click', () => {
+      const state = states[btn.dataset.state];
+      title.textContent = state.title; desc.textContent = state.desc; tag.textContent = state.tag; tag.className = state.cls; actions.innerHTML = state.actions; progress.style.display = state.progress ? 'block' : 'none'; pay.textContent = state.pay;
+      document.querySelectorAll('.state-btn').forEach(item => item.className = item === btn ? 'btn btn-primary state-btn' : 'btn btn-light state-btn');
+    }));
+  </script>
+</body>
+</html>

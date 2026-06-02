@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爱团-外卖点单</title>
+  <link rel="stylesheet" href="./demo.css" />
+  <style>.qty { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-weight: 800; }</style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="topbar">
+        <div class="row"><a class="back-btn" href="./search_result_demo.html">‹</a><div style="flex:1;"><div class="topbar-title">塔斯汀中国汉堡</div><div class="topbar-subtitle">4.9 分 · 月售 2300+ · 预计 35 分钟</div></div><a class="pill" href="./favorite_demo.html">收藏</a></div>
+        <div class="tags"><span class="tag">满25减8</span><span class="tag gray">起送 ￥20</span><span class="tag gray">配送费 ￥4</span></div>
+        <div class="search-box" style="margin-top: 10px;">店内搜索：汉堡、套餐、小食</div>
+      </div>
+      <div class="content">
+        <div class="card"><div class="card-title">热销点单</div>
+          <div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">招牌中国汉堡</div><div class="subline">现烤饼皮 · 月售 680</div><div class="row" style="margin-top: 8px;"><div class="price"><small>￥</small>18.8</div><div class="flex-start"><button class="qty">-</button><span>1</span><button class="qty">+</button></div></div></div></div>
+          <div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">单人随心配</div><div class="subline">汉堡 + 小食 + 饮品</div><div class="row" style="margin-top: 8px;"><div class="price"><small>￥</small>24.9</div><button class="btn btn-secondary">加入</button></div></div></div>
+          <div class="list-item"><div class="thumb"></div><div style="flex:1;"><div class="title">双人分享套餐</div><div class="subline">双堡双饮，适合两人</div><div class="row" style="margin-top: 8px;"><div class="price"><small>￥</small>52</div><button class="btn btn-secondary">加入</button></div></div></div>
+        </div>
+        <div class="card"><div class="card-title">评价</div><div class="subline">包装完整，送达快，汉堡热乎。商家回复及时。</div><div class="tags"><span class="tag gray">好评率 96%</span><span class="tag gray">配送快</span></div></div>
+      </div>
+      <div class="bottom-bar"><div class="row"><a href="#" id="cartBtn"><div class="small muted">已选 2 件 · 含配送费</div><div class="price"><small>￥</small>47.7</div></a><a class="btn btn-primary" href="#" id="submitBtn">去提交</a></div></div>
+      <div class="sheet-mask" id="mask"></div>
+      <div class="sheet" id="sheet">
+        <div class="row" style="margin-bottom: 12px;"><div class="card-title" style="margin:0;">购物车</div><a class="small muted" href="#" id="closeSheet">收起</a></div>
+        <div class="list-item"><div style="flex:1;"><div class="title">招牌中国汉堡</div><div class="subline">微辣 · 标准份</div></div><div class="price" style="font-size:16px;"><small>￥</small>18.8</div></div>
+        <div class="list-item"><div style="flex:1;"><div class="title">单人随心配</div><div class="subline">可乐 · 薯条</div></div><div class="price" style="font-size:16px;"><small>￥</small>24.9</div></div>
+        <div class="kv"><span>商品总价</span><span>￥43.7</span></div><div class="kv"><span>配送费</span><span>￥4.0</span></div><div class="kv"><span>优惠</span><span>-￥8.0</span></div><div class="kv" style="font-weight:800;"><span>预计实付</span><span>￥39.7</span></div>
+        <a class="btn btn-primary" href="./checkout_demo.html" style="width:100%; margin-top: 10px;">提交到确认订单</a>
+      </div>
+    </div>
+  </div>
+  <script>
+    const sheet = document.getElementById('sheet');
+    const mask = document.getElementById('mask');
+    function openSheet(event){ event.preventDefault(); sheet.classList.add('open'); mask.classList.add('open'); }
+    function closeSheet(event){ event.preventDefault(); sheet.classList.remove('open'); mask.classList.remove('open'); }
+    document.getElementById('cartBtn').addEventListener('click', openSheet);
+    document.getElementById('submitBtn').addEventListener('click', openSheet);
+    document.getElementById('closeSheet').addEventListener('click', closeSheet);
+    mask.addEventListener('click', closeSheet);
+  </script>
+</body>
+</html>
