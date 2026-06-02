@@ -10,8 +10,9 @@ const emit = defineEmits<{
   submit: [payload: { account: string; password: string }];
 }>();
 
-const account = ref('demo_admin');
-const password = ref('123456');
+const savedAccount = localStorage.getItem('aituan_admin_account') || '';
+const account = ref(savedAccount);
+const password = ref('');
 </script>
 
 <template>

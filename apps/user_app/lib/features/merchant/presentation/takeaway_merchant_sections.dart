@@ -112,7 +112,11 @@ class TakeawayMerchantInfoPanel extends StatelessWidget {
         _InfoLine(
           icon: Icons.receipt_long_outlined,
           text:
-              '起送￥${merchant.deliveryRule.startPrice.toStringAsFixed(0)} · 配送费￥${merchant.deliveryRule.deliveryFee.toStringAsFixed(0)}',
+              '起送￥${merchant.deliveryRule.startPrice.toStringAsFixed(0)} · 配送费￥${merchant.deliveryRule.deliveryFee.toStringAsFixed(0)} · ${merchant.deliveryRule.packageFeeText}',
+        ),
+        _InfoLine(
+          icon: Icons.route_outlined,
+          text: merchant.deliveryRule.distanceExtraText,
         ),
         const SizedBox(height: 8),
         Text(merchant.summary, style: Theme.of(context).textTheme.bodyMedium),

@@ -42,6 +42,12 @@ class AccountController {
     return ApiResponse.ok(accountService.uploadAvatar(file));
   }
 
+  @PutMapping("/password")
+  ApiResponse<Void> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
+    accountService.changePassword(request);
+    return ApiResponse.ok(null);
+  }
+
   @GetMapping("/addresses")
   ApiResponse<java.util.List<AddressView>> addresses() {
     return ApiResponse.ok(accountService.addresses());

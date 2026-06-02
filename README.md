@@ -135,13 +135,26 @@ http://localhost:8080/actuator/health
 http://localhost:8080/swagger-ui.html
 ```
 
-常用演示账号：
+常用演示账号（仅用于本地开发、课程验收和演示；公网/生产部署前应禁用、删除或修改默认账号密码）：
 
-| 角色 | 账号 | 密码 |
-| --- | --- | --- |
-| 用户 | `user@example.com` 或 `18800001111` | `aituan123` |
-| 商家 | `merchant@example.com` 或 `18800002222` | `aituan123` |
-| 运营 | `admin@example.com` 或 `18800003333` | `aituan123` |
+| 角色/业务 | 登录名 | 邮箱或手机号 | 密码 |
+| --- | --- | --- | --- |
+| 用户 | `demo_user` | `user@example.com` 或 `18800001111` | `123456` |
+| 默认商家 | `demo_merchant` | `merchant@example.com` 或 `18800002222` | `123456` |
+| 后台运营 | `demo_admin` | `admin@example.com` 或 `18800003333` | `123456` |
+| 外卖商家 | `demo_takeaway_merchant` | `takeaway@example.com` 或 `18800002021` | `123456` |
+| 团购商家 | `demo_groupbuy_merchant` | `groupbuy@example.com` 或 `18800002022` | `123456` |
+| 酒店商家 | `demo_hotel_merchant` | `hotel@example.com` 或 `18800002023` | `123456` |
+| 休闲娱乐商家 | `demo_entertainment_merchant` | `entertainment@example.com` 或 `18800002024` | `123456` |
+| 电影演出商家 | `demo_movie_merchant` | `movie@example.com` 或 `18800002025` | `123456` |
+| 丽人医美商家 | `demo_beauty_merchant` | `beauty@example.com` 或 `18800002026` | `123456` |
+| 景点门票商家 | `demo_ticket_merchant` | `ticket@example.com` 或 `18800002027` | `123456` |
+| 洗脚按摩商家 | `demo_massage_merchant` | `massage@example.com` 或 `18800002028` | `123456` |
+| 拌饭外卖商家 | `demo_bibimbap_merchant` | `bibimbap@example.com` 或 `18800002029` | `123456` |
+| 烧烤商家 | `demo_bbq_merchant` | `bbq@example.com` 或 `18800002030` | `123456` |
+| 酒店房型商家 | `demo_hotel_room_merchant` | `hotelroom@example.com` 或 `18800002031` | `123456` |
+| 电玩城商家 | `demo_arcade_merchant` | `arcade@example.com` 或 `18800002032` | `123456` |
+| SPA 商家 | `demo_spa_merchant` | `spa@example.com` 或 `18800002033` | `123456` |
 
 ## 使用 MySQL 部署后端
 
@@ -270,7 +283,7 @@ flutter build apk --debug --dart-define=API_BASE_URL=http://your-backend-host:80
 ```bash
 curl -X POST http://localhost:8080/api/open/auth/user/login/password \
   -H "Content-Type: application/json" \
-  -d '{"account":"user@example.com","password":"aituan123"}'
+  -d '{"account":"user@example.com","password":"123456"}'
 ```
 
 ### 首页
@@ -312,9 +325,9 @@ curl http://localhost:8080/api/app/trade/orders \
 
 ## 部署注意事项
 
-1. 公开部署时必须设置强随机 `AITUAN_JWT_SECRET`。
+1. 公开部署时必须在 `.config` 设置强随机 `aituan.security.jwt-secret`。
 2. MySQL 用户请只授权当前业务库，不建议使用 root 账号运行应用。
-3. 不要在仓库中提交真实数据库密码、JWT secret、邮箱授权码或生产配置文件。
+3. 不要在仓库中提交真实数据库密码、JWT secret、邮箱授权码、`.config` 或生产配置文件。
 4. 数据库结构更新只走 Flyway 增量迁移，不要手动清表重灌。
 5. Android 模拟器、真机和桌面环境访问后端的地址不同，联调时优先检查 `API_BASE_URL`。
 6. 如果使用仓库 PowerShell 脚本，请根据本机实际 JDK 路径调整 `$JavaHome`。

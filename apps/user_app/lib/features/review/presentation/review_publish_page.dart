@@ -5,10 +5,20 @@ import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/cached_app_image.dart';
 import '../../home/data/backend_app_repository.dart';
 import '../data/review_repository.dart';
 
-const _availableLabels = ['味道好', '出餐快', '服务好', '分量足', '性价比高', '环境好', '送达快', '会再来'];
+const _availableLabels = [
+  '味道好',
+  '出餐快',
+  '服务好',
+  '分量足',
+  '性价比高',
+  '环境好',
+  '送达快',
+  '会再来',
+];
 const _maxImages = 9;
 
 class ReviewPublishPage extends StatefulWidget {
@@ -50,12 +60,17 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
     if (picked == null) return;
     setState(() => _uploading = true);
     try {
-      final url = await backendRepository.uploadCommonFile(picked.path, bizType: 'review');
+      final url = await backendRepository.uploadCommonFile(
+        picked.path,
+        bizType: 'review',
+      );
       if (!mounted) return;
       setState(() => _imageUrls.add(url));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('图片上传失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('图片上传失败：$e')));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -64,16 +79,16 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
   Future<void> _submit() async {
     final orderId = _args?.orderId;
     if (orderId == null || orderId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('订单信息缺失，无法发布评价')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('订单信息缺失，无法发布评价')));
       return;
     }
     final content = _controller.text.trim();
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请填写评价内容')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请填写评价内容')));
       return;
     }
     setState(() => _submitting = true);
@@ -86,15 +101,15 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
         imageUrls: _imageUrls,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('评价已发布')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('评价已发布')));
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('发布失败：$e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('发布失败：$e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -185,14 +200,17 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('上传图片（${_imageUrls.length}/$_maxImages）',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      child: Text(
+                        '上传图片（${_imageUrls.length}/$_maxImages）',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
-                    if (_uploading) const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+                    if (_uploading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -217,7 +235,11 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
 }
 
 class _ImageGrid extends StatelessWidget {
-  const _ImageGrid({required this.urls, required this.onAdd, required this.onRemove});
+  const _ImageGrid({
+    required this.urls,
+    required this.onAdd,
+    required this.onRemove,
+  });
 
   final List<String> urls;
   final VoidCallback? onAdd;
@@ -268,17 +290,18 @@ class _ImageTile extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: resolved == null
-              ? Container(color: Colors.grey.shade200)
-              : Image.network(
-                  resolved,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: Colors.grey.shade200,
-                    alignment: Alignment.center,
-                    child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
-                  ),
-                ),
+          child: CachedAppImage(
+            imageUrl: resolved,
+            fit: BoxFit.cover,
+            placeholder: Container(
+              color: Colors.grey.shade200,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.grey,
+              ),
+            ),
+          ),
         ),
         Positioned(
           top: 2,

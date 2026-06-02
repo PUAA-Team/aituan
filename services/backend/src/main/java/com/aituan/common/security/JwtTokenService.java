@@ -25,7 +25,7 @@ public class JwtTokenService {
   public JwtTokenService(
       ObjectMapper objectMapper,
       @Value("${aituan.security.jwt-secret:aituan-demo-secret-change-me}") String secret,
-      @Value("${aituan.security.jwt-ttl-seconds:604800}") long ttlSeconds) {
+      @Value("${aituan.security.jwt-ttl-seconds:2592000}") long ttlSeconds) {
     this.objectMapper = objectMapper;
     this.secret = secret.getBytes(StandardCharsets.UTF_8);
     this.ttlSeconds = ttlSeconds;

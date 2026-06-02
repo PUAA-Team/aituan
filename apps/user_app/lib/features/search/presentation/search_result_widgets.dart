@@ -6,6 +6,7 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_search_box.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../shared/models/merchant_model.dart';
+import '../../location/presentation/location_picker_button.dart';
 import '../../merchant/presentation/merchant_category_widgets.dart';
 
 class SearchResultBox extends StatelessWidget {
@@ -56,18 +57,29 @@ class SearchCategoryRow extends StatelessWidget {
 }
 
 class SearchFilterRow extends StatelessWidget {
-  const SearchFilterRow({super.key});
+  const SearchFilterRow({super.key, this.onLocationChanged});
+
+  final Future<void> Function()? onLocationChanged;
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
     scrollDirection: Axis.horizontal,
     child: Row(
-      children: const [
-        _FilterChip('当前位置'),
-        SizedBox(width: 8),
-        _FilterChip('排序方式'),
-        SizedBox(width: 8),
-        _FilterChip('筛选'),
+      children: [
+        LocationPickerButton(
+          compact: true,
+          onLocationChanged: onLocationChanged,
+          foregroundColor: AppColors.textMain,
+          backgroundColor: AppColors.card,
+          borderColor: AppColors.line,
+          borderRadius: 6,
+          maxLabelWidth: 118,
+          fontWeight: FontWeight.w600,
+        ),
+        const SizedBox(width: 8),
+        const _FilterChip('排序方式'),
+        const SizedBox(width: 8),
+        const _FilterChip('筛选'),
       ],
     ),
   );

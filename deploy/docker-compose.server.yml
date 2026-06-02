@@ -46,28 +46,14 @@ services:
       AITUAN_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-aituan_dev}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
       AITUAN_DATASOURCE_USERNAME: "${MYSQL_USER:?set MYSQL_USER in deploy/.env}"
       AITUAN_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}"
-      AITUAN_JWT_SECRET: "${AITUAN_JWT_SECRET:?set AITUAN_JWT_SECRET in deploy/.env}"
+      AITUAN_CONFIG_FILE: /app/.config
       AITUAN_UPLOAD_ROOT: /data/uploads
       AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
-      AITUAN_UPLOAD_STRATEGY: "${AITUAN_UPLOAD_STRATEGY:-local}"
-      AITUAN_UPLOAD_LSKYPRO_API_URL: "${AITUAN_UPLOAD_LSKYPRO_API_URL:-https://p.2b.gs/api/v1}"
-      AITUAN_UPLOAD_LSKYPRO_TOKEN: "${AITUAN_UPLOAD_LSKYPRO_TOKEN:-}"
-      AITUAN_UPLOAD_LSKYPRO_EMAIL: "${AITUAN_UPLOAD_LSKYPRO_EMAIL:-}"
-      AITUAN_UPLOAD_LSKYPRO_PASSWORD: "${AITUAN_UPLOAD_LSKYPRO_PASSWORD:-}"
-      AITUAN_UPLOAD_LSKYPRO_TOKEN_URL: "${AITUAN_UPLOAD_LSKYPRO_TOKEN_URL:-https://p.2b.gs/api/v1/tokens}"
-      AITUAN_UPLOAD_LSKYPRO_STRATEGY_ID: "${AITUAN_UPLOAD_LSKYPRO_STRATEGY_ID:-}"
-      AITUAN_UPLOAD_LSKYPRO_ALBUM_ID: "${AITUAN_UPLOAD_LSKYPRO_ALBUM_ID:-}"
-      AITUAN_UPLOAD_LSKYPRO_PERMISSION: "${AITUAN_UPLOAD_LSKYPRO_PERMISSION:-1}"
-      AITUAN_MAP_PROVIDER: "${AITUAN_MAP_PROVIDER:-local}"
-      AITUAN_MAP_AMAP_WEB_API_KEY: "${AITUAN_MAP_AMAP_WEB_API_KEY:-}"
-      AITUAN_MAP_AMAP_GEOCODE_URL: "${AITUAN_MAP_AMAP_GEOCODE_URL:-https://restapi.amap.com/v3/geocode/geo}"
-      AITUAN_MAP_AMAP_DISTANCE_URL: "${AITUAN_MAP_AMAP_DISTANCE_URL:-https://restapi.amap.com/v3/distance}"
-      AITUAN_MAP_AMAP_REGEO_URL: "${AITUAN_MAP_AMAP_REGEO_URL:-https://restapi.amap.com/v3/geocode/regeo}"
-      AITUAN_MAP_AMAP_ROUTE_URL: "${AITUAN_MAP_AMAP_ROUTE_URL:-https://restapi.amap.com/v5/direction/electrobike}"
       JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
       TZ: Asia/Shanghai
     volumes:
       - ${AITUAN_DATA_DIR:-/opt/aituan/data}/uploads:/data/uploads
+      - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
     expose:
       - "8080"
     networks:
@@ -83,6 +69,8 @@ services:
       - "80:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./artifacts/landing:/usr/share/nginx/html/landing:ro
+      - ./artifacts/user-web:/usr/share/nginx/html/web:ro
       - ./artifacts/merchant-web:/usr/share/nginx/html/merchant:ro
       - ./artifacts/admin-web:/usr/share/nginx/html/admin:ro
       - ./artifacts/downloads:/usr/share/nginx/html/downloads:ro

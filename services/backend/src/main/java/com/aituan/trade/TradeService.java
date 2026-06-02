@@ -97,7 +97,8 @@ class TradeService {
 
   CheckoutPreviewView preview(CheckoutPreviewRequest request) {
     TradeContext context = loadTradeContext(request.storeId(), request.businessType(), request.addressId(), request.items());
-    return buildPreview(context, request.remark());
+    TablewareSelection tableware = tablewareSelection(request.tablewareOption(), request.tablewareCount());
+    return buildPreview(context, request.remark(), tableware);
   }
 
   @Transactional
@@ -111,10 +112,12 @@ class TradeService {
       }
     }
     TradeContext context = loadTradeContext(request.storeId(), request.businessType(), request.addressId(), request.items());
+    TablewareSelection tableware = tablewareSelection(request.tablewareOption(), request.tablewareCount());
     DeliveryQuote quote = deliveryQuote(context);
     requireDeliverable(quote);
+    requireMinimumOrder(context);
     reserveStock(context.items());
-    OrderInsert orderInsert = buildOrderInsert(context, request.remark(), request.idempotencyKey(), quote);
+    OrderInsert orderInsert = buildOrderInsert(context, request.remark(), request.idempotencyKey(), quote, tableware);
     Long orderId = tradeRepository.insertOrder(orderInsert.row());
     for (TradeItem tradeItem : context.items()) {
       tradeRepository.insertOrderItem(orderId, tradeItem.row(), tradeItem.quantity());
@@ -275,7 +278,27 @@ class TradeService {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "可配送范围需大于 0 且不超过 100km");
     }
     String deliveryText = request.deliveryText() == null ? "" : request.deliveryText().trim();
-    tradeRepository.upsertDeliveryRule(storeId, request.deliveryFee(), request.startPrice(), request.estimatedMinutes(), request.maxDeliveryDistanceKm(), deliveryText);
+    String packageFeeMode = normalizePackageFeeMode(request.packageFeeMode());
+    BigDecimal packageFeeFixed = nonNegative(request.packageFeeFixed());
+    BigDecimal packageFeePerItem = nonNegative(request.packageFeePerItem());
+    BigDecimal distanceExtraThresholdKm = nonNegative(request.distanceExtraThresholdKm());
+    BigDecimal distanceExtraFee = nonNegative(request.distanceExtraFee());
+    BigDecimal distanceExtraStepKm = request.distanceExtraStepKm() == null || request.distanceExtraStepKm().compareTo(BigDecimal.ZERO) <= 0
+        ? BigDecimal.ONE
+        : request.distanceExtraStepKm();
+    tradeRepository.upsertDeliveryRule(
+        storeId,
+        request.deliveryFee(),
+        request.startPrice(),
+        request.estimatedMinutes(),
+        request.maxDeliveryDistanceKm(),
+        packageFeeMode,
+        packageFeeFixed,
+        packageFeePerItem,
+        distanceExtraThresholdKm,
+        distanceExtraFee,
+        distanceExtraStepKm,
+        deliveryText);
     CurrentUser current = CurrentUserContext.required();
     tradeRepository.insertAuditLog(current.accountType().name().toLowerCase(), current.accountId(), "delivery_rule_update", "store", storeId, deliveryText);
     return getDeliveryRule(storeId);
@@ -391,7 +414,7 @@ class TradeService {
 
   CheckoutContext previewForOrder(CreateOrderRequest request) {
     TradeContext context = loadTradeContext(request.storeId(), request.businessType(), request.addressId(), request.items());
-    return new CheckoutContext(context, buildPreview(context, request.remark()));
+    return new CheckoutContext(context, buildPreview(context, request.remark(), tablewareSelection(request.tablewareOption(), request.tablewareCount())));
   }
 
   private OrderDetailView buildOrderDetail(TradeRepository.OrderRow order) {
@@ -421,13 +444,18 @@ class TradeService {
         order.title(),
         order.amount(),
         order.deliveryFee(),
+        order.packageFee(),
         order.discountAmount(),
         order.payableAmount(),
         order.addressSnapshot(),
         order.deliveryDistanceKm(),
         order.estimatedArrivalAt(),
-        arrivalText(order.estimatedArrivalAt()),
+        shouldShowArrivalText(order) ? arrivalText(order.estimatedArrivalAt()) : null,
+        deliveryCompletionText(order),
         order.voucherSummary(),
+        order.tablewareOption(),
+        order.tablewareCount(),
+        tablewareText(order.tablewareOption(), order.tablewareCount()),
         order.remark(),
         order.createdAt(),
         order.paidAt(),
@@ -635,11 +663,34 @@ class TradeService {
   }
 
   private DeliveryRuleOpsView toDeliveryRuleOpsView(long storeId, TradeRepository.DeliveryRuleRow row) {
-    return new DeliveryRuleOpsView(storeId, row.deliveryFee(), row.startPrice(), row.estimatedMinutes(), row.maxDeliveryDistanceKm(), row.deliveryText());
+    return new DeliveryRuleOpsView(
+        storeId,
+        row.deliveryFee(),
+        row.startPrice(),
+        row.estimatedMinutes(),
+        row.maxDeliveryDistanceKm(),
+        row.packageFeeMode(),
+        row.packageFeeFixed(),
+        row.packageFeePerItem(),
+        row.distanceExtraThresholdKm(),
+        row.distanceExtraFee(),
+        row.distanceExtraStepKm(),
+        row.deliveryText());
   }
 
   private TradeRepository.DeliveryRuleRow defaultDeliveryRule() {
-    return new TradeRepository.DeliveryRuleRow(BigDecimal.ZERO, BigDecimal.ZERO, 35, DEFAULT_MAX_DELIVERY_DISTANCE_KM, "");
+    return new TradeRepository.DeliveryRuleRow(
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        35,
+        DEFAULT_MAX_DELIVERY_DISTANCE_KM,
+        "none",
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ZERO,
+        BigDecimal.ONE,
+        "");
   }
 
   private String normalizeItemStatusFilter(String status) {
@@ -656,6 +707,43 @@ class TradeService {
       case "off_sale", "offline", "下架", "停售" -> "off_sale";
       default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "商品状态只能是 on_sale 或 off_sale");
     };
+  }
+
+  private String normalizePackageFeeMode(String mode) {
+    String value = mode == null ? "none" : mode.trim().toLowerCase();
+    return switch (value) {
+      case "none", "fixed", "per_item" -> value;
+      default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "打包费模式不支持");
+    };
+  }
+
+  private BigDecimal nonNegative(BigDecimal value) {
+    if (value == null) return BigDecimal.ZERO;
+    if (value.compareTo(BigDecimal.ZERO) < 0) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "费用不能为负数");
+    }
+    return value;
+  }
+
+  private BigDecimal valueOrZero(BigDecimal value) {
+    return value == null ? BigDecimal.ZERO : value;
+  }
+
+  private TablewareSelection tablewareSelection(String option, Integer count) {
+    String value = option == null || option.isBlank() ? "merchant_decide" : option.trim().toLowerCase();
+    return switch (value) {
+      case "none" -> new TablewareSelection("none", null, "无需餐具");
+      case "by_people" -> {
+        int people = count == null || count < 1 ? 1 : count;
+        yield new TablewareSelection("by_people", people, "按 " + people + " 人提供餐具");
+      }
+      case "merchant_decide" -> new TablewareSelection("merchant_decide", null, "商家按餐量提供餐具");
+      default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "餐具选项不支持");
+    };
+  }
+
+  private String tablewareText(String option, Integer count) {
+    return tablewareSelection(option, count).text();
   }
 
   private String normalizeAcceptMode(String acceptMode) {
@@ -714,7 +802,7 @@ class TradeService {
     };
   }
 
-  private CheckoutPreviewView buildPreview(TradeContext context, String remark) {
+  private CheckoutPreviewView buildPreview(TradeContext context, String remark, TablewareSelection tableware) {
     BigDecimal amount = BigDecimal.ZERO;
     List<CheckoutItemView> itemViews = new ArrayList<>();
     for (TradeItem tradeItem : context.items()) {
@@ -730,22 +818,32 @@ class TradeService {
           tradeItem.row().categoryId(),
           tradeItem.row().categoryName()));
     }
+    DeliveryQuote quote = deliveryQuote(context);
+    BigDecimal distanceExtraFee = quote.distanceExtraFee() == null ? BigDecimal.ZERO : quote.distanceExtraFee();
     BigDecimal deliveryFee = BigDecimal.ZERO;
     if (TAKEAWAY.equals(context.store().businessType()) && context.deliveryRule() != null) {
-      deliveryFee = context.deliveryRule().deliveryFee();
+      deliveryFee = context.deliveryRule().deliveryFee().add(distanceExtraFee);
     }
+    BigDecimal packageFee = packageFee(context);
     BigDecimal discountAmount = BigDecimal.ZERO;
-    BigDecimal payableAmount = amount.add(deliveryFee).subtract(discountAmount);
-    DeliveryQuote quote = deliveryQuote(context);
+    BigDecimal payableAmount = amount.add(deliveryFee).add(packageFee).subtract(discountAmount);
+    BigDecimal startPrice = startPrice(context);
+    BigDecimal startPriceMissing = startPriceMissing(amount, startPrice);
+    boolean minimumOrderMet = startPriceMissing.compareTo(BigDecimal.ZERO) <= 0;
     return new CheckoutPreviewView(
         context.store().id(),
         context.store().storeName(),
         context.store().businessType(),
         context.address() == null ? null : formatAddress(context.address()),
         deliveryFee,
+        packageFee,
+        distanceExtraFee,
         amount,
         payableAmount,
         discountAmount,
+        startPrice,
+        startPriceMissing,
+        minimumOrderMet,
         quote.distanceKm(),
         quote.maxDistanceKm(),
         quote.estimatedMinutes(),
@@ -753,12 +851,15 @@ class TradeService {
         arrivalText(quote.estimatedArrivalAt()),
         quote.deliverable(),
         quote.unavailableReason(),
+        tableware.option(),
+        tableware.count(),
+        tableware.text(),
         itemViews,
         remark);
   }
 
-  private OrderInsert buildOrderInsert(TradeContext context, String remark, String idempotencyKey, DeliveryQuote quote) {
-    CheckoutPreviewView preview = buildPreview(context, remark);
+  private OrderInsert buildOrderInsert(TradeContext context, String remark, String idempotencyKey, DeliveryQuote quote, TablewareSelection tableware) {
+    CheckoutPreviewView preview = buildPreview(context, remark, tableware);
     String orderType = context.store().businessType();
     String title = context.items().size() == 1 ? context.items().get(0).row().title() : context.items().get(0).row().title() + "等" + context.items().size() + "件";
     String orderNo = "AT" + System.currentTimeMillis();
@@ -775,12 +876,15 @@ class TradeService {
         null,
         preview.amount(),
         preview.deliveryFee(),
+        preview.packageFee(),
         preview.discountAmount(),
         preview.payableAmount(),
         addressSnapshot,
         quote.distanceKm(),
         quote.estimatedArrivalAt(),
         null,
+        tableware.option(),
+        tableware.count(),
         remark,
         idempotencyKey,
         orderNo));
@@ -863,18 +967,18 @@ class TradeService {
 
   private DeliveryQuote deliveryQuote(TradeContext context) {
     if (!TAKEAWAY.equals(context.store().businessType())) {
-      return new DeliveryQuote(null, null, null, null, true, null);
+      return new DeliveryQuote(null, null, BigDecimal.ZERO, null, null, true, null);
     }
     TradeRepository.DeliveryRuleRow rule = context.deliveryRule() == null ? defaultDeliveryRule() : context.deliveryRule();
     BigDecimal maxDistance = rule.maxDeliveryDistanceKm() == null ? DEFAULT_MAX_DELIVERY_DISTANCE_KM : rule.maxDeliveryDistanceKm();
     if (context.address() == null) {
-      return new DeliveryQuote(null, maxDistance, null, null, false, "请先新增或选择收货地址");
+      return new DeliveryQuote(null, maxDistance, BigDecimal.ZERO, null, null, false, "请先新增或选择收货地址");
     }
     if (context.address().longitude() == null || context.address().latitude() == null) {
-      return new DeliveryQuote(null, maxDistance, null, null, false, "该地址缺少定位坐标，请编辑地址并使用当前位置重新定位");
+      return new DeliveryQuote(null, maxDistance, BigDecimal.ZERO, null, null, false, "该地址缺少定位坐标，请编辑地址并使用当前位置重新定位");
     }
     if (context.store().longitude() == null || context.store().latitude() == null) {
-      return new DeliveryQuote(null, maxDistance, null, null, false, "商家暂未配置可配送位置，请稍后再试");
+      return new DeliveryQuote(null, maxDistance, BigDecimal.ZERO, null, null, false, "商家暂未配置可配送位置，请稍后再试");
     }
     double userLatitude = context.address().latitude().doubleValue();
     double userLongitude = context.address().longitude().doubleValue();
@@ -883,13 +987,78 @@ class TradeService {
     double distance = mapDistanceService.distanceKm(userLatitude, userLongitude, storeLatitude, storeLongitude);
     BigDecimal distanceKm = BigDecimal.valueOf(distance).setScale(2, RoundingMode.HALF_UP);
     if (distanceKm.compareTo(maxDistance) > 0) {
-      return new DeliveryQuote(distanceKm, maxDistance, null, null, false,
+      return new DeliveryQuote(distanceKm, maxDistance, BigDecimal.ZERO, null, null, false,
           "超出商家可配送范围，当前距离 " + distanceKm.stripTrailingZeros().toPlainString() + "km，商家最多配送 " + maxDistance.stripTrailingZeros().toPlainString() + "km");
     }
     MapDistanceService.DistanceEstimate estimate = mapDistanceService.estimate(userLatitude, userLongitude, storeLatitude, storeLongitude);
     int estimatedMinutes = Math.max(rule.estimatedMinutes(), parseEstimatedMinutes(estimate.estimatedTimeText(), rule.estimatedMinutes()));
     LocalDateTime arrivalAt = LocalDateTime.now().plusMinutes(estimatedMinutes);
-    return new DeliveryQuote(distanceKm, maxDistance, estimatedMinutes, arrivalAt, true, null);
+    return new DeliveryQuote(distanceKm, maxDistance, distanceExtraFee(rule, distanceKm), estimatedMinutes, arrivalAt, true, null);
+  }
+
+  private BigDecimal distanceExtraFee(TradeRepository.DeliveryRuleRow rule, BigDecimal distanceKm) {
+    if (distanceKm == null || rule.distanceExtraFee() == null || rule.distanceExtraFee().compareTo(BigDecimal.ZERO) <= 0) {
+      return BigDecimal.ZERO;
+    }
+    BigDecimal threshold = rule.distanceExtraThresholdKm() == null ? BigDecimal.ZERO : rule.distanceExtraThresholdKm();
+    if (threshold.compareTo(BigDecimal.ZERO) <= 0 || distanceKm.compareTo(threshold) <= 0) {
+      return BigDecimal.ZERO;
+    }
+    BigDecimal step = rule.distanceExtraStepKm() == null || rule.distanceExtraStepKm().compareTo(BigDecimal.ZERO) <= 0
+        ? BigDecimal.ONE
+        : rule.distanceExtraStepKm();
+    BigDecimal steps = distanceKm.subtract(threshold).divide(step, 0, RoundingMode.CEILING);
+    return rule.distanceExtraFee().multiply(steps).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal packageFee(TradeContext context) {
+    if (!TAKEAWAY.equals(context.store().businessType()) || context.deliveryRule() == null) {
+      return BigDecimal.ZERO;
+    }
+    TradeRepository.DeliveryRuleRow rule = context.deliveryRule();
+    String mode = rule.packageFeeMode() == null ? "none" : rule.packageFeeMode();
+    return switch (mode) {
+      case "fixed" -> valueOrZero(rule.packageFeeFixed());
+      case "per_item" -> valueOrZero(rule.packageFeePerItem()).multiply(BigDecimal.valueOf(totalQuantity(context.items()))).setScale(2, RoundingMode.HALF_UP);
+      default -> BigDecimal.ZERO;
+    };
+  }
+
+  private int totalQuantity(List<TradeItem> items) {
+    return items.stream().mapToInt(TradeItem::quantity).sum();
+  }
+
+  private BigDecimal startPrice(TradeContext context) {
+    if (!TAKEAWAY.equals(context.store().businessType()) || context.deliveryRule() == null) {
+      return BigDecimal.ZERO;
+    }
+    return valueOrZero(context.deliveryRule().startPrice()).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal startPriceMissing(BigDecimal amount, BigDecimal startPrice) {
+    BigDecimal missing = startPrice.subtract(amount == null ? BigDecimal.ZERO : amount);
+    return missing.compareTo(BigDecimal.ZERO) <= 0 ? BigDecimal.ZERO : missing.setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private void requireMinimumOrder(TradeContext context) {
+    BigDecimal startPrice = startPrice(context);
+    if (startPrice.compareTo(BigDecimal.ZERO) <= 0) {
+      return;
+    }
+    BigDecimal amount = context.items().stream()
+        .map(item -> item.row().price().multiply(BigDecimal.valueOf(item.quantity())))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal missing = startPriceMissing(amount, startPrice);
+    if (missing.compareTo(BigDecimal.ZERO) > 0) {
+      throw new BusinessException(
+          ErrorCode.BUSINESS_RULE_VIOLATION,
+          "商品金额还差￥" + moneyText(missing) + "起送，配送费和打包费不计入起送金额");
+    }
+  }
+
+  private String moneyText(BigDecimal value) {
+    BigDecimal normalized = value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros();
+    return normalized.toPlainString();
   }
 
   private int parseEstimatedMinutes(String text, int fallback) {
@@ -914,6 +1083,30 @@ class TradeService {
       return true;
     }
     return DisplayOrderStatus.PENDING.code().equals(order.displayStatus()) && "merchant_pending".equals(order.fulfillmentStatus());
+  }
+
+  private boolean shouldShowArrivalText(TradeRepository.OrderRow order) {
+    return !("delivered".equals(order.fulfillmentStatus()) || "completed".equals(order.fulfillmentStatus()));
+  }
+
+  private String deliveryCompletionText(TradeRepository.OrderRow order) {
+    if (!("delivered".equals(order.fulfillmentStatus()) || "completed".equals(order.fulfillmentStatus()))) {
+      return null;
+    }
+    if (order.completedAt() == null) {
+      return "已送达";
+    }
+    String text = "已送达 " + order.completedAt().format(ARRIVAL_TIME_FORMATTER);
+    if (order.estimatedArrivalAt() != null) {
+      long minutes = java.time.Duration.between(order.completedAt(), order.estimatedArrivalAt()).toMinutes();
+      if (minutes > 0) {
+        return text + "，提前 " + minutes + " 分钟";
+      }
+      if (minutes < 0) {
+        return text + "，晚于预计 " + Math.abs(minutes) + " 分钟";
+      }
+    }
+    return text;
   }
 
   private String arrivalText(LocalDateTime estimatedArrivalAt) {
@@ -1096,9 +1289,12 @@ class TradeService {
 
   private record OrderInsert(TradeRepository.OrderInsertRow row) {}
 
+  private record TablewareSelection(String option, Integer count, String text) {}
+
   private record DeliveryQuote(
       BigDecimal distanceKm,
       BigDecimal maxDistanceKm,
+      BigDecimal distanceExtraFee,
       Integer estimatedMinutes,
       LocalDateTime estimatedArrivalAt,
       boolean deliverable,

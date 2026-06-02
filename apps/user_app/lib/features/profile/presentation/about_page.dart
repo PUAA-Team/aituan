@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 
 class AboutPage extends StatelessWidget {
@@ -42,7 +43,10 @@ class AboutPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('爱团', style: Theme.of(context).textTheme.headlineSmall),
+                        Text(
+                          '爱团',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           '本地生活一站式服务平台',
@@ -51,7 +55,7 @@ class AboutPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Text('v1.0.9'),
+                  const Text('v1.0.13'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -72,12 +76,22 @@ class AboutPage extends StatelessWidget {
         ),
         AppCard(
           child: Column(
-            children: const [
-              _LinkRow(title: '用户协议'),
-              Divider(),
-              _LinkRow(title: '隐私政策'),
-              Divider(),
-              _LinkRow(title: '平台资质与客服'),
+            children: [
+              _LinkRow(
+                title: '用户协议',
+                onTap: () => Navigator.pushNamed(context, Routes.userAgreement),
+              ),
+              const Divider(),
+              _LinkRow(
+                title: '隐私政策',
+                onTap: () => Navigator.pushNamed(context, Routes.privacyPolicy),
+              ),
+              const Divider(),
+              _LinkRow(
+                title: '平台资质与客服',
+                onTap: () =>
+                    Navigator.pushNamed(context, Routes.qualificationSupport),
+              ),
             ],
           ),
         ),
@@ -106,9 +120,10 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _LinkRow extends StatelessWidget {
-  const _LinkRow({required this.title});
+  const _LinkRow({required this.title, required this.onTap});
 
   final String title;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -116,5 +131,6 @@ class _LinkRow extends StatelessWidget {
     visualDensity: VisualDensity.compact,
     title: Text(title, style: Theme.of(context).textTheme.titleSmall),
     trailing: const Icon(Icons.chevron_right, color: AppColors.textLight),
+    onTap: onTap,
   );
 }

@@ -28,6 +28,7 @@ import type {
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const tokenKey = 'aituan_merchant_token';
+const accountKey = 'aituan_merchant_account';
 
 interface RequestOptions {
   method?: string;
@@ -47,6 +48,10 @@ export function clearToken() {
   localStorage.removeItem(tokenKey);
 }
 
+export function setSavedAccount(account: string) {
+  localStorage.setItem(accountKey, account);
+}
+
 export function resolveAssetUrl(path?: string) {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -60,6 +65,7 @@ export async function login(account: string, password: string) {
     auth: false,
   });
   setToken(response.token);
+  setSavedAccount(account);
   return response;
 }
 
@@ -214,6 +220,12 @@ export function updateDeliveryRule(storeId: number, rule: DeliveryRule) {
       startPrice: rule.startPrice,
       estimatedMinutes: rule.estimatedMinutes,
       maxDeliveryDistanceKm: rule.maxDeliveryDistanceKm,
+      packageFeeMode: rule.packageFeeMode,
+      packageFeeFixed: rule.packageFeeFixed,
+      packageFeePerItem: rule.packageFeePerItem,
+      distanceExtraThresholdKm: rule.distanceExtraThresholdKm,
+      distanceExtraFee: rule.distanceExtraFee,
+      distanceExtraStepKm: rule.distanceExtraStepKm,
       deliveryText: rule.deliveryText,
     },
   });
@@ -269,6 +281,12 @@ export function createCategory(payload: { storeId?: number; businessType: string
   return request<CatalogCategory>('/api/merchant/catalog/categories', {
     method: 'POST',
     body: payload,
+  });
+}
+
+export function deleteCategory(categoryId: number) {
+  return request<void>(`/api/merchant/catalog/categories/${categoryId}`, {
+    method: 'DELETE',
   });
 }
 

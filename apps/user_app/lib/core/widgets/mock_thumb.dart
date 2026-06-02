@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_tokens.dart';
-import '../network/app_api_client.dart';
+import 'cached_app_image.dart';
 
 class MockThumb extends StatelessWidget {
   const MockThumb({
@@ -32,30 +32,21 @@ class MockThumb extends StatelessWidget {
   Widget build(BuildContext context) {
     final boxWidth = width ?? size;
     final boxHeight = height ?? size;
-    final image = imageUrl?.trim();
+    final placeholder = _PlaceholderThumb(
+      width: boxWidth,
+      height: boxHeight,
+      icon: icon,
+      label: label,
+      accentColor: accentColor,
+    );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius ?? AppTokens.radiusSmall),
-      child: image == null || image.isEmpty
-          ? _PlaceholderThumb(
-              width: boxWidth,
-              height: boxHeight,
-              icon: icon,
-              label: label,
-              accentColor: accentColor,
-            )
-          : Image.network(
-              AppApiClient.resolvePublicUrl(image),
-              width: boxWidth,
-              height: boxHeight,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => _PlaceholderThumb(
-                width: boxWidth,
-                height: boxHeight,
-                icon: icon,
-                label: label,
-                accentColor: accentColor,
-              ),
-            ),
+      child: CachedAppImage(
+        imageUrl: imageUrl,
+        width: boxWidth,
+        height: boxHeight,
+        placeholder: placeholder,
+      ),
     );
   }
 }

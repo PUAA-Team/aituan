@@ -20,6 +20,16 @@ spring:
       max-file-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
       max-request-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
 
+  mail:
+    host: ${AITUAN_MAIL_HOST:smtp.qq.com}
+    port: ${AITUAN_MAIL_PORT:465}
+    username: ${AITUAN_MAIL_USERNAME:}
+    password: ${AITUAN_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: ${AITUAN_MAIL_SSL_ENABLE:true}
+      mail.smtp.starttls.enable: ${AITUAN_MAIL_STARTTLS_ENABLE:false}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -35,7 +45,7 @@ management:
 aituan:
   security:
     jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
-    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:604800}
+    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
   upload:
     strategy: ${AITUAN_UPLOAD_STRATEGY:local}
     root-dir: ${AITUAN_UPLOAD_ROOT:D:/aituan_runtime/uploads}
@@ -47,6 +57,11 @@ aituan:
       strategy-id: ${AITUAN_UPLOAD_LSKYPRO_STRATEGY_ID:}
       album-id: ${AITUAN_UPLOAD_LSKYPRO_ALBUM_ID:}
       permission: ${AITUAN_UPLOAD_LSKYPRO_PERMISSION:1}
+  mail:
+    enabled: ${AITUAN_MAIL_ENABLED:false}
+    debug-return-code: ${AITUAN_MAIL_DEBUG_RETURN_CODE:true}
+    from: ${AITUAN_MAIL_FROM:${AITUAN_MAIL_USERNAME:}}
+    from-name: ${AITUAN_MAIL_FROM_NAME:爱团}
   map:
     provider: ${AITUAN_MAP_PROVIDER:local}
     amap:

@@ -10,6 +10,7 @@ import '../../../core/widgets/section_header.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
 import '../../../shared/models/module_entry.dart';
+import '../../location/presentation/location_picker_button.dart';
 import '../../merchant/presentation/merchant_item_cards.dart';
 import '../data/backend_app_repository.dart';
 
@@ -81,6 +82,8 @@ class _ModulePageState extends State<ModulePage> {
               hint: '搜索${widget.module.title}商家和服务',
               onTap: () => Navigator.pushNamed(context, Routes.search),
             ),
+            const SizedBox(height: 8),
+            LocationPickerButton(compact: true, onLocationChanged: _load),
             const SizedBox(height: 6),
             const SectionHeader(title: '热门推荐', action: '爱团优选'),
             _HotRow(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/cached_app_image.dart';
 import '../../home/data/backend_app_repository.dart';
 import '../data/review_repository.dart';
 
@@ -47,7 +48,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
 
   Future<void> _toggleHelpful() async {
     try {
-      final (helpful, count) = await reviewRepository.toggleHelpful(widget.reviewId);
+      final (helpful, count) = await reviewRepository.toggleHelpful(
+        widget.reviewId,
+      );
       if (!mounted) return;
       setState(() {
         if (_review != null) {
@@ -73,7 +76,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('操作失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('操作失败：$e')));
     }
   }
 
@@ -84,7 +89,10 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
         title: const Text('选择举报原因'),
         children: [
           for (final r in const ['广告/营销', '辱骂攻击', '虚假内容', '违法违规', '其他'])
-            SimpleDialogOption(child: Text(r), onPressed: () => Navigator.pop(context, r)),
+            SimpleDialogOption(
+              child: Text(r),
+              onPressed: () => Navigator.pop(context, r),
+            ),
         ],
       ),
     );
@@ -92,10 +100,14 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
     try {
       await reviewRepository.report(widget.reviewId, reason);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已提交举报，我们将尽快审核')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已提交举报，我们将尽快审核')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('举报失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('举报失败：$e')));
     }
   }
 
@@ -106,8 +118,8 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : (_error != null
-              ? Center(child: Text(_error!))
-              : _buildBody(_review!)),
+                ? Center(child: Text(_error!))
+                : _buildBody(_review!)),
     );
   }
 
@@ -126,7 +138,11 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
               Row(
                 children: [
                   for (var i = 0; i < 5; i++)
-                    Icon(i < r.rating ? Icons.star : Icons.star_border, size: 18, color: Colors.orange),
+                    Icon(
+                      i < r.rating ? Icons.star : Icons.star_border,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -153,11 +169,18 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: r.labels.map((l) => Chip(label: Text(l), padding: EdgeInsets.zero)).toList(),
+                  children: r.labels
+                      .map(
+                        (l) => Chip(label: Text(l), padding: EdgeInsets.zero),
+                      )
+                      .toList(),
                 ),
               ],
               const SizedBox(height: 8),
-              Text('发布时间：${r.createdAt}', style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                '发布时间：${r.createdAt}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
@@ -171,7 +194,10 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                 Text(r.replyContent!),
                 if (r.repliedAt != null) ...[
                   const SizedBox(height: 6),
-                  Text('回复时间：${r.repliedAt}', style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    '回复时间：${r.repliedAt}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ],
             ),
@@ -180,7 +206,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
           child: Row(
             children: [
               TextButton.icon(
-                icon: Icon(r.helpfulByMe ? Icons.thumb_up : Icons.thumb_up_outlined),
+                icon: Icon(
+                  r.helpfulByMe ? Icons.thumb_up : Icons.thumb_up_outlined,
+                ),
                 label: Text('有用 ${r.helpfulCount}'),
                 onPressed: _toggleHelpful,
               ),
@@ -209,10 +237,10 @@ class _ReviewImage extends StatelessWidget {
     if (resolved == null) {
       return Container(color: Colors.grey.shade200);
     }
-    return Image.network(
-      resolved,
+    return CachedAppImage(
+      imageUrl: resolved,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => Container(
+      placeholder: Container(
         color: Colors.grey.shade200,
         alignment: Alignment.center,
         child: const Icon(Icons.broken_image_outlined, color: Colors.grey),

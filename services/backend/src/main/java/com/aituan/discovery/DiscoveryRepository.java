@@ -35,13 +35,13 @@ class DiscoveryRepository {
                i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
                s.longitude as store_longitude, s.latitude as store_latitude,
                s.rating as store_rating, s.monthly_sales as store_monthly_sales,
-               i.sort_order,
+               i.sort_order, i.sales_count,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
                i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
-        from member_recommend_config r
-        join catalog_item i on i.id = r.item_id and i.is_deleted = 0 and i.status = 'on_sale'
-        join catalog_category c on c.id = i.category_id
-        join merchant_store s on s.id = i.store_id
+        from catalog_item i
+        join catalog_category c on c.id = i.category_id and c.is_deleted = 0 and c.status = 'normal'
+        join merchant_store s on s.id = i.store_id and s.is_deleted = 0 and s.status = 'open'
+        left join member_recommend_config r on r.item_id = i.id and r.scene = 'home_recommend' and r.status = 'normal'
         left join (
           select item_id,
                  sum(case when status = 'on_sale' then stock else 0 end) as stock,
@@ -50,8 +50,14 @@ class DiscoveryRepository {
           where is_deleted = 0
           group by item_id
         ) sku on sku.item_id = i.id
-        where r.scene = 'home_recommend' and r.status = 'normal'
-        order by r.sort_order, r.id
+        where i.is_deleted = 0 and i.status = 'on_sale'
+        order by case when r.id is null then 1 else 0 end,
+                 coalesce(r.sort_order, 999999),
+                 i.sales_count desc,
+                 s.monthly_sales desc,
+                 s.rating desc,
+                 i.sort_order,
+                 i.id
         limit ? offset ?
         """,
         this::mapItem,
@@ -61,7 +67,13 @@ class DiscoveryRepository {
 
   long countRecommendations() {
     Long count = jdbcTemplate.queryForObject(
-        "select count(1) from member_recommend_config where scene = 'home_recommend' and status = 'normal'",
+        """
+        select count(1)
+        from catalog_item i
+        join catalog_category c on c.id = i.category_id and c.is_deleted = 0 and c.status = 'normal'
+        join merchant_store s on s.id = i.store_id and s.is_deleted = 0 and s.status = 'open'
+        where i.is_deleted = 0 and i.status = 'on_sale'
+        """,
         Long.class);
     return count == null ? 0 : count;
   }
@@ -88,7 +100,7 @@ class DiscoveryRepository {
                i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
                s.longitude as store_longitude, s.latitude as store_latitude,
                s.rating as store_rating, s.monthly_sales as store_monthly_sales,
-               i.sort_order,
+               i.sort_order, i.sales_count,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
                i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
@@ -132,7 +144,7 @@ class DiscoveryRepository {
                i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
                s.longitude as store_longitude, s.latitude as store_latitude,
                s.rating as store_rating, s.monthly_sales as store_monthly_sales,
-               i.sort_order,
+               i.sort_order, i.sales_count,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
                i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
@@ -173,7 +185,7 @@ class DiscoveryRepository {
                i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
                s.longitude as store_longitude, s.latitude as store_latitude,
                s.rating as store_rating, s.monthly_sales as store_monthly_sales,
-               i.sort_order,
+               i.sort_order, i.sales_count,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
                i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
@@ -195,14 +207,18 @@ class DiscoveryRepository {
   }
 
   List<ItemRow> searchItems(long storeId, String keyword, int limit) {
-    String like = "%" + keyword + "%";
+    String normalized = keyword == null ? "" : keyword.trim();
+    if (normalized.isEmpty()) {
+      return listStoreItemsForFill(storeId, List.of(), List.of(), limit);
+    }
+    String like = "%" + normalized + "%";
     return jdbcTemplate.query(
         """
         select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
                i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
                s.longitude as store_longitude, s.latitude as store_latitude,
                s.rating as store_rating, s.monthly_sales as store_monthly_sales,
-               i.sort_order,
+               i.sort_order, i.sales_count,
                coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
                i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
         from catalog_item i
@@ -229,8 +245,63 @@ class DiscoveryRepository {
         limit);
   }
 
+  List<ItemRow> listStoreItemsForFill(long storeId, List<Long> excludedItemIds, List<Long> preferredCategoryIds, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select i.id, i.item_name, i.subtitle, i.business_type, i.category_id, c.category_name,
+               i.price, i.original_price, i.cover_url, i.tag_text, i.store_id, s.store_name,
+               s.longitude as store_longitude, s.latitude as store_latitude,
+               s.rating as store_rating, s.monthly_sales as store_monthly_sales,
+               i.sort_order, i.sales_count,
+               coalesce(sku.stock, 0) as stock, coalesce(sku.sku_status, 'sold_out') as sku_status,
+               i.business_attributes, i.usage_rules, i.refund_policy, i.notice, i.validity_days
+        from catalog_item i
+        join catalog_category c on c.id = i.category_id
+        join merchant_store s on s.id = i.store_id
+        left join (
+          select item_id,
+                 sum(case when status = 'on_sale' then stock else 0 end) as stock,
+                 max(case when status = 'on_sale' then 'on_sale' else status end) as sku_status
+          from catalog_sku
+          where is_deleted = 0
+          group by item_id
+        ) sku on sku.item_id = i.id
+        where i.store_id = ? and i.is_deleted = 0 and i.status = 'on_sale'
+        """);
+    List<Object> params = new java.util.ArrayList<>();
+    params.add(storeId);
+    if (excludedItemIds != null && !excludedItemIds.isEmpty()) {
+      sql.append(" and i.id not in (").append("?,".repeat(excludedItemIds.size()).replaceAll(",$", "")).append(")");
+      params.addAll(excludedItemIds);
+    }
+    if (preferredCategoryIds != null && !preferredCategoryIds.isEmpty()) {
+      sql.append(" order by case when i.category_id in (")
+          .append("?,".repeat(preferredCategoryIds.size()).replaceAll(",$", ""))
+          .append(") then 0 else 1 end, c.sort_order, i.sort_order, i.sales_count desc, i.id");
+      params.addAll(preferredCategoryIds);
+    } else {
+      sql.append(" order by c.sort_order, i.sort_order, i.sales_count desc, i.id");
+    }
+    sql.append(" limit ?");
+    params.add(limit);
+    return jdbcTemplate.query(sql.toString(), this::mapItem, params.toArray());
+  }
+
   List<StoreRow> searchStores(String keyword, int limit) {
-    String like = "%" + keyword + "%";
+    String normalized = keyword == null ? "" : keyword.trim();
+    if (normalized.isEmpty()) {
+      return jdbcTemplate.query(
+          """
+          select s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
+                 s.longitude, s.latitude, s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
+          from merchant_store s
+          where s.is_deleted = 0 and s.status = 'open'
+          order by s.monthly_sales desc, s.rating desc, s.id
+          limit ?
+          """,
+          this::mapStore,
+          limit);
+    }
+    String like = "%" + normalized + "%";
     return jdbcTemplate.query(
         """
         select distinct s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
@@ -300,11 +371,21 @@ class DiscoveryRepository {
 
   Optional<DeliveryRuleRow> findDeliveryRule(long storeId) {
     List<DeliveryRuleRow> rows = jdbcTemplate.query(
-        "select delivery_fee, estimated_minutes, start_price, delivery_text from merchant_delivery_rule where store_id = ? and is_deleted = 0 limit 1",
+        """
+        select delivery_fee, estimated_minutes, start_price, package_fee_fixed, package_fee_per_item,
+               package_fee_mode, distance_extra_threshold_km, distance_extra_fee, distance_extra_step_km, delivery_text
+        from merchant_delivery_rule where store_id = ? and is_deleted = 0 limit 1
+        """,
         (rs, rowNum) -> new DeliveryRuleRow(
             rs.getBigDecimal("delivery_fee"),
             rs.getInt("estimated_minutes"),
             rs.getBigDecimal("start_price"),
+            rs.getBigDecimal("package_fee_fixed"),
+            rs.getBigDecimal("package_fee_per_item"),
+            rs.getString("package_fee_mode"),
+            rs.getBigDecimal("distance_extra_threshold_km"),
+            rs.getBigDecimal("distance_extra_fee"),
+            rs.getBigDecimal("distance_extra_step_km"),
             rs.getString("delivery_text")),
         storeId);
     return rows.stream().findFirst();
@@ -365,6 +446,7 @@ class DiscoveryRepository {
         rs.getBigDecimal("store_rating"),
         rs.getInt("store_monthly_sales"),
         rs.getInt("sort_order"),
+        rs.getInt("sales_count"),
         rs.getInt("stock"),
         rs.getString("sku_status"),
         rs.getString("business_attributes"),
@@ -414,6 +496,7 @@ class DiscoveryRepository {
       BigDecimal storeRating,
       int storeMonthlySales,
       int sortOrder,
+      int salesCount,
       int stock,
       String skuStatus,
       String businessAttributes,
@@ -424,5 +507,15 @@ class DiscoveryRepository {
 
   record ReviewSummaryRow(BigDecimal rating, long count, List<String> highlights) {}
 
-  record DeliveryRuleRow(BigDecimal deliveryFee, int estimatedMinutes, BigDecimal startPrice, String deliveryText) {}
+  record DeliveryRuleRow(
+      BigDecimal deliveryFee,
+      int estimatedMinutes,
+      BigDecimal startPrice,
+      BigDecimal packageFeeFixed,
+      BigDecimal packageFeePerItem,
+      String packageFeeMode,
+      BigDecimal distanceExtraThresholdKm,
+      BigDecimal distanceExtraFee,
+      BigDecimal distanceExtraStepKm,
+      String deliveryText) {}
 }

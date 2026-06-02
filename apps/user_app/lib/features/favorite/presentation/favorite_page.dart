@@ -4,7 +4,6 @@ import '../../../app/route_args.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
-import '../../../core/widgets/brand_tag.dart';
 import '../../../core/widgets/mock_thumb.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../home/data/backend_app_repository.dart';
@@ -167,8 +166,6 @@ class _FavoriteCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 8),
-        BrandTag(favorite.favoriteType, emphasis: true),
       ],
     ),
   );

@@ -4,6 +4,7 @@ import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
 import '../../location/application/location_state.dart';
 import '../../../core/network/app_api_client.dart';
+import '../../../core/storage/auth_storage.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/address_model.dart';
 import '../../../shared/models/item_model.dart';
@@ -28,12 +29,24 @@ class BackendAppRepository {
     return AuthSession.fromApi(_map(json['data']));
   }
 
+  Future<AuthSession?> checkToken(String token) async {
+    await appState.restoreToken(token);
+    try {
+      final json = await _get('/api/open/auth/token/check');
+      final data = _map(json['data']);
+      if (data['valid'] != true || data['profile'] == null) return null;
+      return AuthSession.fromTokenProfile(token, _map(data['profile']));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<String> sendEmailCode(String email, String scene) async {
     final json = await _post('/api/open/auth/email-code', {
       'email': email,
       'scene': scene,
     });
-    return _string(_map(json['data'])['code']);
+    return _nullableString(_map(json['data'])['code']) ?? '';
   }
 
   Future<AuthSession> register({
@@ -66,23 +79,31 @@ class BackendAppRepository {
   Future<HomeData> fetchHome() async {
     final json = await _get(_withLocation('/api/app/discovery/home'));
     final data = _map(json['data']);
-    final recommendations = _pageItems(data['recommendations']);
+    final recommendations = ItemPageData.fromApi(_map(data['recommendations']));
     return HomeData(
       modules: _modules(data['modules']),
-      recommendations: recommendations,
+      recommendations: recommendations.list,
+      recommendationPage: recommendations,
       unreadMessageCount: _int(data['unreadMessageCount']),
     );
   }
 
-  Future<List<ItemModel>> fetchRecommendations() async {
+  Future<ItemPageData> fetchRecommendations({
+    int page = 1,
+    int pageSize = 12,
+  }) async {
     final json = await _get(
-      _withLocation('/api/app/discovery/recommendations?page=1&pageSize=12'),
+      _withLocation(
+        '/api/app/discovery/recommendations?page=$page&pageSize=$pageSize',
+      ),
     );
-    return _pageItems(_map(json['data']));
+    return ItemPageData.fromApi(_map(json['data']));
   }
 
   Future<ModuleData> fetchModule(String moduleCode) async {
-    final json = await _get(_withLocation('/api/app/discovery/modules/$moduleCode'));
+    final json = await _get(
+      _withLocation('/api/app/discovery/modules/$moduleCode'),
+    );
     final data = _map(json['data']);
     return ModuleData(
       moduleCode: _string(data['moduleCode'], fallback: moduleCode),
@@ -94,7 +115,9 @@ class BackendAppRepository {
 
   Future<List<MerchantModel>> searchStores(String keyword) async {
     final json = await _get(
-      _withLocation('/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=1&pageSize=12'),
+      _withLocation(
+        '/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=1&pageSize=12',
+      ),
     );
     final page = _map(json['data']);
     return _merchants(page['list']);
@@ -102,7 +125,11 @@ class BackendAppRepository {
 
   Future<MerchantModel> fetchStore(int storeId) async =>
       _merchantFromStoreDetail(
-        _map((await _get(_withLocation('/api/app/discovery/stores/$storeId')))['data']),
+        _map(
+          (await _get(
+            _withLocation('/api/app/discovery/stores/$storeId'),
+          ))['data'],
+        ),
       );
 
   Future<ItemDetailData> fetchItem(int itemId) async {
@@ -148,6 +175,8 @@ class BackendAppRepository {
     required String? addressId,
     required List<CheckoutLineArg> lines,
     String remark = '',
+    String tablewareOption = 'merchant_decide',
+    int? tablewareCount,
   }) async {
     final json = await _post('/api/app/trade/checkout/preview', {
       'storeId': int.parse(storeId),
@@ -160,6 +189,8 @@ class BackendAppRepository {
           {'itemId': int.parse(line.itemId), 'quantity': line.quantity},
       ],
       'remark': remark,
+      'tablewareOption': tablewareOption,
+      'tablewareCount': tablewareCount,
     });
     return CheckoutPreviewData.fromApi(_map(json['data']));
   }
@@ -171,6 +202,8 @@ class BackendAppRepository {
     required List<CheckoutLineArg> lines,
     required String remark,
     required String idempotencyKey,
+    String tablewareOption = 'merchant_decide',
+    int? tablewareCount,
   }) async {
     final json = await _post('/api/app/trade/orders', {
       'storeId': int.parse(storeId),
@@ -184,6 +217,8 @@ class BackendAppRepository {
       ],
       'remark': remark,
       'idempotencyKey': idempotencyKey,
+      'tablewareOption': tablewareOption,
+      'tablewareCount': tablewareCount,
     });
     return OrderDetailData.fromApi(_map(json['data']));
   }
@@ -279,8 +314,21 @@ class BackendAppRepository {
     return ProfileData.fromApi(_map(json['data']));
   }
 
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await _put('/api/app/account/password', {
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+  }
+
   /// 通用文件上传，返回可公开访问的 URL。评价/投诉等模块复用。
-  Future<String> uploadCommonFile(String filePath, {required String bizType}) async {
+  Future<String> uploadCommonFile(
+    String filePath, {
+    required String bizType,
+  }) async {
     final json = await _client.postMultipart(
       '/api/common/files/upload',
       fileField: 'file',
@@ -370,6 +418,7 @@ class BackendAppRepository {
   }
 
   Future<void> logout() async {
+    await AuthStorage.clearToken();
     await _post('/api/open/auth/logout', <String, dynamic>{});
   }
 
@@ -413,28 +462,67 @@ class AuthSession {
 
   factory AuthSession.fromApi(Map<String, dynamic> json) {
     final profile = _map(json['profile']);
-    return AuthSession(
-      token: _string(json['token']),
-      nickname: _string(profile['nickname'], fallback: '爱团用户'),
-      avatarUrl: _nullableString(profile['avatarUrl']),
-      phone: _nullableString(profile['phone']),
-      email: _nullableString(profile['email']),
-      memberLevelName: _string(profile['memberLevelName'], fallback: '普通会员'),
-      unreadMessageCount: _int(profile['unreadMessageCount']),
-    );
+    return AuthSession.fromTokenProfile(_string(json['token']), profile);
   }
+
+  factory AuthSession.fromTokenProfile(
+    String token,
+    Map<String, dynamic> profile,
+  ) => AuthSession(
+    token: token,
+    nickname: _string(profile['nickname'], fallback: '爱团用户'),
+    avatarUrl: _nullableString(profile['avatarUrl']),
+    phone: _nullableString(profile['phone']),
+    email: _nullableString(profile['email']),
+    memberLevelName: _string(profile['memberLevelName'], fallback: '普通会员'),
+    unreadMessageCount: _int(profile['unreadMessageCount']),
+  );
 }
 
 class HomeData {
   const HomeData({
     required this.modules,
     required this.recommendations,
+    required this.recommendationPage,
     required this.unreadMessageCount,
   });
 
   final List<ModuleEntry> modules;
   final List<ItemModel> recommendations;
+  final ItemPageData recommendationPage;
   final int unreadMessageCount;
+}
+
+class ItemPageData {
+  const ItemPageData({
+    required this.list,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+    required this.hasNext,
+  });
+
+  final List<ItemModel> list;
+  final int page;
+  final int pageSize;
+  final int total;
+  final bool hasNext;
+
+  factory ItemPageData.fromApi(Map<String, dynamic> json) => ItemPageData(
+    list: _pageItems(json),
+    page: _int(json['page']),
+    pageSize: _int(json['pageSize']),
+    total: _int(json['total']),
+    hasNext: _bool(json['hasNext']),
+  );
+
+  ItemPageData copyWith({List<ItemModel>? list}) => ItemPageData(
+    list: list ?? this.list,
+    page: page,
+    pageSize: pageSize,
+    total: total,
+    hasNext: hasNext,
+  );
 }
 
 class ModuleData {
@@ -499,6 +587,7 @@ class ProfileData {
     required this.growthValue,
     required this.addressCount,
     required this.favoriteCount,
+    required this.orderCount,
     required this.unreadMessageCount,
   });
 
@@ -510,6 +599,7 @@ class ProfileData {
   final int growthValue;
   final int addressCount;
   final int favoriteCount;
+  final int orderCount;
   final int unreadMessageCount;
 
   factory ProfileData.fromApi(Map<String, dynamic> json) => ProfileData(
@@ -521,6 +611,7 @@ class ProfileData {
     growthValue: _int(json['growthValue']),
     addressCount: _int(json['addressCount']),
     favoriteCount: _int(json['favoriteCount']),
+    orderCount: _int(json['orderCount']),
     unreadMessageCount: _int(json['unreadMessageCount']),
   );
 }
@@ -532,15 +623,23 @@ class CheckoutPreviewData {
     required this.businessType,
     required this.addressSnapshot,
     required this.deliveryFee,
+    required this.packageFee,
+    required this.distanceExtraFee,
     required this.amount,
     required this.payableAmount,
     required this.discountAmount,
+    required this.startPrice,
+    required this.startPriceMissing,
+    required this.minimumOrderMet,
     required this.deliveryDistanceKm,
     required this.maxDeliveryDistanceKm,
     required this.estimatedDeliveryMinutes,
     required this.estimatedArrivalText,
     required this.deliverable,
     required this.unavailableReason,
+    required this.tablewareOption,
+    required this.tablewareCount,
+    required this.tablewareText,
     required this.items,
     required this.note,
   });
@@ -550,15 +649,23 @@ class CheckoutPreviewData {
   final String businessType;
   final String? addressSnapshot;
   final double deliveryFee;
+  final double packageFee;
+  final double distanceExtraFee;
   final double amount;
   final double payableAmount;
   final double discountAmount;
+  final double startPrice;
+  final double startPriceMissing;
+  final bool minimumOrderMet;
   final double? deliveryDistanceKm;
   final double? maxDeliveryDistanceKm;
   final int? estimatedDeliveryMinutes;
   final String? estimatedArrivalText;
   final bool deliverable;
   final String? unavailableReason;
+  final String tablewareOption;
+  final int? tablewareCount;
+  final String? tablewareText;
   final List<CheckoutLineItemData> items;
   final String? note;
 
@@ -569,15 +676,32 @@ class CheckoutPreviewData {
         businessType: _string(json['businessType']),
         addressSnapshot: _nullableString(json['addressSnapshot']),
         deliveryFee: _double(json['deliveryFee']),
+        packageFee: _double(json['packageFee']),
+        distanceExtraFee: _double(json['distanceExtraFee']),
         amount: _double(json['amount']),
         payableAmount: _double(json['payableAmount']),
         discountAmount: _double(json['discountAmount']),
+        startPrice: _double(json['startPrice']),
+        startPriceMissing: _double(json['startPriceMissing']),
+        minimumOrderMet: json['minimumOrderMet'] == null
+            ? true
+            : _bool(json['minimumOrderMet']),
         deliveryDistanceKm: _nullableDouble(json['deliveryDistanceKm']),
         maxDeliveryDistanceKm: _nullableDouble(json['maxDeliveryDistanceKm']),
-        estimatedDeliveryMinutes: _nullableInt(json['estimatedDeliveryMinutes']),
+        estimatedDeliveryMinutes: _nullableInt(
+          json['estimatedDeliveryMinutes'],
+        ),
         estimatedArrivalText: _nullableString(json['estimatedArrivalText']),
-        deliverable: json['deliverable'] == null ? true : _bool(json['deliverable']),
+        deliverable: json['deliverable'] == null
+            ? true
+            : _bool(json['deliverable']),
         unavailableReason: _nullableString(json['unavailableReason']),
+        tablewareOption: _string(
+          json['tablewareOption'],
+          fallback: 'merchant_decide',
+        ),
+        tablewareCount: _nullableInt(json['tablewareCount']),
+        tablewareText: _nullableString(json['tablewareText']),
         items: _list(
           json['items'],
         ).map((entry) => CheckoutLineItemData.fromApi(_map(entry))).toList(),
@@ -629,12 +753,17 @@ class OrderDetailData {
     required this.title,
     required this.amount,
     required this.deliveryFee,
+    required this.packageFee,
     required this.discountAmount,
     required this.payableAmount,
     required this.addressSnapshot,
     required this.deliveryDistanceKm,
     required this.estimatedArrivalText,
+    required this.deliveryCompletionText,
     required this.voucherSummary,
+    required this.tablewareOption,
+    required this.tablewareCount,
+    required this.tablewareText,
     required this.remark,
     required this.createdAt,
     required this.paidAt,
@@ -656,12 +785,17 @@ class OrderDetailData {
   final String title;
   final double amount;
   final double deliveryFee;
+  final double packageFee;
   final double discountAmount;
   final double payableAmount;
   final String? addressSnapshot;
   final double? deliveryDistanceKm;
   final String? estimatedArrivalText;
+  final String? deliveryCompletionText;
   final String? voucherSummary;
+  final String? tablewareOption;
+  final int? tablewareCount;
+  final String? tablewareText;
   final String? remark;
   final DateTime? createdAt;
   final DateTime? paidAt;
@@ -683,12 +817,17 @@ class OrderDetailData {
     title: _string(json['title']),
     amount: _double(json['amount']),
     deliveryFee: _double(json['deliveryFee']),
+    packageFee: _double(json['packageFee']),
     discountAmount: _double(json['discountAmount']),
     payableAmount: _double(json['payableAmount']),
     addressSnapshot: _nullableString(json['addressSnapshot']),
     deliveryDistanceKm: _nullableDouble(json['deliveryDistanceKm']),
     estimatedArrivalText: _nullableString(json['estimatedArrivalText']),
+    deliveryCompletionText: _nullableString(json['deliveryCompletionText']),
     voucherSummary: _nullableString(json['voucherSummary']),
+    tablewareOption: _nullableString(json['tablewareOption']),
+    tablewareCount: _nullableInt(json['tablewareCount']),
+    tablewareText: _nullableString(json['tablewareText']),
     remark: _nullableString(json['remark']),
     createdAt: _dateTime(json['createdAt']),
     paidAt: _dateTime(json['paidAt']),
@@ -848,7 +987,10 @@ class BookingData {
     bookingDate: _nullableString(json['bookingDate']),
     bookingTimeSlot: _nullableString(json['bookingTimeSlot']),
     guestCount: _int(json['guestCount']) <= 0 ? 1 : _int(json['guestCount']),
-    storeConfirmStatus: _string(json['storeConfirmStatus'], fallback: 'pending'),
+    storeConfirmStatus: _string(
+      json['storeConfirmStatus'],
+      fallback: 'pending',
+    ),
     storeConfirmRemark: _nullableString(json['storeConfirmRemark']),
     confirmedAt: _dateTime(json['confirmedAt']),
     createdAt: _dateTime(json['createdAt']),
@@ -970,6 +1112,14 @@ DeliveryRuleModel _deliveryRule(dynamic value) {
     deliveryFee: _double(json['deliveryFee']),
     estimatedMinutes: _int(json['estimatedMinutes']),
     startPrice: _double(json['startPrice']),
+    packageFeeFixed: _double(json['packageFeeFixed']),
+    packageFeePerItem: _double(json['packageFeePerItem']),
+    packageFeeMode: _string(json['packageFeeMode'], fallback: 'none'),
+    distanceExtraThresholdKm: _double(json['distanceExtraThresholdKm']),
+    distanceExtraFee: _double(json['distanceExtraFee']),
+    distanceExtraStepKm: _double(json['distanceExtraStepKm']) <= 0
+        ? 1
+        : _double(json['distanceExtraStepKm']),
     deliveryText: _string(json['deliveryText']),
   );
 }

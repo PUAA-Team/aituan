@@ -221,6 +221,24 @@ class CatalogRepository {
         categoryId);
   }
 
+  long countItemsByCategory(long categoryId) {
+    Long count = jdbcTemplate.queryForObject(
+        "select count(1) from catalog_item where category_id = ? and is_deleted = 0",
+        Long.class,
+        categoryId);
+    return count == null ? 0 : count;
+  }
+
+  void softDeleteCategory(long categoryId) {
+    jdbcTemplate.update(
+        """
+        update catalog_category
+        set is_deleted = 1, status = 'disabled', updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        categoryId);
+  }
+
   long getOrCreateDefaultCategory(long storeId, String businessType) {
     List<Long> rows = jdbcTemplate.query(
         """

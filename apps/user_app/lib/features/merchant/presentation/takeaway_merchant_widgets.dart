@@ -8,6 +8,8 @@ import '../../../core/widgets/price_text.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
 import 'merchant_item_cards.dart';
+import 'takeaway_amount_utils.dart';
+import 'takeaway_quantity_stepper.dart';
 
 class TakeawayMerchantHeader extends StatelessWidget {
   const TakeawayMerchantHeader({super.key, required this.merchant});
@@ -100,7 +102,9 @@ class TakeawayFoodRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final limitReached = count >= item.stock;
     return AppCard(
+      padding: const EdgeInsets.all(10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           MockThumb(
             size: 76,
@@ -108,42 +112,54 @@ class TakeawayFoodRow extends StatelessWidget {
             label: '热卖',
             imageUrl: item.coverUrl,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.subtitle.isEmpty
+                      ? '${item.category} · 爱团推荐'
+                      : item.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 5),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
                   children: [
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
                     if (item.soldOut)
                       const _StockTag(text: '已售罄', muted: true)
                     else if (item.stock <= 5)
                       _StockTag(text: '仅剩${item.stock}份'),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  item.subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
                 const SizedBox(height: 8),
-                PriceText(item.price, size: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(child: PriceText(item.price, size: 18)),
+                    TakeawayQuantityStepper(
+                      count: count,
+                      canAdd: !item.soldOut && !limitReached,
+                      onAdd: onAdd,
+                      onRemove: onRemove,
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-          _counter(
-            count: count,
-            canAdd: !item.soldOut && !limitReached,
-            onAdd: onAdd,
-            onRemove: onRemove,
           ),
         ],
       ),
@@ -172,7 +188,7 @@ class TakeawayCartBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final payable = total > 0 ? total + deliveryFee : 0.0;
-    final missing = startPrice > total ? startPrice - total : 0.0;
+    final missing = takeawayStartMissing(total, startPrice);
     return SafeArea(
       top: false,
       child: Container(
@@ -206,7 +222,7 @@ class TakeawayCartBar extends StatelessWidget {
             FilledButton(
               onPressed: total > 0 && missing <= 0 ? onSubmit : null,
               child: Text(
-                missing > 0 ? '差￥${missing.toStringAsFixed(0)}起送' : '提交',
+                missing > 0 ? '差￥${takeawayMoneyText(missing)}起送' : '提交',
               ),
             ),
           ],
@@ -214,56 +230,6 @@ class TakeawayCartBar extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _counter({
-  required int count,
-  required bool canAdd,
-  required VoidCallback onAdd,
-  required VoidCallback onRemove,
-}) => Row(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    if (count > 0) _roundIcon(icon: Icons.remove, onTap: onRemove),
-    if (count > 0)
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Text(
-          '$count',
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-    _roundIcon(icon: Icons.add, onTap: canAdd ? onAdd : null, filled: true),
-  ],
-);
-
-Widget _roundIcon({
-  required IconData icon,
-  required VoidCallback? onTap,
-  bool filled = false,
-}) {
-  final enabled = onTap != null;
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(14),
-    child: Opacity(
-      opacity: enabled ? 1 : 0.45,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: filled ? AppColors.brand : AppColors.card,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.brandLine),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: filled ? Colors.white : AppColors.brand,
-        ),
-      ),
-    ),
-  );
 }
 
 class _MerchantMetric extends StatelessWidget {

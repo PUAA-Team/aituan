@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/validator.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../shared/models/address_model.dart';
@@ -88,6 +90,10 @@ class _AddressEditPageState extends State<AddressEditPage> {
                 controller: _contactPhone,
                 label: '手机号',
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
               ),
               Row(
                 children: [
@@ -107,7 +113,9 @@ class _AddressEditPageState extends State<AddressEditPage> {
                 child: Text(
                   _locationHint,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _longitude == null || _latitude == null ? AppColors.textSub : AppColors.brand,
+                    color: _longitude == null || _latitude == null
+                        ? AppColors.textSub
+                        : AppColors.brand,
                   ),
                 ),
               ),
@@ -156,7 +164,8 @@ class _AddressEditPageState extends State<AddressEditPage> {
     final location = LocationScope.of(context);
     try {
       setState(() => _locating = true);
-      if (!location.hasLocation || location.current?.addressText.isEmpty == true) {
+      if (!location.hasLocation ||
+          location.current?.addressText.isEmpty == true) {
         await location.refresh();
       }
       final current = location.current;
@@ -245,7 +254,9 @@ class _AddressEditPageState extends State<AddressEditPage> {
   }
 
   void _clearLocationOnManualEdit() {
-    if (_syncingLocationFields || _longitude == null || _latitude == null) return;
+    if (_syncingLocationFields || _longitude == null || _latitude == null) {
+      return;
+    }
     setState(() {
       _longitude = null;
       _latitude = null;
@@ -265,9 +276,14 @@ class _AddressEditPageState extends State<AddressEditPage> {
       showAppSnackBar(context, '请填写收货人、手机号和完整地址');
       return null;
     }
+    final phone = _contactPhone.text.trim();
+    if (!Validator.isPhone(phone)) {
+      showAppSnackBar(context, '请输入 11 位手机号');
+      return null;
+    }
     return AddressFormData(
       contactName: _contactName.text.trim(),
-      contactPhone: _contactPhone.text.trim(),
+      contactPhone: phone,
       province: _province.text.trim(),
       city: _city.text.trim(),
       district: _district.text.trim(),
@@ -286,12 +302,14 @@ class _Field extends StatelessWidget {
     required this.controller,
     required this.label,
     this.keyboardType,
+    this.inputFormatters,
     this.maxLines = 1,
   });
 
   final TextEditingController controller;
   final String label;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final int maxLines;
 
   @override
@@ -300,6 +318,7 @@ class _Field extends StatelessWidget {
     child: TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,

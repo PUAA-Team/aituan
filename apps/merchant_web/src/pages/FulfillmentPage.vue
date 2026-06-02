@@ -126,6 +126,38 @@ function money(value: number | undefined) {
         </label>
       </div>
       <p class="form-hint">超过该距离后，用户将无法提交外卖订单。</p>
+      <div class="form-grid three">
+        <label>
+          打包费模式
+          <select v-model="rule.packageFeeMode">
+            <option value="none">不收打包费</option>
+            <option value="fixed">每单固定</option>
+            <option value="per_item">每件商品</option>
+          </select>
+        </label>
+        <label>
+          每单打包费
+          <input v-model.number="rule.packageFeeFixed" type="number" min="0" step="0.1" />
+        </label>
+        <label>
+          每件打包费
+          <input v-model.number="rule.packageFeePerItem" type="number" min="0" step="0.1" />
+        </label>
+      </div>
+      <div class="form-grid three">
+        <label>
+          超出 km 后加价
+          <input v-model.number="rule.distanceExtraThresholdKm" type="number" min="0" step="0.1" />
+        </label>
+        <label>
+          加价金额
+          <input v-model.number="rule.distanceExtraFee" type="number" min="0" step="0.1" />
+        </label>
+        <label>
+          加价步长 km
+          <input v-model.number="rule.distanceExtraStepKm" type="number" min="0.1" step="0.1" />
+        </label>
+      </div>
       <label>
         配送说明
         <input v-model="rule.deliveryText" />

@@ -18,7 +18,9 @@ import '../features/order/presentation/delivery_tracking_page.dart';
 import '../features/order/presentation/service_order_detail_page.dart';
 import '../features/order/presentation/takeaway_order_detail_page.dart';
 import '../features/order/presentation/voucher_detail_page.dart';
+import '../features/profile/presentation/about_document_page.dart';
 import '../features/profile/presentation/about_page.dart';
+import '../features/profile/presentation/profile_edit_page.dart';
 import '../features/profile/presentation/settings_page.dart';
 import '../features/review/presentation/my_reviews_page.dart';
 import '../features/review/presentation/review_detail_page.dart';
@@ -48,6 +50,7 @@ class AppRouter {
     Routes.addressEdit,
     Routes.profile,
     Routes.settings,
+    Routes.profileEdit,
     Routes.reviewPublish,
     Routes.myReviews,
     Routes.reviewDetail,
@@ -102,7 +105,20 @@ class AppRouter {
         settings,
       ),
       Routes.settings => _page(const SettingsPage(), settings),
+      Routes.profileEdit => _page(const ProfileEditPage(), settings),
       Routes.about => _page(const AboutPage(), settings),
+      Routes.userAgreement => _page(
+        const AboutDocumentPage(document: userAgreementDocument),
+        settings,
+      ),
+      Routes.privacyPolicy => _page(
+        const AboutDocumentPage(document: privacyPolicyDocument),
+        settings,
+      ),
+      Routes.qualificationSupport => _page(
+        const AboutDocumentPage(document: qualificationSupportDocument),
+        settings,
+      ),
       Routes.reviewPublish => _page(const ReviewPublishPage(), settings),
       Routes.myReviews => _page(const MyReviewsPage(), settings),
       Routes.reviewDetail => _page(
