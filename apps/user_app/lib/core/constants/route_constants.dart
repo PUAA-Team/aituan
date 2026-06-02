@@ -27,6 +27,7 @@ class Routes {
   static const supportSessions = '/support/sessions';
   static const supportChat = '/support/chat';
   static const complaintList = '/complaint/list';
+  static const complaintDetail = '/complaint/detail';
   static const complaintSubmit = '/complaint/submit';
   static const voucherDetail = '/order/voucher';
   static const bookingDetail = '/order/booking';

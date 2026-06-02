@@ -45,7 +45,7 @@ class _ComplaintListPageState extends State<ComplaintListPage> {
           itemBuilder: (_) => const [
             PopupMenuItem(value: null, child: Text('全部')),
             PopupMenuItem(value: 'pending', child: Text('待受理')),
-            PopupMenuItem(value: 'accepted', child: Text('处理中')),
+            PopupMenuItem(value: 'processing', child: Text('处理中')),
             PopupMenuItem(value: 'resolved', child: Text('已处理')),
             PopupMenuItem(value: 'closed', child: Text('已关闭')),
           ],
@@ -75,7 +75,8 @@ class _ComplaintListPageState extends State<ComplaintListPage> {
           return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: list.length,
-            itemBuilder: (_, index) => _ComplaintCard(item: list[index]),
+            itemBuilder: (_, index) =>
+                _ComplaintCard(item: list[index], onReturned: _load),
           );
         },
       ),
@@ -89,12 +90,21 @@ class _ComplaintListPageState extends State<ComplaintListPage> {
 }
 
 class _ComplaintCard extends StatelessWidget {
-  const _ComplaintCard({required this.item});
+  const _ComplaintCard({required this.item, required this.onReturned});
 
   final ComplaintSummary item;
+  final VoidCallback onReturned;
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: () async {
+      await Navigator.pushNamed(
+        context,
+        Routes.complaintDetail,
+        arguments: item.id,
+      );
+      onReturned();
+    },
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,6 +128,8 @@ class _ComplaintCard extends StatelessWidget {
           '进度：${_statusText(item.status)}',
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        const SizedBox(height: 4),
+        Text('查看进度、结果和补充意见 ›', style: Theme.of(context).textTheme.labelSmall),
       ],
     ),
   );

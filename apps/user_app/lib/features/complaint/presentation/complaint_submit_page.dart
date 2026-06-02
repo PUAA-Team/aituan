@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/order_model.dart';
 import '../../home/data/backend_app_repository.dart';
 import '../data/complaint_repository.dart';
 
@@ -33,8 +35,20 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
   final _titleController = TextEditingController();
   final _detailController = TextEditingController();
   final List<String> _imageUrls = [];
+  List<OrderModel> _orders = const [];
+  int? _selectedOrderId;
+  String? _selectedOrderTitle;
   bool _submitting = false;
   bool _uploading = false;
+  bool _loadingOrders = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedOrderId = widget.args?.orderId;
+    _selectedOrderTitle = widget.args?.orderTitle;
+    if (widget.args?.orderId == null) _loadOrders();
+  }
 
   @override
   void dispose() {
@@ -47,33 +61,82 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
     final title = _titleController.text.trim();
     final detail = _detailController.text.trim();
     if (title.isEmpty || detail.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请完整填写标题与详细描述')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请完整填写标题与详细描述')));
       return;
     }
     setState(() => _submitting = true);
     try {
       await complaintRepository.submit(
-        orderId: widget.args?.orderId,
+        orderId: _selectedOrderId,
         category: _category,
         title: title,
         detail: detail,
         evidenceUrls: _imageUrls,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('投诉已提交，平台会尽快处理')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('投诉已提交，平台会尽快处理')));
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('提交失败：$e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('提交失败：$e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => _loadingOrders = true);
+    try {
+      final orders = await backendRepository.fetchOrders();
+      if (!mounted) return;
+      setState(() {
+        _orders = orders;
+        _loadingOrders = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingOrders = false);
+    }
+  }
+
+  Future<void> _chooseOrder() async {
+    if (_orders.isEmpty) return;
+    final selected = await showModalBottomSheet<OrderModel>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.block),
+              title: const Text('不关联订单'),
+              onTap: () => Navigator.pop(context),
+            ),
+            for (final order in _orders)
+              ListTile(
+                title: Text(
+                  order.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('${order.storeName} · ${order.id}'),
+                trailing: Text(order.status.labelForKind(order.kind)),
+                onTap: () => Navigator.pop(context, order),
+              ),
+          ],
+        ),
+      ),
+    );
+    setState(() {
+      _selectedOrderId = selected == null ? null : int.tryParse(selected.id);
+      _selectedOrderTitle = selected?.title;
+    });
   }
 
   Future<void> _pickImage() async {
@@ -93,9 +156,9 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
       setState(() => _imageUrls.add(url));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('图片上传失败：$e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('图片上传失败：$e')));
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -108,10 +171,30 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          if (widget.args?.orderTitle != null)
-            AppCard(
-              child: Text('关联订单：${widget.args!.orderTitle}'),
+          AppCard(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '关联订单',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(_selectedOrderTitle ?? '未选择订单'),
+                    ],
+                  ),
+                ),
+                if (widget.args?.orderId == null)
+                  OutlinedButton(
+                    onPressed: _loadingOrders ? null : _chooseOrder,
+                    child: Text(_loadingOrders ? '加载中…' : '选择订单'),
+                  ),
+              ],
             ),
+          ),
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,11 +205,13 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: _categories.entries
-                      .map((e) => ChoiceChip(
-                            label: Text(e.value),
-                            selected: _category == e.key,
-                            onSelected: (_) => setState(() => _category = e.key),
-                          ))
+                      .map(
+                        (e) => ChoiceChip(
+                          label: Text(e.value),
+                          selected: _category == e.key,
+                          onSelected: (_) => setState(() => _category = e.key),
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -136,7 +221,10 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
             child: TextField(
               controller: _titleController,
               maxLength: 60,
-              decoration: const InputDecoration(labelText: '标题', hintText: '一句话概括问题'),
+              decoration: const InputDecoration(
+                labelText: '标题',
+                hintText: '一句话概括问题',
+              ),
             ),
           ),
           AppCard(
@@ -144,7 +232,10 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
               controller: _detailController,
               maxLines: 6,
               maxLength: 500,
-              decoration: const InputDecoration(labelText: '详细描述', hintText: '请描述问题发生时间、影响和期望处理结果'),
+              decoration: const InputDecoration(
+                labelText: '详细描述',
+                hintText: '请描述问题发生时间、影响和期望处理结果',
+              ),
             ),
           ),
           AppCard(

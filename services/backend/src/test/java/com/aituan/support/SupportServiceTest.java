@@ -54,4 +54,31 @@ class SupportServiceTest {
         .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
             .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
   }
+
+  @Test
+  void userCanCreatePlatformSessionWithoutStoreOrTopic() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(null, null, null));
+
+    assertThat(session.storeId()).isEqualTo(0L);
+    assertThat(session.storeName()).isEqualTo("平台客服");
+    assertThat(session.topic()).isEqualTo("平台客服");
+  }
+
+  @Test
+  void userMessageTriggersKeywordAutoReply() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportMessageView sent = supportService.userSendMessage(
+        1L, new SupportMessageCreateRequest("配送还要多久，能催一下吗"));
+    SupportSessionDetailView detail = supportService.userSessionDetail(1L);
+
+    assertThat(sent.content()).contains("配送");
+    assertThat(detail.messages())
+        .anySatisfy(message -> {
+          assertThat(message.senderType()).isEqualTo("merchant");
+          assertThat(message.messageKind()).isEqualTo("auto_reply");
+          assertThat(message.content()).contains("催单");
+        });
+  }
 }

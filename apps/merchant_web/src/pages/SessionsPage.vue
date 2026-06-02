@@ -20,6 +20,11 @@ const messages = ref<SupportMessageView[]>([]);
 const draft = ref('');
 const sending = ref(false);
 const templates = ref<string[]>([]);
+const autoReplyRules = [
+  { keyword: '配送 / 多久 / 催 / 慢', reply: '自动回复催单与时效说明' },
+  { keyword: '退款 / 退单 / 取消', reply: '自动提示补充订单状态' },
+  { keyword: '发票 / 票据', reply: '自动提示补充抬头和联系方式' },
+];
 
 const filterOptions: Array<{ value: typeof filter.value; label: string }> = [
   { value: 'all', label: '全部' },
@@ -181,6 +186,12 @@ function timeText(value: string | undefined) {
             @click="useTemplate(t)"
           >{{ t }}</button>
         </div>
+        <div class="auto-rules">
+          <span class="tip">关键词自动回复</span>
+          <span v-for="rule in autoReplyRules" :key="rule.keyword" class="rule-chip">
+            {{ rule.keyword }}：{{ rule.reply }}
+          </span>
+        </div>
         <form class="composer" @submit.prevent="send">
           <textarea
             v-model="draft"
@@ -310,6 +321,24 @@ function timeText(value: string | undefined) {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+.auto-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.auto-rules .tip {
+  color: #86909c;
+  font-size: 12px;
+}
+.rule-chip {
+  padding: 4px 8px;
+  border: 1px solid #d9dee7;
+  border-radius: 12px;
+  background: #f7f8fa;
+  color: #4e5969;
+  font-size: 12px;
 }
 .templates .tip {
   color: #86909c;

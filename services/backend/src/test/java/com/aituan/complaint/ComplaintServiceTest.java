@@ -54,4 +54,17 @@ class ComplaintServiceTest {
         .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
             .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
   }
+
+  @Test
+  void userCanSupplementOpenComplaint() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    ComplaintDetailView detail = complaintService.supplement(
+        1L, new ComplaintSupplementRequest("骑手仍未联系我，请继续跟进"));
+
+    assertThat(detail.logs())
+        .anySatisfy(log -> {
+          assertThat(log.action()).isEqualTo("supplement");
+          assertThat(log.remark()).contains("继续跟进");
+        });
+  }
 }

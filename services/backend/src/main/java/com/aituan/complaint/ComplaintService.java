@@ -43,6 +43,22 @@ class ComplaintService {
   }
 
   @Transactional
+  ComplaintDetailView supplement(long id, ComplaintSupplementRequest request) {
+    CurrentUser current = requireUser();
+    ComplaintRepository.TicketRow row = complaintRepository.findById(id)
+        .filter(r -> r.userId() == current.userId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if ("closed".equals(row.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "工单已关闭，不能补充意见");
+    }
+    String content = require(request.content(), "补充意见");
+    complaintRepository.insertLog(id, "supplement", "user", current.userId(), content);
+    complaintRepository.insertSysAuditLog("user", current.accountId(), "complaint_supplement", "complaint", id,
+        "用户补充投诉：" + row.ticketNo());
+    return myTicketDetail(id);
+  }
+
+  @Transactional
   ComplaintView submit(ComplaintCreateRequest request) {
     CurrentUser current = requireUser();
     String category = normalizeCategory(request.category());

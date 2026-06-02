@@ -31,19 +31,19 @@ class SupportSession {
   final String? closeReason;
 
   factory SupportSession.fromApi(Map<String, dynamic> json) => SupportSession(
-        id: (json['id'] as num).toInt(),
-        sessionNo: (json['sessionNo'] ?? '') as String,
-        storeId: (json['storeId'] as num?)?.toInt() ?? 0,
-        storeName: (json['storeName'] ?? '') as String,
-        topic: (json['topic'] ?? '') as String,
-        status: (json['status'] ?? 'open') as String,
-        relatedOrderId: (json['relatedOrderId'] as num?)?.toInt(),
-        lastMessage: json['lastMessage'] as String?,
-        lastMessageAt: json['lastMessageAt'] as String?,
-        unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
-        createdAt: (json['createdAt'] ?? '') as String,
-        closeReason: json['closeReason'] as String?,
-      );
+    id: (json['id'] as num).toInt(),
+    sessionNo: (json['sessionNo'] ?? '') as String,
+    storeId: (json['storeId'] as num?)?.toInt() ?? 0,
+    storeName: (json['storeName'] ?? '') as String,
+    topic: (json['topic'] ?? '') as String,
+    status: (json['status'] ?? 'open') as String,
+    relatedOrderId: (json['relatedOrderId'] as num?)?.toInt(),
+    lastMessage: json['lastMessage'] as String?,
+    lastMessageAt: json['lastMessageAt'] as String?,
+    unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+    createdAt: (json['createdAt'] ?? '') as String,
+    closeReason: json['closeReason'] as String?,
+  );
 }
 
 class SupportMessage {
@@ -60,13 +60,14 @@ class SupportMessage {
   final String createdAt;
 
   bool get isUser => senderType == 'user';
+  bool get isPlatform => senderType == 'platform';
 
   factory SupportMessage.fromApi(Map<String, dynamic> json) => SupportMessage(
-        id: (json['id'] as num).toInt(),
-        senderType: (json['senderType'] ?? 'user') as String,
-        content: (json['content'] ?? '') as String,
-        createdAt: (json['createdAt'] ?? '') as String,
-      );
+    id: (json['id'] as num).toInt(),
+    senderType: (json['senderType'] ?? 'user') as String,
+    content: (json['content'] ?? '') as String,
+    createdAt: (json['createdAt'] ?? '') as String,
+  );
 }
 
 final supportRepository = SupportRepository();
@@ -81,34 +82,48 @@ class SupportRepository {
     final query = StringBuffer('?page=1&pageSize=50');
     if (status != null) query.write('&status=$status');
     final json = await _client.get('/api/app/support/sessions$query');
-    final list = ((json['data'] as Map<String, dynamic>?)?['list'] as List?) ?? const [];
-    return list.map((e) => SupportSession.fromApi(e as Map<String, dynamic>)).toList();
+    final list =
+        ((json['data'] as Map<String, dynamic>?)?['list'] as List?) ?? const [];
+    return list
+        .map((e) => SupportSession.fromApi(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<SupportSession> createSession({
-    required int storeId,
-    required String topic,
+    int? storeId,
+    String? topic,
     int? relatedOrderId,
   }) async {
-    final body = <String, dynamic>{
-      'storeId': storeId,
-      'topic': topic,
-    };
+    final body = <String, dynamic>{};
+    if (storeId != null) body['storeId'] = storeId;
+    if (topic != null && topic.trim().isNotEmpty) body['topic'] = topic;
     if (relatedOrderId != null) body['relatedOrderId'] = relatedOrderId;
     final json = await _client.post('/api/app/support/sessions', body);
     return SupportSession.fromApi(json['data'] as Map<String, dynamic>);
   }
 
-  Future<(SupportSession session, List<SupportMessage> messages)> fetchDetail(int sessionId) async {
+  Future<(SupportSession session, List<SupportMessage> messages)> fetchDetail(
+    int sessionId,
+  ) async {
     final json = await _client.get('/api/app/support/sessions/$sessionId');
     final data = json['data'] as Map<String, dynamic>;
-    final session = SupportSession.fromApi(data['session'] as Map<String, dynamic>);
+    final session = SupportSession.fromApi(
+      data['session'] as Map<String, dynamic>,
+    );
     final msgs = (data['messages'] as List?) ?? const [];
-    return (session, msgs.map((e) => SupportMessage.fromApi(e as Map<String, dynamic>)).toList());
+    return (
+      session,
+      msgs
+          .map((e) => SupportMessage.fromApi(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 
   Future<SupportMessage> sendMessage(int sessionId, String content) async {
-    final json = await _client.post('/api/app/support/sessions/$sessionId/messages', {'content': content});
+    final json = await _client.post(
+      '/api/app/support/sessions/$sessionId/messages',
+      {'content': content},
+    );
     return SupportMessage.fromApi(json['data'] as Map<String, dynamic>);
   }
 

@@ -17,6 +17,7 @@ class SupportSessionsPage extends StatefulWidget {
 class _SupportSessionsPageState extends State<SupportSessionsPage> {
   Future<List<SupportSession>>? _future;
   String? _statusFilter;
+  String _typeFilter = 'all';
   bool _handledLaunch = false;
 
   @override
@@ -52,8 +53,16 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
         .toList();
     if (existing.isNotEmpty) {
       final session = existing.first;
-      await Navigator.pushNamed(context, Routes.supportChat, arguments: session.id);
-      if (mounted) _load();
+      await Navigator.pushNamed(
+        context,
+        Routes.supportChat,
+        arguments: session.id,
+      );
+      if (mounted && widget.launchArgs != null) {
+        Navigator.pop(context);
+      } else if (mounted) {
+        _load();
+      }
       return;
     }
     if (!mounted) return;
@@ -64,12 +73,40 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
         relatedOrderId: args.relatedOrderId,
       );
       if (!mounted) return;
-      await Navigator.pushNamed(context, Routes.supportChat, arguments: created.id);
-      if (mounted) _load();
+      await Navigator.pushNamed(
+        context,
+        Routes.supportChat,
+        arguments: created.id,
+      );
+      if (mounted && widget.launchArgs != null) {
+        Navigator.pop(context);
+      } else if (mounted) {
+        _load();
+      }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发起会话失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('发起会话失败：$e')));
     }
+  }
+
+  Future<void> _openPlatformSupport() async {
+    final sessions = await supportRepository.fetchSessions();
+    if (!mounted) return;
+    final existing = sessions
+        .where((s) => s.storeId == 0 && s.status == 'open')
+        .toList();
+    final session = existing.isNotEmpty
+        ? existing.first
+        : await supportRepository.createSession(topic: '平台客服');
+    if (!mounted) return;
+    await Navigator.pushNamed(
+      context,
+      Routes.supportChat,
+      arguments: session.id,
+    );
+    if (mounted) _load();
   }
 
   @override
@@ -78,6 +115,11 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
       appBar: AppBar(
         title: const Text('我的咨询'),
         actions: [
+          IconButton(
+            tooltip: '平台客服',
+            onPressed: _openPlatformSupport,
+            icon: const Icon(Icons.support_agent),
+          ),
           PopupMenuButton<String?>(
             initialValue: _statusFilter,
             onSelected: (v) {
@@ -101,42 +143,89 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
             if (snapshot.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) return Center(child: Text('加载失败：${snapshot.error}'));
-            final list = snapshot.data ?? const [];
-            if (list.isEmpty) {
-              return const Center(child: Text('暂无咨询会话，可从商家详情页发起'));
+            if (snapshot.hasError) {
+              return Center(child: Text('加载失败：${snapshot.error}'));
             }
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: list.length,
-              itemBuilder: (_, i) => AppCard(
-                child: InkWell(
-                  onTap: () async {
-                    await Navigator.pushNamed(context, Routes.supportChat, arguments: list[i].id);
-                    _load();
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Expanded(child: Text(list[i].storeName, style: Theme.of(context).textTheme.titleMedium)),
-                        if (list[i].status == 'open')
-                          const _Badge(text: '进行中', color: Colors.green)
-                        else
-                          const _Badge(text: '已关闭', color: Colors.grey),
-                      ]),
-                      if (list[i].lastMessage != null) ...[
-                        const SizedBox(height: 6),
-                        Text(list[i].lastMessage!, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ],
-                      if (list[i].unreadCount > 0) ...[
-                        const SizedBox(height: 6),
-                        Text('未读 ${list[i].unreadCount}', style: const TextStyle(color: Colors.red)),
-                      ],
-                    ],
+            final all = snapshot.data ?? const [];
+            final list = all.where((s) {
+              if (_typeFilter == 'platform') return s.storeId == 0;
+              if (_typeFilter == 'merchant') return s.storeId != 0;
+              return true;
+            }).toList();
+            if (list.isEmpty) {
+              return ListView(
+                padding: const EdgeInsets.all(12),
+                children: [
+                  _TypeTabs(
+                    active: _typeFilter,
+                    onChanged: (v) => setState(() => _typeFilter = v),
                   ),
+                  const SizedBox(height: 12),
+                  const AppCard(child: Text('暂无咨询会话，可从商家详情页、订单页或平台客服入口发起')),
+                ],
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                _TypeTabs(
+                  active: _typeFilter,
+                  onChanged: (v) => setState(() => _typeFilter = v),
                 ),
-              ),
+                const SizedBox(height: 12),
+                for (final session in list)
+                  AppCard(
+                    child: InkWell(
+                      onTap: () async {
+                        await Navigator.pushNamed(
+                          context,
+                          Routes.supportChat,
+                          arguments: session.id,
+                        );
+                        _load();
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  session.storeName,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                              ),
+                              if (session.storeId == 0)
+                                const _Badge(text: '平台', color: Colors.blue),
+                              const SizedBox(width: 6),
+                              if (session.status == 'open')
+                                const _Badge(text: '进行中', color: Colors.green)
+                              else
+                                const _Badge(text: '已关闭', color: Colors.grey),
+                            ],
+                          ),
+                          if (session.lastMessage != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              session.lastMessage!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (session.unreadCount > 0) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '未读 ${session.unreadCount}',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),
@@ -145,14 +234,34 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
   }
 }
 
+class _TypeTabs extends StatelessWidget {
+  const _TypeTabs({required this.active, required this.onChanged});
+  final String active;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SegmentedButton<String>(
+    segments: const [
+      ButtonSegment(value: 'all', label: Text('全部')),
+      ButtonSegment(value: 'merchant', label: Text('商家客服')),
+      ButtonSegment(value: 'platform', label: Text('平台客服')),
+    ],
+    selected: {active},
+    onSelectionChanged: (v) => onChanged(v.first),
+  );
+}
+
 class _Badge extends StatelessWidget {
   const _Badge({required this.text, required this.color});
   final String text;
   final Color color;
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-        child: Text(text, style: TextStyle(color: color, fontSize: 12)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(4),
+    ),
+    child: Text(text, style: TextStyle(color: color, fontSize: 12)),
+  );
 }
