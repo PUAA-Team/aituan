@@ -48,6 +48,10 @@ if ! grep -q "补充意见" "$ROOT/apps/user_app/lib/features/complaint/presenta
   fail "complaint detail should support user supplements"
 fi
 
+if grep -q "setState(() => _future = complaintRepository.fetchMy" "$ROOT/apps/user_app/lib/features/complaint/presentation/complaint_list_page.dart"; then
+  fail "complaint list setState callback must not return the fetch Future"
+fi
+
 if ! grep -q "关键词自动回复" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
   fail "merchant sessions should show keyword auto reply rules"
 fi
