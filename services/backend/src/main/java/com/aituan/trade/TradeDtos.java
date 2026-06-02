@@ -35,7 +35,9 @@ record CheckoutPreviewRequest(
     @NotBlank String businessType,
     Long addressId,
     @NotEmpty List<@Valid CheckoutItemRequest> items,
-    String remark) {}
+    String remark,
+    String tablewareOption,
+    Integer tablewareCount) {}
 
 record CreateOrderRequest(
     @NotNull Long storeId,
@@ -43,6 +45,8 @@ record CreateOrderRequest(
     Long addressId,
     @NotEmpty List<@Valid CheckoutItemRequest> items,
     String remark,
+    String tablewareOption,
+    Integer tablewareCount,
     String idempotencyKey) {}
 
 record PayOrderRequest(@NotBlank String paymentMode) {}
@@ -67,6 +71,12 @@ record DeliveryRuleUpdateRequest(
     @NotNull BigDecimal startPrice,
     @Min(1) Integer estimatedMinutes,
     @NotNull BigDecimal maxDeliveryDistanceKm,
+    String packageFeeMode,
+    BigDecimal packageFeeFixed,
+    BigDecimal packageFeePerItem,
+    BigDecimal distanceExtraThresholdKm,
+    BigDecimal distanceExtraFee,
+    BigDecimal distanceExtraStepKm,
     String deliveryText) {}
 
 record TakeawaySettingView(Long storeId, String storeName, String acceptMode) {}
@@ -83,7 +93,19 @@ record MerchantItemView(
     String status,
     Integer salesCount) {}
 
-record DeliveryRuleOpsView(Long storeId, BigDecimal deliveryFee, BigDecimal startPrice, Integer estimatedMinutes, BigDecimal maxDeliveryDistanceKm, String deliveryText) {}
+record DeliveryRuleOpsView(
+    Long storeId,
+    BigDecimal deliveryFee,
+    BigDecimal startPrice,
+    Integer estimatedMinutes,
+    BigDecimal maxDeliveryDistanceKm,
+    String packageFeeMode,
+    BigDecimal packageFeeFixed,
+    BigDecimal packageFeePerItem,
+    BigDecimal distanceExtraThresholdKm,
+    BigDecimal distanceExtraFee,
+    BigDecimal distanceExtraStepKm,
+    String deliveryText) {}
 
 record PaymentMethodView(String code, String name, boolean enabled) {}
 
@@ -104,9 +126,14 @@ record CheckoutPreviewView(
     String businessType,
     String addressSnapshot,
     BigDecimal deliveryFee,
+    BigDecimal packageFee,
+    BigDecimal distanceExtraFee,
     BigDecimal amount,
     BigDecimal payableAmount,
     BigDecimal discountAmount,
+    BigDecimal startPrice,
+    BigDecimal startPriceMissing,
+    Boolean minimumOrderMet,
     BigDecimal deliveryDistanceKm,
     BigDecimal maxDeliveryDistanceKm,
     Integer estimatedDeliveryMinutes,
@@ -114,6 +141,9 @@ record CheckoutPreviewView(
     String estimatedArrivalText,
     Boolean deliverable,
     String unavailableReason,
+    String tablewareOption,
+    Integer tablewareCount,
+    String tablewareText,
     List<CheckoutItemView> items,
     String note) {}
 
@@ -241,13 +271,18 @@ record OrderDetailView(
     String title,
     BigDecimal amount,
     BigDecimal deliveryFee,
+    BigDecimal packageFee,
     BigDecimal discountAmount,
     BigDecimal payableAmount,
     String addressSnapshot,
     BigDecimal deliveryDistanceKm,
     LocalDateTime estimatedArrivalAt,
     String estimatedArrivalText,
+    String deliveryCompletionText,
     String voucherSummary,
+    String tablewareOption,
+    Integer tablewareCount,
+    String tablewareText,
     String remark,
     LocalDateTime createdAt,
     LocalDateTime paidAt,

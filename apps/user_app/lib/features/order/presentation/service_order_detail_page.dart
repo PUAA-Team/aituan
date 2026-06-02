@@ -84,7 +84,8 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
                     arguments: VoucherDetailArgs(orderId: detail.id),
                   ),
                 ),
-              if (_supportsBooking(detail) && detail.status != OrderStatus.unpaid)
+              if (_supportsBooking(detail) &&
+                  detail.status != OrderStatus.unpaid)
                 _LinkCard(
                   icon: Icons.event_available,
                   title: detail.booking == null ? '提交到店预约信息' : '查看预约详情',
@@ -226,8 +227,9 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
   };
 
   bool _supportsBooking(OrderDetailData detail) {
-    final type = (detail.items.isNotEmpty ? detail.items.first.businessType : '')
-        .toLowerCase();
+    final type =
+        (detail.items.isNotEmpty ? detail.items.first.businessType : '')
+            .toLowerCase();
     // 酒店、休闲娱乐、丽人医美、洗脚按摩、电影演出需要预约/选场次
     return const {
       'hotel',
@@ -264,15 +266,9 @@ class _LinkCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
@@ -361,7 +357,7 @@ class _RuleCard extends StatelessWidget {
   Widget build(BuildContext context) => AppCard(
     child: Column(
       children: [
-        _Kv('使用时间', detail.addressSnapshot ?? '到店使用'),
+        _Kv('有效期', _validityText(detail.voucher)),
         _Kv('退款规则', detail.status == OrderStatus.unused ? '未使用可退' : '以商家规则为准'),
         _Kv(
           '预约要求',
@@ -372,6 +368,24 @@ class _RuleCard extends StatelessWidget {
   );
 }
 
+String _validityText(VoucherData? voucher) {
+  if (voucher == null) return '以商家规则为准';
+  final from = voucher.effectiveFrom == null
+      ? null
+      : _dateText(voucher.effectiveFrom!);
+  final to = voucher.effectiveTo == null
+      ? null
+      : _dateText(voucher.effectiveTo!);
+  if (from != null && to != null) return '$from 至 $to';
+  if (to != null) return '有效期至 $to';
+  return '不限';
+}
+
+String _dateText(DateTime time) =>
+    '${time.year}-${_two(time.month)}-${_two(time.day)}';
+
+String _two(int value) => value < 10 ? '0$value' : '$value';
+
 class _Kv extends StatelessWidget {
   const _Kv(this.k, this.v);
 
@@ -381,7 +395,14 @@ class _Kv extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(children: [Text(k), const Spacer(), Text(v)]),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 76, child: Text(k)),
+        const SizedBox(width: 10),
+        Expanded(child: Text(v, textAlign: TextAlign.right)),
+      ],
+    ),
   );
 }
 

@@ -7,6 +7,7 @@ import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.JwtTokenService;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,17 +19,33 @@ class AuthService {
   private final AuthRepository authRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtTokenService jwtTokenService;
+  private final EmailVerificationSender emailVerificationSender;
+  private final boolean debugReturnCode;
 
-  AuthService(AuthRepository authRepository, PasswordEncoder passwordEncoder, JwtTokenService jwtTokenService) {
+  AuthService(
+      AuthRepository authRepository,
+      PasswordEncoder passwordEncoder,
+      JwtTokenService jwtTokenService,
+      EmailVerificationSender emailVerificationSender,
+      @Value("${aituan.mail.debug-return-code:true}") boolean debugReturnCode) {
     this.authRepository = authRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtTokenService = jwtTokenService;
+    this.emailVerificationSender = emailVerificationSender;
+    this.debugReturnCode = debugReturnCode;
   }
 
   EmailCodeResponse sendEmailCode(EmailCodeRequest request) {
+    String scene = normalizeScene(request.scene());
+    LocalDateTime now = LocalDateTime.now();
+    if (authRepository.hasRecentCode(request.email(), scene, now.minusSeconds(60))) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "验证码发送过于频繁，请 60 秒后再试");
+    }
     String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-    authRepository.insertCode(request.email(), request.scene(), code, LocalDateTime.now().plusMinutes(10));
-    return new EmailCodeResponse(request.email(), request.scene(), code, 600);
+    String channel = emailVerificationSender.enabled() ? "smtp" : "mock_console";
+    authRepository.insertCode(request.email(), scene, code, now.plusMinutes(10), channel);
+    emailVerificationSender.sendCode(request.email(), scene, code, 10);
+    return new EmailCodeResponse(request.email(), scene, debugReturnCode ? code : null, 600);
   }
 
   @Transactional
@@ -81,7 +98,7 @@ class AuthService {
 
   @Transactional
   void resetPassword(ResetPasswordRequest request) {
-    AuthRepository.VerificationCodeRow codeRow = authRepository.findValidCode(request.email(), "reset", request.emailCode())
+    AuthRepository.VerificationCodeRow codeRow = authRepository.findValidCode(request.email(), "reset_password", request.emailCode())
         .orElseThrow(() -> new BusinessException(ErrorCode.VERIFICATION_CODE_INVALID));
     AuthRepository.AccountRow account = authRepository.findAccountByEmail(request.email())
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -119,6 +136,15 @@ class AuthService {
   private AuthProfile toProfile(AuthRepository.AccountRow row) {
     String nickname = row.loginName() == null || row.loginName().isBlank() ? row.accountNo() : row.loginName();
     return new AuthProfile(row.id(), nickname, null, row.phone(), row.email(), row.accountType().name());
+  }
+
+  private String normalizeScene(String scene) {
+    String value = scene == null ? "" : scene.trim().toLowerCase();
+    return switch (value) {
+      case "register" -> "register";
+      case "reset", "reset_password" -> "reset_password";
+      default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "验证码场景不支持");
+    };
   }
 
   private String maskPhone(String phone) {

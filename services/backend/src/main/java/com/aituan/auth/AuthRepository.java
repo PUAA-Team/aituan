@@ -99,13 +99,24 @@ class AuthRepository {
     return count != null && count > 0;
   }
 
-  VerificationCodeRow insertCode(String target, String scene, String code, LocalDateTime expireAt) {
+  boolean hasRecentCode(String target, String scene, LocalDateTime since) {
+    Integer count = jdbcTemplate.queryForObject(
+        "select count(1) from iam_verification_code where target = ? and scene = ? and created_at >= ?",
+        Integer.class,
+        target,
+        scene,
+        Timestamp.valueOf(since));
+    return count != null && count > 0;
+  }
+
+  VerificationCodeRow insertCode(String target, String scene, String code, LocalDateTime expireAt, String channel) {
     jdbcTemplate.update(
-        "insert into iam_verification_code(target, scene, code, expire_at, status) values (?, ?, ?, ?, 'unused')",
+        "insert into iam_verification_code(target, scene, code, expire_at, status, send_channel) values (?, ?, ?, ?, 'unused', ?)",
         target,
         scene,
         code,
-        Timestamp.valueOf(expireAt));
+        Timestamp.valueOf(expireAt),
+        channel);
     Long id = jdbcTemplate.queryForObject("select max(id) from iam_verification_code", Long.class);
     return new VerificationCodeRow(id, target, scene, code, expireAt, null, "unused");
   }

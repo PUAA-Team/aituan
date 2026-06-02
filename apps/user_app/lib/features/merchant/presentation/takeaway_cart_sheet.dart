@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/models/item_model.dart';
+import 'takeaway_amount_utils.dart';
+import 'takeaway_quantity_stepper.dart';
 
 class TakeawayCartSheet extends StatefulWidget {
   const TakeawayCartSheet({
@@ -36,8 +38,7 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
     (sum, item) => sum + item.price * (widget.cart[item.id] ?? 0),
   );
 
-  double get _missing =>
-      widget.startPrice > _total ? widget.startPrice - _total : 0;
+  double get _missing => takeawayStartMissing(_total, widget.startPrice);
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +102,7 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '还差￥${_missing.toStringAsFixed(0)}起送',
+                  '还差￥${takeawayMoneyText(_missing)}起送',
                   style: const TextStyle(
                     color: AppColors.brand,
                     fontWeight: FontWeight.w700,
@@ -127,7 +128,7 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
                       }
                     : null,
                 child: Text(
-                  _missing > 0 ? '差￥${_missing.toStringAsFixed(0)}起送' : '去确认订单',
+                  _missing > 0 ? '差￥${takeawayMoneyText(_missing)}起送' : '去确认订单',
                 ),
               ),
             ),
@@ -155,6 +156,7 @@ class _CartLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final canAdd = !item.soldOut && count < item.stock;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
@@ -162,6 +164,8 @@ class _CartLine extends StatelessWidget {
             children: [
               Text(
                 item.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
@@ -169,57 +173,16 @@ class _CartLine extends StatelessWidget {
             ],
           ),
         ),
-        _RoundButton(icon: Icons.remove, onTap: onRemove),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            '$count',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-        _RoundButton(
-          icon: Icons.add,
-          onTap: canAdd ? onAdd : null,
-          filled: true,
+        const SizedBox(width: 8),
+        TakeawayQuantityStepper(
+          count: count,
+          canAdd: canAdd,
+          onAdd: onAdd,
+          onRemove: onRemove,
         ),
       ],
     );
   }
-}
-
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
-    required this.icon,
-    required this.onTap,
-    this.filled = false,
-  });
-
-  final IconData icon;
-  final VoidCallback? onTap;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(14),
-    child: Opacity(
-      opacity: onTap == null ? 0.45 : 1,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: filled ? AppColors.brand : AppColors.soft,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.brandLine),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: filled ? Colors.white : AppColors.brand,
-        ),
-      ),
-    ),
-  );
 }
 
 class _SummaryRow extends StatelessWidget {

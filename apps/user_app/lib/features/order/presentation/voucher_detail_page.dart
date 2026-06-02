@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../home/data/backend_app_repository.dart';
+import 'voucher_qr_view.dart';
 
 /// Stage5-D 新增：非外卖券码完整详情页
 /// 展示完整 QR 占位、券码大字号、有效期、核销状态与商家公示规则
@@ -34,7 +35,9 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
         _loading = true;
         _error = null;
       });
-      final detail = await backendRepository.fetchOrderDetail(widget.args.orderId);
+      final detail = await backendRepository.fetchOrderDetail(
+        widget.args.orderId,
+      );
       if (!mounted) return;
       setState(() {
         _detail = detail;
@@ -92,43 +95,20 @@ class _QrCard extends StatelessWidget {
       borderColor: AppColors.brandLine,
       child: Column(
         children: [
-          BrandTag(
-            used ? '券码已核销' : '待核销',
-            green: !used,
-            selected: true,
-          ),
+          BrandTag(used ? '券码已核销' : '待核销', green: !used, selected: true),
           const SizedBox(height: 14),
           Container(
-            width: 200,
-            height: 200,
-            alignment: Alignment.center,
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.brandLine),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(180, 180),
-                  painter: _PatternPainter(),
-                ),
-                Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  child: const Text(
-                    'AT',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.brand,
-                    ),
-                  ),
-                ),
-              ],
+            child: VoucherQrView(
+              data: voucher.qrPayload.isEmpty
+                  ? voucher.voucherCode
+                  : voucher.qrPayload,
+              size: 180,
             ),
           ),
           const SizedBox(height: 14),
@@ -174,9 +154,12 @@ class _RuleCard extends StatelessWidget {
           _Kv('订单编号', detail.orderNo),
           _Kv('订单标题', detail.title),
           _Kv('实付金额', '￥${detail.payableAmount.toStringAsFixed(1)}'),
-          _Kv('有效期至', voucher.effectiveTo == null
-              ? '不限'
-              : _formatDate(voucher.effectiveTo!)),
+          _Kv(
+            '有效期至',
+            voucher.effectiveTo == null
+                ? '不限'
+                : _formatDate(voucher.effectiveTo!),
+          ),
           _Kv('核销状态', voucher.status.toLowerCase() == 'used' ? '已核销' : '未核销'),
         ],
       ),
@@ -208,7 +191,8 @@ class _StoreCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
-          if (detail.voucherSummary != null && detail.voucherSummary!.isNotEmpty)
+          if (detail.voucherSummary != null &&
+              detail.voucherSummary!.isNotEmpty)
             Text(
               detail.voucherSummary!,
               style: Theme.of(context).textTheme.bodySmall,
@@ -234,37 +218,8 @@ class _Kv extends StatelessWidget {
           width: 80,
           child: Text(k, style: const TextStyle(color: AppColors.textSub)),
         ),
-        Expanded(child: Text(v)),
+        Expanded(child: Text(v, softWrap: true)),
       ],
     ),
   );
-}
-
-class _PatternPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF1F1F1F);
-    const cells = 18;
-    final cell = size.width / cells;
-    // 简易格子图样作为二维码占位（演示不接真实 QR 库）
-    final pattern = [
-      0x3E, 0x41, 0x5D, 0x5D, 0x41, 0x3E, 0x00, 0x12,
-      0x1A, 0x3E, 0x14, 0x5D, 0x00, 0x3E, 0x41, 0x5D,
-      0x5D, 0x41,
-    ];
-    for (var y = 0; y < cells; y++) {
-      final row = pattern[y % pattern.length];
-      for (var x = 0; x < cells; x++) {
-        if ((row >> (x % 8)) & 1 == 1) {
-          canvas.drawRect(
-            Rect.fromLTWH(x * cell, y * cell, cell, cell),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

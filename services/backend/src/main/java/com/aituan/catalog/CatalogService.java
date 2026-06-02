@@ -132,6 +132,20 @@ class CatalogService {
     return catalogRepository.findCategory(categoryId).map(this::toCategoryView).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
+  @Transactional
+  void deleteCategory(long categoryId) {
+    CatalogRepository.CategoryRow category = catalogRepository.findCategory(categoryId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    ensureStoreAccess(category.storeId());
+    if (category.storeId() == null) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "系统分类不允许删除");
+    }
+    if (catalogRepository.countItemsByCategory(categoryId) > 0) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "分类下存在商品，请先调整商品分类或删除商品");
+    }
+    catalogRepository.softDeleteCategory(categoryId);
+  }
+
   private CatalogItemView createItem(long storeId, CatalogItemUpsertRequest request) {
     ensureStoreAccess(storeId);
     validatePrice(request.price());

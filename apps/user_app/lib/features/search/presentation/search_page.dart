@@ -6,6 +6,7 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_search_box.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../location/presentation/location_picker_button.dart';
 import 'search_suggestion_widgets.dart';
 
 class SearchPage extends StatefulWidget {
@@ -66,6 +67,14 @@ class _SearchPageState extends State<SearchPage> {
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        AppCard(
+          child: Row(
+            children: [
+              const Expanded(child: Text('搜索位置')),
+              LocationPickerButton(compact: true),
+            ],
+          ),
+        ),
         SearchChipPanel(
           title: '历史搜索',
           chips: const ['鸡排饭', '洗脚', '电影票', '汉堡'],

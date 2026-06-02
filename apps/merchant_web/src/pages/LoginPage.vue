@@ -12,8 +12,9 @@ const emit = defineEmits<{
   submit: [payload: { account: string; password: string }];
 }>();
 
-const account = ref('demo_merchant');
-const password = ref('123456');
+const savedAccount = localStorage.getItem('aituan_merchant_account') || '';
+const account = ref(savedAccount);
+const password = ref('');
 const applying = ref(false);
 const applicationBusy = ref(false);
 const applicationMessage = ref('');

@@ -276,6 +276,12 @@ export interface DeliveryRule {
   startPrice: number;
   estimatedMinutes: number;
   maxDeliveryDistanceKm: number;
+  packageFeeMode: 'none' | 'fixed' | 'per_item' | string;
+  packageFeeFixed: number;
+  packageFeePerItem: number;
+  distanceExtraThresholdKm: number;
+  distanceExtraFee: number;
+  distanceExtraStepKm: number;
   deliveryText: string;
 }
 

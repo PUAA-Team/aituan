@@ -7,6 +7,7 @@ import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUserContext;
 import com.aituan.message.MessageRepository;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,21 +51,19 @@ class DiscoveryService {
   }
 
   PageResponse<ItemCardView> recommendations(int page, int pageSize, Double latitude, Double longitude) {
+    int safePageSize = Math.min(Math.max(pageSize, 1), 50);
     long total = discoveryRepository.countRecommendations();
     LocationContext location = locationContext(latitude, longitude);
-    if (location == null) {
-      List<ItemCardView> list = discoveryRepository.listRecommendations((page - 1) * pageSize, pageSize).stream()
-          .map(this::toItemCard)
-          .toList();
-      return PageResponse.of(list, page, pageSize, total);
-    }
-    List<DiscoveryRepository.ItemRow> sorted = sortItems(discoveryRepository.listRecommendations(0, (int) Math.min(total, Integer.MAX_VALUE)), location);
-    int fromIndex = Math.max(0, (page - 1) * pageSize);
-    int toIndex = Math.min(sorted.size(), fromIndex + pageSize);
-    List<ItemCardView> pageItems = fromIndex >= sorted.size()
+    List<DiscoveryRepository.ItemRow> sorted = sortItems(
+        discoveryRepository.listRecommendations(0, (int) Math.min(total, Integer.MAX_VALUE)),
+        location);
+    List<DiscoveryRepository.ItemRow> spaced = spaceItemsByStore(sorted, 4);
+    int fromIndex = Math.max(0, (page - 1) * safePageSize);
+    int toIndex = Math.min(spaced.size(), fromIndex + safePageSize);
+    List<ItemCardView> pageItems = fromIndex >= spaced.size()
         ? List.of()
-        : sorted.subList(fromIndex, toIndex).stream().map(this::toItemCard).toList();
-    return PageResponse.of(pageItems, page, pageSize, total);
+        : spaced.subList(fromIndex, toIndex).stream().map(this::toItemCard).toList();
+    return PageResponse.of(pageItems, page, safePageSize, total);
   }
 
   ModulePageView module(String moduleCode, Double latitude, Double longitude) {
@@ -86,9 +85,13 @@ class DiscoveryService {
     LocationContext location = locationContext(latitude, longitude);
     List<DiscoveryRepository.StoreRow> stores = sortStores(discoveryRepository.searchStores(keyword, 50), location);
     List<StoreCardView> mapped = stores.stream().map(store -> {
-      List<ItemCardView> matchedItems = discoveryRepository.searchItems(store.id(), keyword, 6).stream()
-          .map(this::toItemCard)
-          .toList();
+      List<DiscoveryRepository.ItemRow> matchedRows = new java.util.ArrayList<>(discoveryRepository.searchItems(store.id(), keyword, 6));
+      if (matchedRows.size() < 6) {
+        List<Long> excluded = matchedRows.stream().map(DiscoveryRepository.ItemRow::id).toList();
+        List<Long> preferredCategories = matchedRows.stream().map(DiscoveryRepository.ItemRow::categoryId).distinct().toList();
+        matchedRows.addAll(discoveryRepository.listStoreItemsForFill(store.id(), excluded, preferredCategories, 6 - matchedRows.size()));
+      }
+      List<ItemCardView> matchedItems = matchedRows.stream().limit(6).map(this::toItemCard).toList();
       return toStoreCard(store, matchedItems, location, true);
     }).toList();
     int fromIndex = Math.max(0, (page - 1) * pageSize);
@@ -125,6 +128,12 @@ class DiscoveryService {
         deliveryRuleRow.deliveryFee(),
         deliveryRuleRow.estimatedMinutes(),
         deliveryRuleRow.startPrice(),
+        deliveryRuleRow.packageFeeFixed(),
+        deliveryRuleRow.packageFeePerItem(),
+        deliveryRuleRow.packageFeeMode(),
+        deliveryRuleRow.distanceExtraThresholdKm(),
+        deliveryRuleRow.distanceExtraFee(),
+        deliveryRuleRow.distanceExtraStepKm(),
         deliveryRuleRow.deliveryText());
     return new StoreDetailView(toStoreCard(storeRow, location), storeRow.businessType(), categories, itemGroups, reviewSummary, deliveryRule);
   }
@@ -267,17 +276,43 @@ class DiscoveryService {
   }
 
   private List<DiscoveryRepository.ItemRow> sortItems(List<DiscoveryRepository.ItemRow> items, LocationContext location) {
-    if (location == null) {
-      return items;
+    Comparator<DiscoveryRepository.ItemRow> comparator = Comparator
+        .comparing(DiscoveryRepository.ItemRow::salesCount, Comparator.reverseOrder())
+        .thenComparing(DiscoveryRepository.ItemRow::storeMonthlySales, Comparator.reverseOrder())
+        .thenComparing(DiscoveryRepository.ItemRow::storeRating, Comparator.nullsLast(Comparator.reverseOrder()))
+        .thenComparing(DiscoveryRepository.ItemRow::sortOrder)
+        .thenComparing(DiscoveryRepository.ItemRow::id);
+    if (location != null) {
+      comparator = Comparator
+          .comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location))
+          .thenComparing(comparator);
     }
-    return items.stream()
-        .sorted(Comparator
-            .comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location))
-            .thenComparing(DiscoveryRepository.ItemRow::storeRating, Comparator.nullsLast(Comparator.reverseOrder()))
-            .thenComparing(DiscoveryRepository.ItemRow::storeMonthlySales, Comparator.reverseOrder())
-            .thenComparing(DiscoveryRepository.ItemRow::sortOrder)
-            .thenComparing(DiscoveryRepository.ItemRow::id))
-        .toList();
+    return items.stream().sorted(comparator).toList();
+  }
+
+  private List<DiscoveryRepository.ItemRow> spaceItemsByStore(List<DiscoveryRepository.ItemRow> items, int windowSize) {
+    List<DiscoveryRepository.ItemRow> remaining = new ArrayList<>(items);
+    List<DiscoveryRepository.ItemRow> result = new ArrayList<>(items.size());
+    List<Long> recentStores = new ArrayList<>();
+    while (!remaining.isEmpty()) {
+      int selectedIndex = -1;
+      for (int i = 0; i < remaining.size(); i++) {
+        if (!recentStores.contains(remaining.get(i).storeId())) {
+          selectedIndex = i;
+          break;
+        }
+      }
+      if (selectedIndex < 0) {
+        selectedIndex = 0;
+      }
+      DiscoveryRepository.ItemRow selected = remaining.remove(selectedIndex);
+      result.add(selected);
+      recentStores.add(selected.storeId());
+      if (recentStores.size() > windowSize) {
+        recentStores.remove(0);
+      }
+    }
+    return result;
   }
 
   private LocationContext locationContext(Double latitude, Double longitude) {

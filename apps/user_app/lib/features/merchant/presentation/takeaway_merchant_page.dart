@@ -9,6 +9,7 @@ import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
 import '../../home/data/backend_app_repository.dart';
 import 'merchant_category_widgets.dart';
+import 'takeaway_amount_utils.dart';
 import 'takeaway_cart_sheet.dart';
 import 'takeaway_merchant_sections.dart';
 import 'takeaway_merchant_widgets.dart';
@@ -164,10 +165,12 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
   void _submit() {
     final merchant = _merchant ?? widget.merchant;
     if (_total <= 0 || !AppScope.of(context).requireLogin(context)) return;
-    if (_total < merchant.deliveryRule.startPrice) {
-      _showToast(
-        '还差￥${(merchant.deliveryRule.startPrice - _total).toStringAsFixed(0)}起送',
-      );
+    final missing = takeawayStartMissing(
+      _total,
+      merchant.deliveryRule.startPrice,
+    );
+    if (missing > 0) {
+      _showToast('商品金额还差￥${takeawayMoneyText(missing)}起送');
       return;
     }
     Navigator.pushNamed(

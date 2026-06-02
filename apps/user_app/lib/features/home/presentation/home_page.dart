@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../app/route_args.dart';
@@ -27,7 +25,10 @@ class _HomePageState extends State<HomePage> {
   HomeData? _data;
   Object? _error;
   bool _loading = true;
-  int _visible = 6;
+  bool _loadingMore = false;
+  int _recommendPage = 1;
+  final Set<String> _shownRecommendationIds = {};
+  final List<String> _recentStoreIds = [];
 
   @override
   void initState() {
@@ -76,7 +77,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
     final data = _data!;
-    final items = data.recommendations.take(_visible).toList();
+    final items = data.recommendations;
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _loadHome,
@@ -91,15 +92,10 @@ class _HomePageState extends State<HomePage> {
               items: items,
               onTap: (item) => _openItem(context, item),
             ),
-            if (_visible >= data.recommendations.length &&
-                data.recommendations.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 10),
-                child: Text(
-                  '已展示更多附近好店',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+            if (_loadingMore)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               ),
             if (data.recommendations.isEmpty)
               Padding(
@@ -162,10 +158,22 @@ class _HomePageState extends State<HomePage> {
         _error = null;
       });
       final data = await backendRepository.fetchHome();
+      final recommendations = _dedupeRecommendations(
+        data.recommendations,
+        reset: true,
+      );
       if (!mounted) return;
       setState(() {
-        _data = data;
-        _visible = math.min(6, data.recommendations.length);
+        _data = HomeData(
+          modules: data.modules,
+          recommendations: recommendations,
+          recommendationPage: data.recommendationPage.copyWith(
+            list: recommendations,
+          ),
+          unreadMessageCount: data.unreadMessageCount,
+        );
+        _recommendPage = 1;
+        _loadingMore = false;
         _loading = false;
       });
     } catch (error) {
@@ -178,13 +186,80 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _loadMoreIfNeeded() {
+    if (!_controller.hasClients || _data == null || _loadingMore || _loading) {
+      return;
+    }
+    if (_controller.position.extentAfter < 360) {
+      _loadMoreRecommendations();
+    }
+  }
+
+  Future<void> _loadMoreRecommendations() async {
     final data = _data;
-    if (!_controller.hasClients || data == null) return;
-    if (_visible >= data.recommendations.length) return;
-    if (_controller.position.extentAfter < 260) {
+    if (data == null || !data.recommendationPage.hasNext) return;
+    setState(() => _loadingMore = true);
+    try {
+      final nextPage = _recommendPage + 1;
+      final next = await backendRepository.fetchRecommendations(
+        page: nextPage,
+        pageSize: 12,
+      );
+      final filtered = _dedupeRecommendations(next.list);
+      if (!mounted) return;
       setState(() {
-        _visible = (_visible + 4).clamp(0, data.recommendations.length).toInt();
+        _recommendPage = nextPage;
+        final merged = [...data.recommendations, ...filtered];
+        _data = HomeData(
+          modules: data.modules,
+          recommendations: merged,
+          recommendationPage: next.copyWith(list: merged),
+          unreadMessageCount: data.unreadMessageCount,
+        );
+        _loadingMore = false;
       });
+    } catch (_) {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  List<ItemModel> _dedupeRecommendations(
+    List<ItemModel> items, {
+    bool reset = false,
+    bool allowRepeatIfNeeded = false,
+  }) {
+    if (reset) {
+      _shownRecommendationIds.clear();
+      _recentStoreIds.clear();
+    }
+    final accepted = <ItemModel>[];
+    final delayed = <ItemModel>[];
+    for (final item in items) {
+      if (!allowRepeatIfNeeded && _shownRecommendationIds.contains(item.id)) {
+        continue;
+      }
+      if (_recentStoreIds.contains(item.storeId)) {
+        delayed.add(item);
+      } else {
+        accepted.add(item);
+        _rememberRecommendation(item);
+      }
+    }
+    for (final item in delayed) {
+      if (accepted.length >= 12) break;
+      if (!allowRepeatIfNeeded && _shownRecommendationIds.contains(item.id)) {
+        continue;
+      }
+      accepted.add(item);
+      _rememberRecommendation(item);
+    }
+    return accepted;
+  }
+
+  void _rememberRecommendation(ItemModel item) {
+    _shownRecommendationIds.add(item.id);
+    _recentStoreIds.add(item.storeId);
+    if (_recentStoreIds.length > 4) {
+      _recentStoreIds.removeAt(0);
     }
   }
 

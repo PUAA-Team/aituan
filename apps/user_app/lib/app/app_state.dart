@@ -22,6 +22,10 @@ class AppState extends ChangeNotifier {
   String get memberLevelName => _memberLevelName;
   int get unreadMessageCount => _unreadMessageCount;
 
+  Future<void> restoreToken(String token) async {
+    _token = token;
+  }
+
   void login({
     required String token,
     required String displayName,

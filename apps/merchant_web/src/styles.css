@@ -462,6 +462,28 @@ td span {
   width: 170px;
 }
 
+.category-tag {
+  gap: 6px;
+  padding-right: 5px;
+}
+
+.category-tag button {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  color: #9f001e;
+  background: #fff0f2;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.category-tag button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .catalog-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -17,6 +17,7 @@ record AccountProfileView(
     int growthValue,
     long addressCount,
     long favoriteCount,
+    long orderCount,
     long unreadMessageCount) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -51,6 +52,10 @@ record AddressUpsertRequest(
 record AccountProfileUpdateRequest(
     @NotBlank String nickname,
     String avatarUrl) {}
+
+record PasswordChangeRequest(
+    @NotBlank String oldPassword,
+    @NotBlank String newPassword) {}
 
 record FavoriteUpsertRequest(
     @NotBlank String favoriteType,

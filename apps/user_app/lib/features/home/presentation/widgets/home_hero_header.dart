@@ -5,8 +5,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_tokens.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/widgets/app_search_box.dart';
-import '../../../../core/widgets/app_toast.dart';
 import '../../../location/application/location_scope.dart';
+import '../../../location/presentation/location_picker_button.dart';
 
 class HomeHeroHeader extends StatelessWidget {
   const HomeHeroHeader({super.key, this.onLocationChanged});
@@ -33,10 +33,10 @@ class HomeHeroHeader extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _LocationButton(
-                      label: LocationScope.of(context).label,
-                      loading: LocationScope.of(context).loading,
+                    LocationPickerButton(
                       onLocationChanged: onLocationChanged,
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.white.withValues(alpha: .14),
                     ),
                     const Spacer(),
                     _MessageButton(unread: unread),
@@ -68,7 +68,9 @@ class _LocationDebugTip extends StatelessWidget {
     final message = location.debugNote.isNotEmpty
         ? location.debugNote
         : location.error?.toString() ?? '';
-    if (!location.debugErrors || message.isEmpty) return const SizedBox.shrink();
+    if (!location.debugErrors || message.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       width: double.infinity,
@@ -91,63 +93,6 @@ class _LocationDebugTip extends StatelessWidget {
   }
 }
 
-class _LocationButton extends StatelessWidget {
-  const _LocationButton({
-    required this.label,
-    required this.loading,
-    required this.onLocationChanged,
-  });
-
-  final String label;
-  final bool loading;
-  final Future<void> Function()? onLocationChanged;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: loading
-        ? null
-        : () async {
-            final location = LocationScope.of(context);
-            await location.refresh();
-            if (!context.mounted) return;
-            final error = location.error;
-            showAppSnackBar(
-              context,
-              error == null ? '已更新位置' : '开发提示：定位失败，当前使用默认位置：$error',
-            );
-            final callback = onLocationChanged;
-            if (callback != null) {
-              await callback();
-            }
-          },
-    borderRadius: BorderRadius.circular(8),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            loading ? Icons.sync : Icons.location_on,
-            color: Colors.white,
-            size: 18,
-          ),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 class _MessageButton extends StatelessWidget {
   const _MessageButton({required this.unread});
 
@@ -162,11 +107,7 @@ class _MessageButton extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(
-            Icons.notifications_none,
-            color: Colors.white,
-            size: 22,
-          ),
+          const Icon(Icons.notifications_none, color: Colors.white, size: 22),
           if (unread > 0)
             Positioned(
               right: -5,

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,6 +74,12 @@ class MerchantCatalogController {
   @PutMapping("/categories/{categoryId}")
   ApiResponse<CatalogCategoryView> updateCategory(@PathVariable long categoryId, @Valid @RequestBody CatalogCategoryUpsertRequest request) {
     return ApiResponse.ok(catalogService.updateCategory(categoryId, request));
+  }
+
+  @DeleteMapping("/categories/{categoryId}")
+  ApiResponse<Void> deleteCategory(@PathVariable long categoryId) {
+    catalogService.deleteCategory(categoryId);
+    return ApiResponse.ok(null);
   }
 }
 

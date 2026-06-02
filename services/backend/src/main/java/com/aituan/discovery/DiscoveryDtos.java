@@ -58,7 +58,17 @@ record ItemGroupView(Long categoryId, String categoryName, List<ItemCardView> it
 
 record ReviewSummaryView(BigDecimal rating, long count, List<String> highlights) {}
 
-record DeliveryRuleView(BigDecimal deliveryFee, Integer estimatedMinutes, BigDecimal startPrice, String deliveryText) {}
+record DeliveryRuleView(
+    BigDecimal deliveryFee,
+    Integer estimatedMinutes,
+    BigDecimal startPrice,
+    BigDecimal packageFeeFixed,
+    BigDecimal packageFeePerItem,
+    String packageFeeMode,
+    BigDecimal distanceExtraThresholdKm,
+    BigDecimal distanceExtraFee,
+    BigDecimal distanceExtraStepKm,
+    String deliveryText) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record StoreDetailView(

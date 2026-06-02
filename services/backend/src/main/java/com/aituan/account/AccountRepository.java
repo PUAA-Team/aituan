@@ -50,6 +50,29 @@ class AccountRepository {
         userId);
   }
 
+  Optional<AccountPasswordRow> findPasswordByAccountId(long accountId) {
+    List<AccountPasswordRow> rows = jdbcTemplate.query(
+        "select id, password_hash from iam_account where id = ? and is_deleted = 0 limit 1",
+        (rs, rowNum) -> new AccountPasswordRow(rs.getLong("id"), rs.getString("password_hash")),
+        accountId);
+    return rows.stream().findFirst();
+  }
+
+  void updatePassword(long accountId, String passwordHash) {
+    jdbcTemplate.update(
+        "update iam_account set password_hash = ?, updated_at = current_timestamp where id = ? and is_deleted = 0",
+        passwordHash,
+        accountId);
+  }
+
+  long countOrders(long userId) {
+    Long count = jdbcTemplate.queryForObject(
+        "select count(1) from order_main where user_id = ? and is_deleted = 0",
+        Long.class,
+        userId);
+    return count == null ? 0 : count;
+  }
+
   long countAddresses(long userId) {
     Long count = jdbcTemplate.queryForObject(
         "select count(1) from user_address where user_id = ? and is_deleted = 0",
@@ -288,6 +311,8 @@ class AccountRepository {
   }
 
   record AccountProfileRow(Long accountId, Long userId, String nickname, String avatarUrl, String phone, String email, String memberLevelName, int growthValue) {}
+
+  record AccountPasswordRow(Long accountId, String passwordHash) {}
 
   record AddressRow(Long id, Long userId, String contactName, String contactPhone, String province, String city, String district, String detailAddress, Double longitude, Double latitude, String tagName, boolean isDefault, String deliveryNote, LocalDateTime createdAt) {}
 

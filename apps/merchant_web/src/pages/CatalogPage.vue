@@ -4,6 +4,7 @@ import PanelModal from '../components/PanelModal.vue';
 import {
   createCatalogItem,
   createCategory,
+  deleteCategory,
   fetchCatalogItems,
   fetchCategories,
   resolveAssetUrl,
@@ -184,6 +185,24 @@ async function addCategory() {
   }
 }
 
+async function removeCategory(category: CatalogCategory) {
+  if (items.value.some((item) => item.categoryId === category.id)) {
+    emit('notice', '分类下存在商品，请先调整商品分类或删除商品');
+    return;
+  }
+  if (!window.confirm(`确定删除分类「${category.categoryName}」吗？`)) return;
+  try {
+    loading.value = true;
+    await deleteCategory(category.id);
+    emit('notice', '分类已删除');
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  } finally {
+    loading.value = false;
+  }
+}
+
 function replaceItem(item: CatalogItem) {
   const exists = items.value.some((entry) => entry.id === item.id);
   items.value = exists ? items.value.map((entry) => (entry.id === item.id ? item : entry)) : [item, ...items.value];
@@ -225,7 +244,10 @@ function money(value: number | undefined) {
     </div>
 
     <div class="category-line">
-      <span v-for="category in selectedCategories" :key="category.id" class="tag">{{ category.categoryName }}</span>
+      <span v-for="category in selectedCategories" :key="category.id" class="tag category-tag">
+        {{ category.categoryName }}
+        <button type="button" title="删除分类" :disabled="loading" @click="removeCategory(category)">×</button>
+      </span>
       <input v-model="newCategoryName" placeholder="新增分类名称" @keyup.enter="addCategory" />
       <button class="secondary-btn small" @click="addCategory">添加分类</button>
     </div>

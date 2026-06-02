@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../shared/models/address_model.dart';
 import 'location_service.dart';
 
 class LocationState extends ChangeNotifier {
@@ -7,23 +8,60 @@ class LocationState extends ChangeNotifier {
 
   int _refreshSeq = 0;
   UserLocation? _current;
+  UserLocation? _browseLocation;
   Object? _error;
   String _debugNote = '';
   bool _loading = false;
 
   UserLocation? get current => _current;
+  UserLocation? get browseLocation => _browseLocation;
+  UserLocation? get effectiveLocation => _browseLocation ?? _current;
   Object? get error => _error;
   String get debugNote => _debugNote;
   bool get debugErrors => _debugErrors;
   bool get loading => _loading;
-  bool get hasLocation => _current != null;
-  double? get latitude => _current?.latitude;
-  double? get longitude => _current?.longitude;
+  bool get usingAddress => _browseLocation != null;
+  bool get hasLocation => effectiveLocation != null;
+  double? get latitude => effectiveLocation?.latitude;
+  double? get longitude => effectiveLocation?.longitude;
   String get label {
+    if (_browseLocation != null) {
+      return _browseLocation!.label.split('\n').first;
+    }
     if (_loading) return '定位中';
     final current = _current;
     if (current != null) return current.label.split('\n').first;
     return '当前位置';
+  }
+
+  Future<void> selectCurrentLocation() async {
+    _browseLocation = null;
+    await refresh();
+  }
+
+  void selectAddressLocation(AddressData address) {
+    final latitude = address.latitude;
+    final longitude = address.longitude;
+    if (latitude == null || longitude == null) return;
+    _browseLocation = UserLocation(
+      latitude: latitude,
+      longitude: longitude,
+      label: address.detailAddress.isNotEmpty
+          ? address.detailAddress
+          : address.fullAddress,
+      formattedAddress: address.fullAddress,
+      province: address.province,
+      city: address.city,
+      district: address.district,
+    );
+    _error = null;
+    notifyListeners();
+  }
+
+  void clearBrowseLocation() {
+    if (_browseLocation == null) return;
+    _browseLocation = null;
+    notifyListeners();
   }
 
   Future<void> refresh() async {

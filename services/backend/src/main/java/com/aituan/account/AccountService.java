@@ -10,6 +10,7 @@ import com.aituan.common.security.CurrentUserContext;
 import com.aituan.discovery.MapDistanceService;
 import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,14 +20,17 @@ class AccountService {
   private final AccountRepository accountRepository;
   private final FileStorageService fileStorageService;
   private final MapDistanceService mapDistanceService;
+  private final PasswordEncoder passwordEncoder;
 
   AccountService(
       AccountRepository accountRepository,
       FileStorageService fileStorageService,
-      MapDistanceService mapDistanceService) {
+      MapDistanceService mapDistanceService,
+      PasswordEncoder passwordEncoder) {
     this.accountRepository = accountRepository;
     this.fileStorageService = fileStorageService;
     this.mapDistanceService = mapDistanceService;
+    this.passwordEncoder = passwordEncoder;
   }
 
   AccountProfileView profile() {
@@ -44,6 +48,7 @@ class AccountService {
         row.growthValue(),
         accountRepository.countAddresses(currentUser.userId()),
         accountRepository.countFavorites(currentUser.userId(), null),
+        accountRepository.countOrders(currentUser.userId()),
         accountRepository.countUnreadMessages(currentUser.userId()));
   }
 
@@ -60,6 +65,17 @@ class AccountService {
     FileAssetView asset = fileStorageService.save(file, "avatar");
     accountRepository.updateAvatar(currentUser.userId(), asset.publicUrl());
     return profile();
+  }
+
+  @Transactional
+  void changePassword(PasswordChangeRequest request) {
+    CurrentUser currentUser = CurrentUserContext.required();
+    AccountRepository.AccountPasswordRow row = accountRepository.findPasswordByAccountId(currentUser.accountId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!passwordEncoder.matches(request.oldPassword(), row.passwordHash()) && !request.oldPassword().equals(row.passwordHash())) {
+      throw new BusinessException(ErrorCode.INVALID_PASSWORD);
+    }
+    accountRepository.updatePassword(currentUser.accountId(), passwordEncoder.encode(request.newPassword()));
   }
 
   List<AddressView> addresses() {

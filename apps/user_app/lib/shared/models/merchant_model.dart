@@ -48,11 +48,43 @@ class DeliveryRuleModel {
     this.deliveryFee = 0,
     this.estimatedMinutes = 35,
     this.startPrice = 0,
+    this.packageFeeFixed = 0,
+    this.packageFeePerItem = 0,
+    this.packageFeeMode = 'none',
+    this.distanceExtraThresholdKm = 0,
+    this.distanceExtraFee = 0,
+    this.distanceExtraStepKm = 1,
     this.deliveryText = '',
   });
 
   final double deliveryFee;
   final int estimatedMinutes;
   final double startPrice;
+  final double packageFeeFixed;
+  final double packageFeePerItem;
+  final String packageFeeMode;
+  final double distanceExtraThresholdKm;
+  final double distanceExtraFee;
+  final double distanceExtraStepKm;
   final String deliveryText;
+
+  String get packageFeeText => switch (packageFeeMode) {
+    'fixed' =>
+      packageFeeFixed > 0
+          ? '打包费￥${packageFeeFixed.toStringAsFixed(1)}/单'
+          : '不收打包费',
+    'per_item' =>
+      packageFeePerItem > 0
+          ? '打包费￥${packageFeePerItem.toStringAsFixed(1)}/件'
+          : '不收打包费',
+    _ => '不收打包费',
+  };
+
+  String get distanceExtraText {
+    if (distanceExtraThresholdKm <= 0 || distanceExtraFee <= 0) {
+      return '无距离加价';
+    }
+    final step = distanceExtraStepKm <= 0 ? 1.0 : distanceExtraStepKm;
+    return '超${distanceExtraThresholdKm.toStringAsFixed(1)}km后，每${step.toStringAsFixed(1)}km加￥${distanceExtraFee.toStringAsFixed(1)}';
+  }
 }

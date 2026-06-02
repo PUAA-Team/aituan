@@ -303,7 +303,8 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
 
   bool _canChangeAddress(OrderDetailData detail) {
     if (detail.status == OrderStatus.unpaid) return true;
-    return detail.status == OrderStatus.pending && detail.fulfillmentStatus == 'merchant_pending';
+    return detail.status == OrderStatus.pending &&
+        detail.fulfillmentStatus == 'merchant_pending';
   }
 
   bool _canCancel(OrderDetailData detail) {
@@ -430,7 +431,16 @@ class _DeliveryAddressCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(detail.addressSnapshot ?? '暂无配送地址'),
-        if (detail.estimatedArrivalText != null) ...[
+        if (detail.deliveryCompletionText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            detail.deliveryCompletionText!,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.brand,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ] else if (detail.estimatedArrivalText != null) ...[
           const SizedBox(height: 6),
           Text(
             '预计送达 ${detail.estimatedArrivalText}',
@@ -520,7 +530,10 @@ class _FeeCard extends StatelessWidget {
     child: Column(
       children: [
         _Kv('商品金额', _money(detail.amount)),
+        if (detail.packageFee > 0) _Kv('打包费', _money(detail.packageFee)),
         if (detail.deliveryFee > 0) _Kv('配送费', _money(detail.deliveryFee)),
+        if (detail.tablewareText != null && detail.tablewareText!.isNotEmpty)
+          _Kv('餐具', detail.tablewareText!),
         if (detail.discountAmount > 0)
           _Kv('优惠', '-${_money(detail.discountAmount)}'),
         const Divider(),
@@ -544,14 +557,18 @@ class _Kv extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(k),
-        const Spacer(),
-        Text(
-          v,
-          style: TextStyle(
-            fontWeight: strong ? FontWeight.w800 : FontWeight.w400,
-            color: strong ? AppColors.brand : AppColors.textMain,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            v,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontWeight: strong ? FontWeight.w800 : FontWeight.w400,
+              color: strong ? AppColors.brand : AppColors.textMain,
+            ),
           ),
         ),
       ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/app_state.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
+import '../../../core/storage/auth_storage.dart';
 import '../../../core/widgets/app_toast.dart';
 import '../../../core/utils/validator.dart';
 import '../../../core/widgets/app_card.dart';
@@ -22,10 +23,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   AuthMode _mode = AuthMode.login;
   bool _loading = false;
-  final _account = TextEditingController(text: '18800001111');
-  final _email = TextEditingController(text: 'user@example.com');
+  final _account = TextEditingController();
+  final _email = TextEditingController();
   final _code = TextEditingController();
-  final _password = TextEditingController(text: '123456');
+  final _password = TextEditingController();
 
   @override
   void dispose() {
@@ -173,6 +174,7 @@ class _LoginPageState extends State<LoginPage> {
             _password.text,
           );
           _applySession(session);
+          await AuthStorage.saveToken(session.token);
           if (!mounted) return;
           Navigator.pushNamedAndRemoveUntil(context, Routes.main, (_) => false);
           return;
@@ -196,6 +198,7 @@ class _LoginPageState extends State<LoginPage> {
             password: _password.text,
           );
           _applySession(session);
+          await AuthStorage.saveToken(session.token);
           if (!mounted) return;
           Navigator.pushNamedAndRemoveUntil(context, Routes.main, (_) => false);
           return;
@@ -238,8 +241,12 @@ class _LoginPageState extends State<LoginPage> {
         _mode == AuthMode.register ? 'register' : 'reset_password',
       );
       if (!mounted) return;
-      _code.text = code;
-      showAppSnackBar(context, '验证码已发送：$code');
+      if (code.isNotEmpty) {
+        _code.text = code;
+        showAppSnackBar(context, '验证码已发送：$code');
+      } else {
+        showAppSnackBar(context, '验证码已发送，请查看邮箱');
+      }
     } catch (error) {
       if (!mounted) return;
       showAppSnackBar(context, error.toString());
@@ -264,17 +271,6 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _mode = mode;
       _code.clear();
-      if (mode == AuthMode.register) {
-        if (!Validator.isPhone(_account.text.trim())) {
-          _account.text = '18800001111';
-        }
-        if (!Validator.isEmail(_email.text.trim())) {
-          _email.text = 'user@example.com';
-        }
-      }
-      if (mode == AuthMode.reset && !Validator.isEmail(_email.text.trim())) {
-        _email.text = 'user@example.com';
-      }
     });
   }
 }

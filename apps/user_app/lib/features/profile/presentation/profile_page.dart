@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/widgets/cached_app_image.dart';
 import '../../home/data/backend_app_repository.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -45,6 +46,9 @@ class _ProfilePageState extends State<ProfilePage> {
             AppCard(
               backgroundColor: AppColors.brandSoft,
               borderColor: AppColors.brandLine,
+              onTap: state.isLoggedIn
+                  ? () => _openAndRefresh(Routes.profileEdit)
+                  : null,
               child: Row(
                 children: [
                   _Avatar(
@@ -69,7 +73,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _contactLine(profile, state, state.isLoggedIn),
+                          state.isLoggedIn ? '点击查看和编辑个人资料' : '登录后可同步会员信息',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ],
@@ -206,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       if (picked == null) return;
       setState(() => _avatarBusy = true);
-      final profile = await backendRepository.uploadAvatar(picked.path);
+      final profile = await backendRepository.uploadAvatar(picked);
       appState.updateProfile(
         displayName: profile.nickname,
         avatarUrl: profile.avatarUrl,
@@ -237,14 +241,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (profile == null) return '$member · 爱团本地生活会员';
     return '$member · 成长值 ${profile.growthValue}';
   }
-
-  String _contactLine(ProfileData? profile, AppState state, bool loggedIn) {
-    if (!loggedIn) return '登录后可同步手机号、邮箱和会员信息';
-    final phone = profile?.phone ?? state.phone;
-    final email = profile?.email ?? state.email;
-    if (phone != null && email != null) return '$phone · $email';
-    return phone ?? email ?? '完善资料后可获得更多服务提醒';
-  }
 }
 
 class _Avatar extends StatelessWidget {
@@ -262,7 +258,14 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = backendRepository.resolveAssetUrl(avatarUrl);
+    final fallback = Text(
+      name.isEmpty ? '爱' : name.substring(0, 1),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+      ),
+    );
     return InkWell(
       onTap: busy ? null : onTap,
       borderRadius: BorderRadius.circular(16),
@@ -275,29 +278,12 @@ class _Avatar extends StatelessWidget {
               height: 58,
               alignment: Alignment.center,
               color: AppColors.brand,
-              child: url == null
-                  ? Text(
-                      name.isEmpty ? '爱' : name.substring(0, 1),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    )
-                  : Image.network(
-                      url,
-                      width: 58,
-                      height: 58,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Text(
-                        name.isEmpty ? '爱' : name.substring(0, 1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
+              child: CachedAppImage(
+                imageUrl: avatarUrl,
+                width: 58,
+                height: 58,
+                placeholder: fallback,
+              ),
             ),
           ),
           if (busy)
@@ -322,7 +308,7 @@ class _EntryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = [
-      ('订单', Icons.receipt_long, Routes.orders, null),
+      ('订单', Icons.receipt_long, Routes.orders, profile?.orderCount),
       (
         '消息',
         Icons.chat_bubble_outline,

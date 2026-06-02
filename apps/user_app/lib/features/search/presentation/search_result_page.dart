@@ -41,7 +41,7 @@ class _SearchResultPageState extends State<SearchResultPage> {
                 const SizedBox(height: 10),
                 const SearchCategoryRow(),
                 const SizedBox(height: 8),
-                const SearchFilterRow(),
+                SearchFilterRow(onLocationChanged: _load),
                 const SizedBox(height: 12),
                 if (_error != null)
                   _ErrorHint(message: _error.toString(), onRetry: _load),

@@ -21,6 +21,10 @@ class Routes {
   static const profile = '/profile';
   static const settings = '/settings';
   static const about = '/about';
+  static const userAgreement = '/about/user-agreement';
+  static const privacyPolicy = '/about/privacy-policy';
+  static const qualificationSupport = '/about/qualification-support';
+  static const profileEdit = '/profile/edit';
   static const reviewPublish = '/review/publish';
   static const myReviews = '/review/my';
   static const reviewDetail = '/review/detail';

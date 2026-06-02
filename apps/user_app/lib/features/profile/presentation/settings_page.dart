@@ -39,7 +39,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    state.displayName.isEmpty ? '爱' : state.displayName.substring(0, 1),
+                    state.displayName.isEmpty
+                        ? '爱'
+                        : state.displayName.substring(0, 1),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -52,11 +54,24 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(state.displayName, style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        state.displayName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 4),
-                      Text(_accountLine(state), style: Theme.of(context).textTheme.bodySmall),
+                      Text(
+                        _accountLine(state),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ],
                   ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(
+                    context,
+                    state.isLoggedIn ? Routes.profileEdit : Routes.login,
+                  ),
+                  child: Text(state.isLoggedIn ? '编辑' : '登录'),
                 ),
               ],
             ),
@@ -79,7 +94,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   activeThumbColor: AppColors.brand,
                   title: const Text('位置服务'),
                   subtitle: const Text('用于展示附近商户距离和预计送达时间'),
-                  onChanged: (value) => setState(() => _locationEnabled = value),
+                  onChanged: (value) =>
+                      setState(() => _locationEnabled = value),
                 ),
               ],
             ),
@@ -135,11 +151,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   String _accountLine(AppState state) {
-    final contacts = [state.phone, state.email]
-        .where((value) => value != null && value.isNotEmpty)
-        .join(' · ');
     if (!state.isLoggedIn) return '未登录用户';
-    return contacts.isEmpty ? state.memberLevelName : '${state.memberLevelName} · $contacts';
+    return '${state.memberLevelName} · 账号资料与安全';
   }
 }
 

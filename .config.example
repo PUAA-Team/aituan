@@ -1,4 +1,19 @@
 # 复制为 .config 后按需填写；.config 已加入 .gitignore，不要提交真实密钥。
+# 公开部署必须设置强随机 JWT secret。
+aituan.security.jwt-secret=change-me-to-a-long-random-secret
+
+# 邮箱验证码：服务器环境建议开启 SMTP，并关闭 debug 明文返回验证码。
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+spring.mail.host=smtp.qq.com
+spring.mail.port=465
+spring.mail.username=
+spring.mail.password=
+spring.mail.properties.mail.smtp.ssl.enable=true
+spring.mail.properties.mail.smtp.starttls.enable=false
+aituan.mail.from=
+aituan.mail.from-name=爱团
+
 # 图片上传：local=本地保存；lskypro=上传到 LskyPro 图床。
 aituan.upload.strategy=local
 aituan.upload.lskypro.api-url=https://p.2b.gs/api/v1

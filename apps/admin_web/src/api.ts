@@ -32,6 +32,7 @@ import type {
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const tokenKey = 'aituan_admin_token';
+const accountKey = 'aituan_admin_account';
 
 interface RequestOptions {
   method?: string;
@@ -51,6 +52,10 @@ export function clearToken() {
   localStorage.removeItem(tokenKey);
 }
 
+export function setSavedAccount(account: string) {
+  localStorage.setItem(accountKey, account);
+}
+
 export function resolveAssetUrl(path?: string) {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -64,6 +69,7 @@ export async function login(account: string, password: string) {
     auth: false,
   });
   setToken(response.token);
+  setSavedAccount(account);
   return response;
 }
 

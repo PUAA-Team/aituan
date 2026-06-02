@@ -5,6 +5,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/brand_tag.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../home/data/backend_app_repository.dart';
+import 'voucher_qr_view.dart';
 
 class ServiceOrderStatusCard extends StatelessWidget {
   const ServiceOrderStatusCard({
@@ -72,23 +73,9 @@ class ServiceVoucherCard extends StatelessWidget {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),
-        Container(
-          width: 150,
-          height: 150,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.brandSoft,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.brandLine),
-          ),
-          child: const Text(
-            'AT',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-              color: AppColors.brand,
-            ),
-          ),
+        VoucherQrView(
+          data: voucher?.qrPayload ?? voucher?.voucherCode ?? '',
+          size: 150,
         ),
         const SizedBox(height: 10),
         Text(

@@ -10,6 +10,7 @@ import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/address_model.dart';
 import '../../home/data/backend_app_repository.dart';
+import '../../merchant/presentation/takeaway_amount_utils.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, required this.args});
@@ -27,6 +28,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _selectedAddressId;
   List<PaymentMethodData> _paymentMethods = const [];
   Object? _error;
+  String _tablewareOption = 'merchant_decide';
+  int _tablewareCount = 1;
   bool _loading = true;
   bool _submitting = false;
 
@@ -108,6 +111,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 preview: preview,
                 args: widget.args,
               ),
+              if (isTakeaway)
+                _TablewareCard(
+                  option: _tablewareOption,
+                  count: _tablewareCount,
+                  previewText: preview?.tablewareText,
+                  onTap: _openTablewareSelector,
+                ),
               _RemarkCard(controller: _remarkController),
               _PaymentMethodCard(methods: _paymentMethods),
               _FeeCard(preview: preview, fallbackAmount: widget.args.amount),
@@ -118,7 +128,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       bottomNavigationBar: AppBottomActionBar(
         primaryText: _submitting ? '提交中' : '提交并支付',
-        onPrimary: _canUseBackend && !_loading && _error == null && !_submitting && (preview?.deliverable ?? true)
+        onPrimary:
+            _canUseBackend &&
+                !_loading &&
+                _error == null &&
+                !_submitting &&
+                (preview?.deliverable ?? true) &&
+                (preview?.minimumOrderMet ?? true)
             ? _pay
             : null,
         price: payable,
@@ -147,6 +163,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         businessType: _businessType,
         addressId: selected?.id,
         lines: widget.args.lines,
+        tablewareOption: _tablewareOption,
+        tablewareCount: _tablewareOption == 'by_people'
+            ? _tablewareCount
+            : null,
       );
       final paymentMethods = await backendRepository.fetchPaymentMethods();
       if (!mounted) return;
@@ -191,6 +211,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (mounted) await _loadPreview();
   }
 
+  Future<void> _openTablewareSelector() async {
+    final result = await showModalBottomSheet<_TablewareSelection>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) =>
+          _TablewareSheet(option: _tablewareOption, count: _tablewareCount),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _tablewareOption = result.option;
+      _tablewareCount = result.count;
+    });
+    await _loadPreview();
+  }
+
   Future<void> _pay() async {
     if (widget.args.kind == OrderKind.takeaway && _selectedAddress == null) {
       showAppSnackBar(context, '请先新增或选择收货地址');
@@ -199,6 +234,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final preview = _preview;
     if (preview != null && !preview.deliverable) {
       showAppSnackBar(context, preview.unavailableReason ?? '当前地址暂不可配送');
+      return;
+    }
+    if (preview != null && !preview.minimumOrderMet) {
+      showAppSnackBar(
+        context,
+        '商品金额还差￥${takeawayMoneyText(preview.startPriceMissing)}起送',
+      );
       return;
     }
     try {
@@ -210,6 +252,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         lines: widget.args.lines,
         remark: _remarkController.text.trim(),
         idempotencyKey: DateTime.now().microsecondsSinceEpoch.toString(),
+        tablewareOption: _tablewareOption,
+        tablewareCount: _tablewareOption == 'by_people'
+            ? _tablewareCount
+            : null,
       );
       final paid = await backendRepository.payOrder(order.id);
       if (!mounted) return;
@@ -311,10 +357,24 @@ class _PreviewLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
+    padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: Text('${item.itemName} ×${item.quantity}')),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.itemName, maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(
+                '×${item.quantity}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
         PriceText(item.totalPrice, size: 16),
       ],
     ),
@@ -328,11 +388,192 @@ class _ArgLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(line.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(
+                '×${line.quantity}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        PriceText(line.unitPrice * line.quantity, size: 16),
+      ],
+    ),
+  );
+}
+
+class _TablewareCard extends StatelessWidget {
+  const _TablewareCard({
+    required this.option,
+    required this.count,
+    required this.previewText,
+    required this.onTap,
+  });
+
+  final String option;
+  final int count;
+  final String? previewText;
+  final VoidCallback onTap;
+
+  String get _text {
+    final text = previewText;
+    if (text != null && text.isNotEmpty) return text;
+    return switch (option) {
+      'none' => '无需餐具',
+      'by_people' => '按 $count 人提供餐具',
+      _ => '商家按餐量提供餐具',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
     child: Row(
       children: [
-        Expanded(child: Text('${line.title} ×${line.quantity}')),
-        PriceText(line.unitPrice * line.quantity, size: 16),
+        const Icon(Icons.restaurant_outlined, color: AppColors.brand),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('餐具数量', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(_text, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+        const Icon(Icons.chevron_right, color: AppColors.textLight),
+      ],
+    ),
+  );
+}
+
+class _TablewareSelection {
+  const _TablewareSelection(this.option, this.count);
+
+  final String option;
+  final int count;
+}
+
+class _TablewareSheet extends StatefulWidget {
+  const _TablewareSheet({required this.option, required this.count});
+
+  final String option;
+  final int count;
+
+  @override
+  State<_TablewareSheet> createState() => _TablewareSheetState();
+}
+
+class _TablewareSheetState extends State<_TablewareSheet> {
+  late String _option;
+  late int _count;
+
+  @override
+  void initState() {
+    super.initState();
+    _option = widget.option;
+    _count = widget.count < 1 ? 1 : widget.count;
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        16 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('选择餐具数量', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          _optionTile('none', '无需餐具', '为减少浪费，本单不提供一次性餐具'),
+          _optionTile('by_people', '按人数提供', '商家按选择人数准备餐具'),
+          if (_option == 'by_people') _peopleCounter(),
+          _optionTile('merchant_decide', '商家按餐量定', '由商家根据商品份数合理提供'),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () =>
+                  Navigator.pop(context, _TablewareSelection(_option, _count)),
+              child: const Text('确定'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _optionTile(String value, String title, String subtitle) => InkWell(
+    onTap: () => setState(() => _option = value),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            _option == value
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
+            color: _option == value ? AppColors.brand : AppColors.textLight,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _peopleCounter() => Padding(
+    padding: const EdgeInsets.only(left: 6, right: 6, bottom: 8),
+    child: Row(
+      children: [
+        const Text('用餐人数'),
+        const Spacer(),
+        IconButton(
+          onPressed: _count > 1 ? () => setState(() => _count--) : null,
+          icon: const Icon(Icons.remove_circle_outline),
+        ),
+        SizedBox(
+          width: 36,
+          child: Center(
+            child: Text(
+              '$_count',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: _count < 20 ? () => setState(() => _count++) : null,
+          icon: const Icon(Icons.add_circle_outline),
+        ),
       ],
     ),
   );
@@ -427,14 +668,39 @@ class _FeeCard extends StatelessWidget {
     child: Column(
       children: [
         _FeeRow('商品金额', preview?.amount ?? fallbackAmount),
+        if ((preview?.packageFee ?? 0) > 0) _FeeRow('打包费', preview!.packageFee),
         if ((preview?.deliveryFee ?? 0) > 0)
-          _FeeRow('配送费', preview!.deliveryFee),
+          _FeeRow(
+            (preview?.distanceExtraFee ?? 0) > 0 ? '配送费（含距离加价）' : '配送费',
+            preview!.deliveryFee,
+          ),
+        if ((preview?.distanceExtraFee ?? 0) > 0)
+          _InfoRow('距离加价', '￥${preview!.distanceExtraFee.toStringAsFixed(1)}'),
         if ((preview?.discountAmount ?? 0) > 0)
           _FeeRow('优惠', -preview!.discountAmount),
+        if ((preview?.startPriceMissing ?? 0) > 0)
+          _InfoRow(
+            '起送差额',
+            '商品金额还差￥${takeawayMoneyText(preview!.startPriceMissing)}，配送费和打包费不计入起送',
+          ),
         if (preview != null && preview!.estimatedArrivalText != null)
           _InfoRow('预计送达', preview!.estimatedArrivalText!),
         if (preview != null && preview!.deliveryDistanceKm != null)
-          _InfoRow('配送距离', '${preview!.deliveryDistanceKm!.toStringAsFixed(2)}km'),
+          _InfoRow(
+            '配送距离',
+            '${preview!.deliveryDistanceKm!.toStringAsFixed(2)}km',
+          ),
+        if (preview != null && !preview!.minimumOrderMet)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '商品金额还差￥${takeawayMoneyText(preview!.startPriceMissing)}起送',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.brand,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         if (preview != null && !preview!.deliverable)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -469,10 +735,17 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
       ],
     ),
   );
@@ -488,7 +761,12 @@ class _FeeRow extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
-      children: [Text(label), const Spacer(), PriceText(value, size: 16)],
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: Text(label)),
+        const SizedBox(width: 12),
+        PriceText(value, size: 16),
+      ],
     ),
   );
 }
