@@ -56,6 +56,15 @@ class InteractionService {
         .orElse(null);
   }
 
+  PageResponse<ReviewView> storeReviews(long storeId, int page, int pageSize) {
+    long total = interactionRepository.countStoreReviews(storeId);
+    List<ReviewView> list = interactionRepository.listStoreReviews(storeId, (page - 1) * pageSize, pageSize)
+        .stream()
+        .map(this::toPublicReviewView)
+        .toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
   @Transactional
   ReviewView submitReview(long orderId, ReviewCreateRequest request) {
     long userId = requireUser().userId();
@@ -230,6 +239,16 @@ class InteractionService {
         row.helpfulCount(), row.reportedCount(), null,
         row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
         maskNickname(row.userNickname()), reportReasons.isEmpty() ? null : reportReasons);
+  }
+
+  private ReviewView toPublicReviewView(InteractionRepository.ReviewRow row) {
+    return new ReviewView(
+        row.id(), row.orderId(), row.orderNo(), row.orderTitle(),
+        row.storeId(), row.storeName(),
+        row.rating(), row.content(), splitList(row.labels()), splitList(row.imageUrls()),
+        row.helpfulCount(), null, null,
+        row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
+        maskNickname(row.userNickname()), null);
   }
 
   // ============ 鉴权工具 ============

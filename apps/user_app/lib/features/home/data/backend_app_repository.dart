@@ -625,6 +625,7 @@ class OrderDetailData {
     required this.paymentStatus,
     required this.fulfillmentStatus,
     required this.paymentMethod,
+    required this.storeId,
     required this.storeName,
     required this.title,
     required this.amount,
@@ -652,6 +653,7 @@ class OrderDetailData {
   final String paymentStatus;
   final String fulfillmentStatus;
   final String? paymentMethod;
+  final int storeId;
   final String storeName;
   final String title;
   final double amount;
@@ -679,6 +681,7 @@ class OrderDetailData {
     paymentStatus: _string(json['paymentStatus']),
     fulfillmentStatus: _string(json['fulfillmentStatus']),
     paymentMethod: _nullableString(json['paymentMethod']),
+    storeId: _int(json['storeId']),
     storeName: _string(json['storeName']),
     title: _string(json['title']),
     amount: _double(json['amount']),

@@ -116,7 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   _ToolRow(
                     icon: Icons.report_outlined,
                     title: '投诉与建议',
-                    onTap: () => _openAndRefresh(Routes.complaintSubmit),
+                    onTap: () => _openAndRefresh(Routes.complaintList),
                   ),
                   const Divider(),
                   const _ToolRow(

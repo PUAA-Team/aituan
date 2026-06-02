@@ -25,6 +25,9 @@ String merchantDistanceText(MerchantModel merchant) =>
     ? merchant.distance
     : '${merchant.distance} · ${merchant.estimatedTimeText}';
 
+String merchantRatingText(MerchantModel merchant) =>
+    merchant.rating <= 0 ? '暂无评分' : '${merchant.rating.toStringAsFixed(1)}分';
+
 String _distanceText(MerchantModel merchant) => merchantDistanceText(merchant);
 
 class ItemMiniCard extends StatelessWidget {
@@ -138,7 +141,7 @@ class MerchantAggregateCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${merchant.rating}分 · ${_distanceText(merchant)} · ${merchant.summary}',
+                    '${merchantRatingText(merchant)} · ${_distanceText(merchant)} · ${merchant.summary}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall,

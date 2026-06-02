@@ -23,7 +23,7 @@ const navItems = computed<Array<{ key: ConsolePage; label: string; desc: string 
   const items: Array<{ key: ConsolePage; label: string; desc: string }> = [
     {
       key: 'dashboard',
-      label: '驾驶舱',
+      label: '经营概览',
       desc: '今日订单、营业额、待办指标',
     },
     {

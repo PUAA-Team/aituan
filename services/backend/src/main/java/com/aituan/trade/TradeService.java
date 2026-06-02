@@ -417,6 +417,7 @@ class TradeService {
         order.paymentStatus(),
         order.fulfillmentStatus(),
         order.paymentMethod(),
+        order.storeId(),
         order.storeName(),
         order.title(),
         order.amount(),

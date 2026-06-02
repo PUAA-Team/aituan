@@ -41,7 +41,7 @@ class ServiceMerchantHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${merchant.rating}分 · ${merchantDistanceText(merchant)}',
+                    '${merchantRatingText(merchant)} · ${merchantDistanceText(merchant)}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 8),
@@ -102,34 +102,6 @@ class ServiceCategoryPanel extends StatelessWidget {
     headerAction: '到店核销',
     onSelected: onSelected,
     itemBuilder: (_, item) => _ServiceItem(item: item),
-  );
-}
-
-class ServiceReviewPanel extends StatelessWidget {
-  const ServiceReviewPanel({super.key});
-
-  @override
-  Widget build(BuildContext context) => const Column(
-    children: [
-      AppCard(
-        child: Text(
-          '4.7 分 · 核销顺利 · 环境稳定 · 服务态度好',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-      AppCard(
-        child: Text(
-          '预约后到店很顺畅，服务项目说明清楚，券码核销也很快。',
-          style: TextStyle(color: AppColors.textSub),
-        ),
-      ),
-      AppCard(
-        child: Text(
-          '门店位置好找，适合周末和朋友一起到店体验。',
-          style: TextStyle(color: AppColors.textSub),
-        ),
-      ),
-    ],
   );
 }
 

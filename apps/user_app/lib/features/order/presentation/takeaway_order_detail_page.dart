@@ -98,6 +98,11 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
       bottomNavigationBar: detail == null
           ? null
           : AppBottomActionBar(
+              leading: OutlinedButton.icon(
+                onPressed: _busy ? null : () => _openSupport(detail),
+                icon: const Icon(Icons.support_agent, size: 18),
+                label: const Text('联系商家'),
+              ),
               primaryText: _primaryText(detail),
               onPrimary: _busy ? null : () => _primaryAction(detail),
               secondaryText: _secondaryText(detail),
@@ -278,6 +283,19 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
         orderTitle: detail.title,
       ),
     );
+  }
+
+  void _openSupport(OrderDetailData detail) {
+    Navigator.pushNamed(
+      context,
+      Routes.supportSessions,
+      arguments: SupportLaunchArgs(
+        storeId: detail.storeId,
+        storeName: detail.storeName,
+        relatedOrderId: int.tryParse(detail.id),
+        topicHint: '订单咨询',
+      ),
+    ).then((_) => _load());
   }
 
   List<TimelineNodeData> _visibleTimeline(OrderDetailData detail) => detail

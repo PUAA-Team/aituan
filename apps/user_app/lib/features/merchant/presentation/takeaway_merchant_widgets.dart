@@ -41,7 +41,7 @@ class TakeawayMerchantHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${merchant.rating.toStringAsFixed(1)}分 · 月售${merchant.monthlySales} · ${merchantDistanceText(merchant)}',
+                      '${merchantRatingText(merchant)} · 月售${merchant.monthlySales} · ${merchantDistanceText(merchant)}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),

@@ -55,11 +55,13 @@ class ComplaintRepository {
     required String category,
     required String title,
     required String detail,
+    List<String> evidenceUrls = const [],
   }) async {
     final body = <String, dynamic>{
       'category': category,
       'title': title,
       'detail': detail,
+      'evidenceUrls': evidenceUrls,
     };
     if (orderId != null) body['orderId'] = orderId;
     final json = await _client.post('/api/app/complaints', body);

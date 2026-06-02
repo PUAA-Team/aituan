@@ -118,6 +118,13 @@ label { display: grid; gap: 8px; color: #4e5969; font-size: 13px; }
 @media (max-width: 1180px) { .store-grid, .catalog-grid, .metric-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) {
   .login-shell, .admin-layout, .page-grid.two-col, .split-grid, .store-grid, .catalog-grid, .metric-row, .form-grid.three, .config-row { grid-template-columns: 1fr; }
+  .admin-side { position: sticky; top: 0; z-index: 10; display: block; border-right: 0; border-bottom: 1px solid #e5e8ef; }
+  .brand-block { padding: 14px 16px 10px; }
+  .side-nav { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px 12px; }
+  .side-nav button { min-width: 132px; }
+  .side-footer { display: none; }
+  .admin-main { padding: 14px; }
+  .table-wrap { overflow-x: auto; }
   .toolbar-actions, .topbar, .panel-toolbar { align-items: stretch; flex-direction: column; }
   .search-input, .mini-input { width: 100%; }
 }

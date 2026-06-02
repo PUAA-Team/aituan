@@ -41,6 +41,14 @@ class InteractionController {
     return ApiResponse.ok(interactionService.reviewByOrder(orderId));
   }
 
+  @GetMapping("/stores/{storeId}/reviews")
+  ApiResponse<PageResponse<ReviewView>> storeReviews(
+      @PathVariable long storeId,
+      @RequestParam(defaultValue = "1") @Min(1) int page,
+      @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
+    return ApiResponse.ok(interactionService.storeReviews(storeId, page, pageSize));
+  }
+
   @PostMapping("/orders/{orderId}/review")
   ApiResponse<ReviewView> submitReview(@PathVariable long orderId, @Valid @RequestBody ReviewCreateRequest request) {
     return ApiResponse.ok(interactionService.submitReview(orderId, request));

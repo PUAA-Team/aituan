@@ -237,6 +237,7 @@ record OrderDetailView(
     String paymentStatus,
     String fulfillmentStatus,
     String paymentMethod,
+    Long storeId,
     String storeName,
     String title,
     BigDecimal amount,

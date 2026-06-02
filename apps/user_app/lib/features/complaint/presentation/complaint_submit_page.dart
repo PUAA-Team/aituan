@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/app_bottom_action_bar.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../home/data/backend_app_repository.dart';
 import '../data/complaint_repository.dart';
 
 class ComplaintSubmitArgs {
@@ -30,7 +32,9 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
   String _category = 'service';
   final _titleController = TextEditingController();
   final _detailController = TextEditingController();
+  final List<String> _imageUrls = [];
   bool _submitting = false;
+  bool _uploading = false;
 
   @override
   void dispose() {
@@ -55,6 +59,7 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
         category: _category,
         title: title,
         detail: detail,
+        evidenceUrls: _imageUrls,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,6 +73,31 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    if (_imageUrls.length >= 3 || _uploading) return;
+    setState(() => _uploading = true);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 82,
+      );
+      if (picked == null) return;
+      final url = await backendRepository.uploadCommonFile(
+        picked.path,
+        bizType: 'complaint',
+      );
+      if (!mounted) return;
+      setState(() => _imageUrls.add(url));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('图片上传失败：$e')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
     }
   }
 
@@ -115,6 +145,32 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
               maxLines: 6,
               maxLength: 500,
               decoration: const InputDecoration(labelText: '详细描述', hintText: '请描述问题发生时间、影响和期望处理结果'),
+            ),
+          ),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('补充图片', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final url in _imageUrls)
+                      InputChip(
+                        label: const Text('已上传图片'),
+                        onDeleted: () => setState(() => _imageUrls.remove(url)),
+                      ),
+                    if (_imageUrls.length < 3)
+                      OutlinedButton.icon(
+                        onPressed: _uploading ? null : _pickImage,
+                        icon: const Icon(Icons.image_outlined),
+                        label: Text(_uploading ? '上传中…' : '添加图片'),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

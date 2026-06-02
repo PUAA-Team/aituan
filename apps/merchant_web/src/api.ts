@@ -328,7 +328,7 @@ export function fetchSessionTemplates() {
   return request<string[]>('/api/merchant/ops/sessions/templates');
 }
 
-// ============ 驾驶舱（成员E） ============
+// ============ 经营概览（成员E） ============
 
 export function fetchMerchantDashboard() {
   return request<MerchantDashboardView>('/api/merchant/ops/dashboard');

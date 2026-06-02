@@ -6,6 +6,7 @@ import '../features/address/presentation/address_list_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
 import '../features/checkout/presentation/checkout_page.dart';
+import '../features/complaint/presentation/complaint_list_page.dart';
 import '../features/complaint/presentation/complaint_submit_page.dart';
 import '../features/favorite/presentation/favorite_page.dart';
 import '../features/home/data/mock_data.dart';
@@ -53,6 +54,7 @@ class AppRouter {
     Routes.reviewDetail,
     Routes.supportSessions,
     Routes.supportChat,
+    Routes.complaintList,
     Routes.complaintSubmit,
     Routes.voucherDetail,
     Routes.bookingDetail,
@@ -121,6 +123,7 @@ class AppRouter {
         SupportChatPage(sessionId: _intArg(settings.arguments)),
         settings,
       ),
+      Routes.complaintList => _page(const ComplaintListPage(), settings),
       Routes.complaintSubmit => _page(
         ComplaintSubmitPage(
           args: settings.arguments is ComplaintSubmitArgs

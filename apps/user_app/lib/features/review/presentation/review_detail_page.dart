@@ -56,6 +56,7 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
             orderId: _review!.orderId,
             orderTitle: _review!.orderTitle,
             storeName: _review!.storeName,
+            userMaskedNickname: _review!.userMaskedNickname,
             rating: _review!.rating,
             content: _review!.content,
             labels: _review!.labels,

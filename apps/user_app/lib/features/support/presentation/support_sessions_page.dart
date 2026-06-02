@@ -57,12 +57,10 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
       return;
     }
     if (!mounted) return;
-    final topic = await _askTopic(args);
-    if (topic == null || topic.isEmpty || !mounted) return;
     try {
       final created = await supportRepository.createSession(
         storeId: storeId,
-        topic: topic,
+        topic: args.topicHint ?? '商家客服咨询',
         relatedOrderId: args.relatedOrderId,
       );
       if (!mounted) return;
@@ -72,32 +70,6 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发起会话失败：$e')));
     }
-  }
-
-  Future<String?> _askTopic(SupportLaunchArgs args) async {
-    final controller = TextEditingController(text: args.topicHint ?? '');
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(args.storeName == null ? '发起咨询' : '咨询${args.storeName}'),
-        content: TextField(
-          controller: controller,
-          maxLength: 80,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '请输入您要咨询的内容，例如：菜品份量问题',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('发起'),
-          ),
-        ],
-      ),
-    );
-    return result;
   }
 
   @override
@@ -153,8 +125,6 @@ class _SupportSessionsPageState extends State<SupportSessionsPage> {
                         else
                           const _Badge(text: '已关闭', color: Colors.grey),
                       ]),
-                      const SizedBox(height: 4),
-                      Text(list[i].topic, style: Theme.of(context).textTheme.bodySmall),
                       if (list[i].lastMessage != null) ...[
                         const SizedBox(height: 6),
                         Text(list[i].lastMessage!, maxLines: 1, overflow: TextOverflow.ellipsis),
