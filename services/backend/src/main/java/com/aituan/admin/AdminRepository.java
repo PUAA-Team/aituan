@@ -29,6 +29,19 @@ class AdminRepository {
     return value == null ? BigDecimal.ZERO : value;
   }
 
+  Optional<AdminProfileRow> findAdminProfile(long accountId) {
+    List<AdminProfileRow> rows = jdbcTemplate.query(
+        """
+        select id, account_no, account_type, login_name, phone, email, status, created_at, last_login_at
+        from iam_account
+        where id = ? and account_type = 'ADMIN' and is_deleted = 0
+        limit 1
+        """,
+        this::mapAdminProfile,
+        accountId);
+    return rows.stream().findFirst();
+  }
+
   List<MerchantRow> listMerchants(String keyword, int offset, int limit) {
     StringBuilder sql = new StringBuilder("""
         select m.id, m.account_id, m.merchant_name, m.contact_name, m.contact_phone, m.license_no, m.status, m.audit_status, m.settled_at,
@@ -764,6 +777,21 @@ class AdminRepository {
     return new AuditRow(rs.getLong("id"), rs.getString("actor_type"), rs.getLong("actor_id"), rs.getString("action_type"), rs.getString("target_type"), rs.getLong("target_id"), rs.getString("detail"), createdAt == null ? null : createdAt.toLocalDateTime());
   }
 
+  private AdminProfileRow mapAdminProfile(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp createdAt = rs.getTimestamp("created_at");
+    Timestamp lastLoginAt = rs.getTimestamp("last_login_at");
+    return new AdminProfileRow(
+        rs.getLong("id"),
+        rs.getString("account_no"),
+        rs.getString("account_type"),
+        rs.getString("login_name"),
+        rs.getString("phone"),
+        rs.getString("email"),
+        rs.getString("status"),
+        createdAt == null ? null : createdAt.toLocalDateTime(),
+        lastLoginAt == null ? null : lastLoginAt.toLocalDateTime());
+  }
+
   private String clean(String value) {
     return value == null ? "" : value.trim();
   }
@@ -775,6 +803,8 @@ class AdminRepository {
   private String cleanOrDefault(String value, String defaultValue) {
     return value == null || value.isBlank() ? defaultValue : value.trim().toLowerCase();
   }
+
+  record AdminProfileRow(Long accountId, String accountNo, String accountType, String nickname, String phone, String email, String status, LocalDateTime createdAt, LocalDateTime lastLoginAt) {}
 
   record MerchantRow(Long merchantId, Long accountId, String merchantName, String contactName, String contactPhone, String licenseNo, String status, String auditStatus, long storeCount, long itemCount, LocalDateTime settledAt) {}
 

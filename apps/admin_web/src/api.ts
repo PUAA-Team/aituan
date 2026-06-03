@@ -2,6 +2,7 @@ import type {
   AdminCertificationMaterial,
   AdminComplaintView,
   AdminConfig,
+  AdminProfile,
   AdminGovernanceDashboardView,
   AdminMerchant,
   AdminMerchantApplication,
@@ -19,9 +20,13 @@ import type {
   CatalogCategory,
   CatalogItem,
   CatalogItemForm,
+  CouponTemplate,
+  CouponTemplateForm,
   DashboardView,
   DeliverySetting,
   DeliveryTask,
+  MemberLevel,
+  MemberLevelForm,
   OpsBooking,
   OpsOrder,
   OpsVoucher,
@@ -75,6 +80,46 @@ export async function login(account: string, password: string) {
 
 export function fetchDashboard() {
   return request<DashboardView>('/api/admin/dashboard');
+}
+
+export function fetchAdminProfile() {
+  return request<AdminProfile>('/api/admin/account/profile');
+}
+
+export function fetchMemberLevels() {
+  return request<MemberLevel[]>('/api/admin/operation/member-levels');
+}
+
+export function createMemberLevel(payload: MemberLevelForm) {
+  return request<MemberLevel>('/api/admin/operation/member-levels', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateMemberLevel(id: number, payload: MemberLevelForm) {
+  return request<MemberLevel>(`/api/admin/operation/member-levels/${id}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
+export function fetchCouponTemplates() {
+  return request<CouponTemplate[]>('/api/admin/operation/coupon-templates');
+}
+
+export function createCouponTemplate(payload: CouponTemplateForm) {
+  return request<CouponTemplate>('/api/admin/operation/coupon-templates', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateCouponTemplate(id: number, payload: CouponTemplateForm) {
+  return request<CouponTemplate>(`/api/admin/operation/coupon-templates/${id}`, {
+    method: 'PUT',
+    body: payload,
+  });
 }
 
 export function fetchOrders(fulfillmentStatus = '') {

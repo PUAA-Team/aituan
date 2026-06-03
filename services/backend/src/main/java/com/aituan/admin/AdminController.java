@@ -32,6 +32,11 @@ class AdminController {
     return ApiResponse.ok(adminService.dashboard());
   }
 
+  @GetMapping("/account/profile")
+  ApiResponse<AdminProfileView> adminProfile() {
+    return ApiResponse.ok(adminService.adminProfile());
+  }
+
   @GetMapping("/merchants")
   ApiResponse<PageResponse<AdminMerchantView>> merchants(
       @RequestParam(required = false) String keyword,

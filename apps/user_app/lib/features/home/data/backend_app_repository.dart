@@ -177,6 +177,7 @@ class BackendAppRepository {
     String remark = '',
     String tablewareOption = 'merchant_decide',
     int? tablewareCount,
+    int? couponId,
   }) async {
     final json = await _post('/api/app/trade/checkout/preview', {
       'storeId': int.parse(storeId),
@@ -191,6 +192,7 @@ class BackendAppRepository {
       'remark': remark,
       'tablewareOption': tablewareOption,
       'tablewareCount': tablewareCount,
+      'couponId': couponId,
     });
     return CheckoutPreviewData.fromApi(_map(json['data']));
   }
@@ -204,6 +206,7 @@ class BackendAppRepository {
     required String idempotencyKey,
     String tablewareOption = 'merchant_decide',
     int? tablewareCount,
+    int? couponId,
   }) async {
     final json = await _post('/api/app/trade/orders', {
       'storeId': int.parse(storeId),
@@ -219,6 +222,7 @@ class BackendAppRepository {
       'idempotencyKey': idempotencyKey,
       'tablewareOption': tablewareOption,
       'tablewareCount': tablewareCount,
+      'couponId': couponId,
     });
     return OrderDetailData.fromApi(_map(json['data']));
   }
@@ -281,12 +285,26 @@ class BackendAppRepository {
     return BookingData.fromApi(_map(json['data']));
   }
 
-  Future<List<MessageItem>> fetchMessages() async {
-    final json = await _get('/api/app/message/station?page=1&pageSize=20');
+  Future<List<MessageItem>> fetchMessages({String? type}) async {
+    final query = <String, String>{'page': '1', 'pageSize': '20'};
+    if (type != null && type.isNotEmpty) query['type'] = type;
+    final path = Uri(
+      path: '/api/app/message/station',
+      queryParameters: query,
+    ).toString();
+    final json = await _get(path);
     final page = _map(json['data']);
     return _list(
       page['list'],
     ).map((entry) => MessageItem.fromApi(_map(entry))).toList();
+  }
+
+  Future<void> markMessageRead(int messageId) async {
+    await _client.patch('/api/app/message/station/$messageId/read', {});
+  }
+
+  Future<void> markAllMessagesRead() async {
+    await _client.patch('/api/app/message/station/read-all', {});
   }
 
   Future<ProfileData> fetchProfile() async {

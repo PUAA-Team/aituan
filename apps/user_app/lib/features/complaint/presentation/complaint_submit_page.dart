@@ -149,7 +149,7 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
       );
       if (picked == null) return;
       final url = await backendRepository.uploadCommonFile(
-        picked.path,
+        picked,
         bizType: 'complaint',
       );
       if (!mounted) return;

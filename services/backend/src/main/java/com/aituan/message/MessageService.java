@@ -13,9 +13,10 @@ class MessageService {
     this.messageRepository = messageRepository;
   }
 
-  PageResponse<MessageView> listMessages(int page, int pageSize) {
+  PageResponse<MessageView> listMessages(String type, int page, int pageSize) {
     long userId = CurrentUserContext.required().userId();
-    List<MessageView> list = messageRepository.listMessages(userId, (page - 1) * pageSize, pageSize).stream()
+    String normalizedType = type == null || type.isBlank() ? null : type.trim();
+    List<MessageView> list = messageRepository.listMessages(userId, normalizedType, (page - 1) * pageSize, pageSize).stream()
         .map(row -> new MessageView(
             row.id(),
             row.type(),
@@ -24,13 +25,20 @@ class MessageService {
             row.badgeText(),
             "unread".equals(row.readStatus()),
             row.relatedOrderId(),
+            row.relatedTargetType(),
+            row.relatedTargetId(),
             row.createdAt()))
         .toList();
-    return PageResponse.of(list, page, pageSize, messageRepository.countMessages(userId));
+    return PageResponse.of(list, page, pageSize, messageRepository.countMessages(userId, normalizedType));
   }
 
   void markRead(long messageId) {
     long userId = CurrentUserContext.required().userId();
     messageRepository.markRead(userId, messageId);
+  }
+
+  void markAllRead() {
+    long userId = CurrentUserContext.required().userId();
+    messageRepository.markAllRead(userId);
   }
 }

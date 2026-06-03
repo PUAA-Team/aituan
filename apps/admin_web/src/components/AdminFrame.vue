@@ -16,9 +16,12 @@ const emit = defineEmits<{
 
 const navItems: Array<{ key: AdminPage; label: string; desc: string }> = [
   { key: 'dashboard', label: '平台总览', desc: '核心指标与风险概览' },
+  { key: 'profile', label: '管理员资料', desc: '当前后台账号信息' },
   { key: 'orders', label: '订单治理', desc: '订单详情与人工干预' },
   { key: 'merchants', label: '商户门店', desc: '商家、门店、图片治理' },
   { key: 'users', label: '用户管理', desc: '账号状态与用户画像' },
+  { key: 'memberLevels', label: '会员等级', desc: '成长值与会员权益' },
+  { key: 'couponTemplates', label: '优惠券模板', desc: '领券与结算抵扣' },
   { key: 'catalog', label: '商品治理', desc: '商品查询与上下架' },
   { key: 'delivery', label: '配送任务', desc: '自动推进与异常处理' },
   { key: 'vouchers', label: '券码治理', desc: '券码查询与平台核销' },

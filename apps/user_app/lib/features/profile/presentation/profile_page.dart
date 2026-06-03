@@ -123,9 +123,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     onTap: () => _openAndRefresh(Routes.complaintList),
                   ),
                   const Divider(),
-                  const _ToolRow(
+                  _ToolRow(
                     icon: Icons.workspace_premium_outlined,
                     title: '会员中心',
+                    onTap: () => _openAndRefresh(Routes.memberCenter),
+                  ),
+                  const Divider(),
+                  _ToolRow(
+                    icon: Icons.confirmation_num_outlined,
+                    title: '我的优惠券',
+                    onTap: () => _openAndRefresh(Routes.coupons),
                   ),
                 ],
               ),

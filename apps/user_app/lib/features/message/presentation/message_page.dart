@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/message_item.dart';
 import '../../home/data/backend_app_repository.dart';
 
@@ -48,9 +50,21 @@ class _MessagePageState extends State<MessagePage> {
           children: [
             Text('消息', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 4),
-            Text(
-              '订单状态、评价回复、客服会话、投诉进度都会在这里展示',
-              style: Theme.of(context).textTheme.bodySmall,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '订单状态、评价回复、客服会话、投诉进度都会在这里展示',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _messages.any((message) => message.unread)
+                      ? _markAllRead
+                      : null,
+                  child: const Text('全部已读'),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             _QuickActions(onReturned: _load),
@@ -69,7 +83,8 @@ class _MessagePageState extends State<MessagePage> {
             else if (filtered.isEmpty)
               const AppCard(child: Text('该分组下暂无消息'))
             else
-              for (final item in filtered) _MessageCard(item: item),
+              for (final item in filtered)
+                _MessageCard(item: item, onTap: () => _openMessage(item)),
           ],
         ),
       ),
@@ -99,6 +114,52 @@ class _MessagePageState extends State<MessagePage> {
         _error = error;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    try {
+      await backendRepository.markAllMessagesRead();
+      if (!mounted) return;
+      setState(() {
+        _messages = [
+          for (final item in _messages) item.copyWith(unread: false),
+        ];
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+    }
+  }
+
+  Future<void> _openMessage(MessageItem item) async {
+    if (item.unread) {
+      try {
+        await backendRepository.markMessageRead(item.id);
+        if (mounted) {
+          setState(() {
+            _messages = [
+              for (final message in _messages)
+                message.id == item.id ? message.copyWith(unread: false) : message,
+            ];
+          });
+        }
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    final targetType = item.relatedTargetType ?? (item.relatedOrderId == null ? null : 'order');
+    final targetId = item.relatedTargetId ?? item.relatedOrderId;
+    if (targetType == 'order' && targetId != null) {
+      await Navigator.pushNamed(
+        context,
+        Routes.orderDetail,
+        arguments: OrderDetailArgs(
+          kind: OrderKind.takeaway,
+          status: OrderStatus.pending,
+          orderId: '$targetId',
+        ),
+      );
+      if (mounted) await _load();
     }
   }
 }
@@ -178,12 +239,14 @@ class _GroupTabsBar extends StatelessWidget {
 }
 
 class _MessageCard extends StatelessWidget {
-  const _MessageCard({required this.item});
+  const _MessageCard({required this.item, required this.onTap});
 
   final MessageItem item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -4,6 +4,8 @@ import com.aituan.common.api.PageResponse;
 import com.aituan.common.enums.AccountType;
 import com.aituan.common.enums.DisplayOrderStatus;
 import com.aituan.common.enums.PaymentStatus;
+import com.aituan.coupon.CouponCalcResult;
+import com.aituan.coupon.CouponService;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
@@ -32,10 +34,12 @@ class TradeService {
 
   private final TradeRepository tradeRepository;
   private final MapDistanceService mapDistanceService;
+  private final CouponService couponService;
 
-  TradeService(TradeRepository tradeRepository, MapDistanceService mapDistanceService) {
+  TradeService(TradeRepository tradeRepository, MapDistanceService mapDistanceService, CouponService couponService) {
     this.tradeRepository = tradeRepository;
     this.mapDistanceService = mapDistanceService;
+    this.couponService = couponService;
   }
 
   List<PaymentMethodView> paymentMethods() {
@@ -96,9 +100,10 @@ class TradeService {
   }
 
   CheckoutPreviewView preview(CheckoutPreviewRequest request) {
+    long userId = CurrentUserContext.required().userId();
     TradeContext context = loadTradeContext(request.storeId(), request.businessType(), request.addressId(), request.items());
     TablewareSelection tableware = tablewareSelection(request.tablewareOption(), request.tablewareCount());
-    return buildPreview(context, request.remark(), tableware);
+    return buildPreview(context, request.remark(), tableware, request.couponId(), userId);
   }
 
   @Transactional
@@ -117,11 +122,12 @@ class TradeService {
     requireDeliverable(quote);
     requireMinimumOrder(context);
     reserveStock(context.items());
-    OrderInsert orderInsert = buildOrderInsert(context, request.remark(), request.idempotencyKey(), quote, tableware);
+    OrderInsert orderInsert = buildOrderInsert(context, request.remark(), request.idempotencyKey(), quote, tableware, request.couponId(), userId);
     Long orderId = tradeRepository.insertOrder(orderInsert.row());
     for (TradeItem tradeItem : context.items()) {
       tradeRepository.insertOrderItem(orderId, tradeItem.row(), tradeItem.quantity());
     }
+    couponService.redeem(request.couponId(), orderId);
     return getOrderDetail(orderId);
   }
 
@@ -160,6 +166,7 @@ class TradeService {
     CurrentUser current = CurrentUserContext.required();
     tradeRepository.updateTakeawayFulfillment(orderId, DisplayOrderStatus.CANCELLED.code(), "cancelled", true);
     tradeRepository.cancelDeliveryTask(orderId);
+    couponService.releaseByOrder(orderId);
     writeOrderLogs(order, "cancelled", "user_cancel", "user", current.accountId(), actionRemark(request) == null ? "用户取消订单" : actionRemark(request));
     return getOrderDetail(orderId);
   }
@@ -413,8 +420,9 @@ class TradeService {
   }
 
   CheckoutContext previewForOrder(CreateOrderRequest request) {
+    long userId = CurrentUserContext.required().userId();
     TradeContext context = loadTradeContext(request.storeId(), request.businessType(), request.addressId(), request.items());
-    return new CheckoutContext(context, buildPreview(context, request.remark(), tablewareSelection(request.tablewareOption(), request.tablewareCount())));
+    return new CheckoutContext(context, buildPreview(context, request.remark(), tablewareSelection(request.tablewareOption(), request.tablewareCount()), request.couponId(), userId));
   }
 
   private OrderDetailView buildOrderDetail(TradeRepository.OrderRow order) {
@@ -522,6 +530,9 @@ class TradeService {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
     }
     tradeRepository.updateTakeawayFulfillment(order.id(), nextStage.displayStatus(), nextStage.stage(), nextStage.completed());
+    if (DisplayOrderStatus.CANCELLED.code().equals(nextStage.displayStatus())) {
+      couponService.releaseByOrder(order.id());
+    }
     writeOrderLogs(order, nextStage.stage(), actionType, operatorType, operatorId, remark);
   }
 
@@ -803,7 +814,7 @@ class TradeService {
     };
   }
 
-  private CheckoutPreviewView buildPreview(TradeContext context, String remark, TablewareSelection tableware) {
+  private CheckoutPreviewView buildPreview(TradeContext context, String remark, TablewareSelection tableware, Long couponId, Long userId) {
     BigDecimal amount = BigDecimal.ZERO;
     List<CheckoutItemView> itemViews = new ArrayList<>();
     for (TradeItem tradeItem : context.items()) {
@@ -826,8 +837,8 @@ class TradeService {
       deliveryFee = context.deliveryRule().deliveryFee().add(distanceExtraFee);
     }
     BigDecimal packageFee = packageFee(context);
-    BigDecimal discountAmount = BigDecimal.ZERO;
-    BigDecimal payableAmount = amount.add(deliveryFee).add(packageFee).subtract(discountAmount);
+    BigDecimal discountAmount = couponDiscount(userId, couponId, amount);
+    BigDecimal payableAmount = amount.add(deliveryFee).add(packageFee).subtract(discountAmount).max(BigDecimal.ZERO);
     BigDecimal startPrice = startPrice(context);
     BigDecimal startPriceMissing = startPriceMissing(amount, startPrice);
     boolean minimumOrderMet = startPriceMissing.compareTo(BigDecimal.ZERO) <= 0;
@@ -859,8 +870,19 @@ class TradeService {
         remark);
   }
 
-  private OrderInsert buildOrderInsert(TradeContext context, String remark, String idempotencyKey, DeliveryQuote quote, TablewareSelection tableware) {
-    CheckoutPreviewView preview = buildPreview(context, remark, tableware);
+  private BigDecimal couponDiscount(Long userId, Long couponId, BigDecimal amount) {
+    if (couponId == null) {
+      return BigDecimal.ZERO;
+    }
+    CouponCalcResult result = couponService.calcDiscount(userId, couponId, amount);
+    if (!result.usable()) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, result.reason() == null ? "优惠券不可用" : result.reason());
+    }
+    return result.discountAmount() == null ? BigDecimal.ZERO : result.discountAmount();
+  }
+
+  private OrderInsert buildOrderInsert(TradeContext context, String remark, String idempotencyKey, DeliveryQuote quote, TablewareSelection tableware, Long couponId, Long userId) {
+    CheckoutPreviewView preview = buildPreview(context, remark, tableware, couponId, userId);
     String orderType = context.store().businessType();
     String title = context.items().size() == 1 ? context.items().get(0).row().title() : context.items().get(0).row().title() + "等" + context.items().size() + "件";
     String orderNo = "AT" + System.currentTimeMillis();

@@ -43,6 +43,13 @@ class AdminService {
         adminRepository.count("select count(1) from delivery_task where current_stage in ('ready_for_delivery', 'delivering') and is_deleted = 0"));
   }
 
+  AdminProfileView adminProfile() {
+    CurrentUser current = requireAdmin();
+    return adminRepository.findAdminProfile(current.accountId())
+        .map(this::toAdminProfileView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   PageResponse<AdminMerchantView> merchants(String keyword, int page, int pageSize) {
     requireAdmin();
     long total = adminRepository.countMerchants(keyword);
@@ -400,6 +407,11 @@ class AdminService {
       case "draft", "published", "offline" -> value;
       default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "公告状态不正确");
     };
+  }
+
+  private AdminProfileView toAdminProfileView(AdminRepository.AdminProfileRow row) {
+    String nickname = row.nickname() == null || row.nickname().isBlank() ? row.accountNo() : row.nickname();
+    return new AdminProfileView(row.accountId(), row.accountNo(), row.accountType(), nickname, row.phone(), row.email(), row.status(), row.createdAt(), row.lastLoginAt());
   }
 
   private AdminMerchantView toMerchantView(AdminRepository.MerchantRow row) {

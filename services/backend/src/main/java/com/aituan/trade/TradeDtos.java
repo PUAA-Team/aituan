@@ -37,7 +37,8 @@ record CheckoutPreviewRequest(
     @NotEmpty List<@Valid CheckoutItemRequest> items,
     String remark,
     String tablewareOption,
-    Integer tablewareCount) {}
+    Integer tablewareCount,
+    Long couponId) {}
 
 record CreateOrderRequest(
     @NotNull Long storeId,
@@ -47,6 +48,7 @@ record CreateOrderRequest(
     String remark,
     String tablewareOption,
     Integer tablewareCount,
+    Long couponId,
     String idempotencyKey) {}
 
 record PayOrderRequest(@NotBlank String paymentMode) {}

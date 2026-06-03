@@ -8,6 +8,8 @@ class MessageItem {
     required this.time,
     required this.unread,
     this.relatedOrderId,
+    this.relatedTargetType,
+    this.relatedTargetId,
   });
 
   final int id;
@@ -18,6 +20,8 @@ class MessageItem {
   final String time;
   final bool unread;
   final int? relatedOrderId;
+  final String? relatedTargetType;
+  final int? relatedTargetId;
 
   /// 把后端 type 归到用户端展示分组：评价 / 咨询 / 投诉 / 订单 / 系统。
   String get group => switch (type) {
@@ -37,10 +41,30 @@ class MessageItem {
     time: _time(json['createdAt']),
     unread: (json['unread'] as bool?) ?? false,
     relatedOrderId: (json['relatedOrderId'] as num?)?.toInt(),
+    relatedTargetType: _nullableText(json['relatedTargetType']),
+    relatedTargetId: (json['relatedTargetId'] as num?)?.toInt(),
+  );
+
+  MessageItem copyWith({bool? unread}) => MessageItem(
+    id: id,
+    type: type,
+    title: title,
+    content: content,
+    badge: badge,
+    time: time,
+    unread: unread ?? this.unread,
+    relatedOrderId: relatedOrderId,
+    relatedTargetType: relatedTargetType,
+    relatedTargetId: relatedTargetId,
   );
 }
 
 String _text(dynamic value) => value?.toString().trim() ?? '';
+
+String? _nullableText(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
 
 String _time(dynamic value) {
   final time = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
