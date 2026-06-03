@@ -80,6 +80,30 @@ if ! grep -q "sendPlatformSupportMessage" "$ROOT/apps/admin_web/src/pages/Platfo
   fail "admin platform support page should send human replies"
 fi
 
+if grep -q "/v1/responses\\|OPENAI_API_KEY\\|RestClient" "$ROOT/services/backend/src/main/java/com/aituan/support/AiSupportService.java"; then
+  fail "platform assistant should use local keyword replies instead of OpenAI calls"
+fi
+
+if ! grep -q "case \"avatar\", \"store\", \"item\", \"announcement\", \"seed\", \"merchant-certification\"," "$ROOT/services/backend/src/main/java/com/aituan/common/file/FileStorageService.java"; then
+  fail "file storage biz type whitelist structure changed unexpectedly"
+fi
+
+if ! grep -q "\"review\", \"complaint\", \"report\"" "$ROOT/services/backend/src/main/java/com/aituan/common/file/FileStorageService.java"; then
+  fail "review/complaint/report image uploads should be accepted"
+fi
+
+if ! grep -q "bizType: 'report'" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
+  fail "review report dialog should upload report evidence images"
+fi
+
+if ! grep -q "ratingText" "$ROOT/apps/merchant_web/src/pages/ReviewPage.vue"; then
+  fail "merchant review page should render non-fixed full rating text"
+fi
+
+if ! grep -q "reportEvidenceUrls" "$ROOT/apps/admin_web/src/pages/ReviewsPage.vue"; then
+  fail "admin review page should show report evidence images"
+fi
+
 if ! grep -q "assistant_mode" "$ROOT/database/migrations/V011__support_platform_handoff.sql"; then
   fail "support handoff migration should include assistant mode"
 fi

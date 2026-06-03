@@ -44,4 +44,33 @@ class InteractionServiceTest {
         Integer.class, 9017L);
     assertThat(count).isEqualTo(1);
   }
+
+  @Test
+  void reportReviewStoresEvidenceImages() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    ReviewReportView report = interactionService.reportReview(
+        9009L,
+        new ReviewReportRequest(
+            "图片证据",
+            "截图可以证明问题",
+            java.util.List.of("/api/common/files/report/demo.png")));
+
+    String evidence = jdbcTemplate.queryForObject(
+        "select evidence_urls from review_report where id = ?",
+        String.class,
+        report.reportId());
+    assertThat(evidence).contains("/api/common/files/report/demo.png");
+  }
+
+  @Test
+  void merchantReportedFilterUsesReportedCountInsteadOfStatus() {
+    TestAuthSupport.loginAsMerchant(30L);
+
+    var page = interactionService.merchantReviews("reported", null, 1, 20);
+
+    assertThat(page.list())
+        .allSatisfy(review -> assertThat(review.reportedCount()).isGreaterThan(0));
+    assertThat(page.list()).anySatisfy(review -> assertThat(review.id()).isEqualTo(9009L));
+  }
 }

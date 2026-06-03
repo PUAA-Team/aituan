@@ -338,6 +338,7 @@ export interface AdminReviewView {
   createdAt: string;
   userMaskedNickname?: string;
   reportReasons?: string[];
+  reportEvidenceUrls?: string[];
 }
 
 export interface AdminComplaintView {

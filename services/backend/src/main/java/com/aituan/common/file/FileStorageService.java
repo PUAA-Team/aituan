@@ -100,7 +100,8 @@ public class FileStorageService {
   private String normalizeBizType(String bizType) {
     String value = bizType == null ? "" : bizType.trim().toLowerCase(Locale.ROOT);
     return switch (value) {
-      case "avatar", "store", "item", "announcement", "seed", "merchant-certification" -> value;
+      case "avatar", "store", "item", "announcement", "seed", "merchant-certification",
+          "review", "complaint", "report" -> value;
       default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "图片业务类型不正确");
     };
   }

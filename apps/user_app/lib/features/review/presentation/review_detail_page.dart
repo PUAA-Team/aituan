@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/widgets/app_card.dart';
 import '../../home/data/backend_app_repository.dart';
@@ -47,7 +48,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
 
   Future<void> _toggleHelpful() async {
     try {
-      final (helpful, count) = await reviewRepository.toggleHelpful(widget.reviewId);
+      final (helpful, count) = await reviewRepository.toggleHelpful(
+        widget.reviewId,
+      );
       if (!mounted) return;
       setState(() {
         if (_review != null) {
@@ -74,29 +77,34 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('操作失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('操作失败：$e')));
     }
   }
 
   Future<void> _report() async {
-    final reason = await showDialog<String>(
+    final result = await showDialog<_ReportDraft>(
       context: context,
-      builder: (_) => SimpleDialog(
-        title: const Text('选择举报原因'),
-        children: [
-          for (final r in const ['广告/营销', '辱骂攻击', '虚假内容', '违法违规', '其他'])
-            SimpleDialogOption(child: Text(r), onPressed: () => Navigator.pop(context, r)),
-        ],
-      ),
+      builder: (_) => const _ReportDialog(),
     );
-    if (reason == null) return;
+    if (result == null) return;
     try {
-      await reviewRepository.report(widget.reviewId, reason);
+      await reviewRepository.report(
+        widget.reviewId,
+        result.reason,
+        detail: result.detail,
+        evidenceUrls: result.evidenceUrls,
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已提交举报，我们将尽快审核')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已提交举报，我们将尽快审核')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('举报失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('举报失败：$e')));
     }
   }
 
@@ -107,8 +115,8 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : (_error != null
-              ? Center(child: Text(_error!))
-              : _buildBody(_review!)),
+                ? Center(child: Text(_error!))
+                : _buildBody(_review!)),
     );
   }
 
@@ -127,7 +135,11 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
               Row(
                 children: [
                   for (var i = 0; i < 5; i++)
-                    Icon(i < r.rating ? Icons.star : Icons.star_border, size: 18, color: Colors.orange),
+                    Icon(
+                      i < r.rating ? Icons.star : Icons.star_border,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -154,11 +166,18 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: r.labels.map((l) => Chip(label: Text(l), padding: EdgeInsets.zero)).toList(),
+                  children: r.labels
+                      .map(
+                        (l) => Chip(label: Text(l), padding: EdgeInsets.zero),
+                      )
+                      .toList(),
                 ),
               ],
               const SizedBox(height: 8),
-              Text('发布时间：${r.createdAt}', style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                '发布时间：${r.createdAt}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
@@ -172,7 +191,10 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                 Text(r.replyContent!),
                 if (r.repliedAt != null) ...[
                   const SizedBox(height: 6),
-                  Text('回复时间：${r.repliedAt}', style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    '回复时间：${r.repliedAt}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ],
             ),
@@ -181,7 +203,9 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
           child: Row(
             children: [
               TextButton.icon(
-                icon: Icon(r.helpfulByMe ? Icons.thumb_up : Icons.thumb_up_outlined),
+                icon: Icon(
+                  r.helpfulByMe ? Icons.thumb_up : Icons.thumb_up_outlined,
+                ),
                 label: Text('有用 ${r.helpfulCount}'),
                 onPressed: _toggleHelpful,
               ),
@@ -194,6 +218,141 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _ReportDraft {
+  const _ReportDraft({
+    required this.reason,
+    required this.detail,
+    required this.evidenceUrls,
+  });
+
+  final String reason;
+  final String detail;
+  final List<String> evidenceUrls;
+}
+
+class _ReportDialog extends StatefulWidget {
+  const _ReportDialog();
+
+  @override
+  State<_ReportDialog> createState() => _ReportDialogState();
+}
+
+class _ReportDialogState extends State<_ReportDialog> {
+  static const _reasons = ['广告/营销', '辱骂攻击', '虚假内容', '违法违规', '其他'];
+  static const _maxImages = 3;
+
+  String _reason = _reasons.first;
+  final _detailController = TextEditingController();
+  final List<String> _imageUrls = [];
+  bool _uploading = false;
+
+  @override
+  void dispose() {
+    _detailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    if (_uploading || _imageUrls.length >= _maxImages) return;
+    setState(() => _uploading = true);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        imageQuality: 80,
+      );
+      if (picked == null) return;
+      final url = await backendRepository.uploadCommonFile(
+        picked.path,
+        bizType: 'report',
+      );
+      if (!mounted) return;
+      setState(() => _imageUrls.add(url));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('图片上传失败：$e')));
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  void _submit() {
+    Navigator.pop(
+      context,
+      _ReportDraft(
+        reason: _reason,
+        detail: _detailController.text.trim(),
+        evidenceUrls: List.of(_imageUrls),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('举报评价'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _reason,
+              decoration: const InputDecoration(labelText: '举报原因'),
+              items: _reasons
+                  .map(
+                    (reason) =>
+                        DropdownMenuItem(value: reason, child: Text(reason)),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) setState(() => _reason = value);
+              },
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _detailController,
+              maxLines: 3,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                labelText: '补充说明',
+                hintText: '可填写问题说明或上传截图证据',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final url in _imageUrls)
+                  InputChip(
+                    label: const Text('已上传图片'),
+                    onDeleted: () => setState(() => _imageUrls.remove(url)),
+                  ),
+                if (_imageUrls.length < _maxImages)
+                  OutlinedButton.icon(
+                    onPressed: _uploading ? null : _pickImage,
+                    icon: const Icon(Icons.image_outlined),
+                    label: Text(_uploading ? '上传中…' : '添加图片'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        TextButton(onPressed: _submit, child: const Text('提交')),
       ],
     );
   }

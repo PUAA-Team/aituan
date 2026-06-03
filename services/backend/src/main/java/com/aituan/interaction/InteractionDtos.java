@@ -15,7 +15,8 @@ record ReviewCreateRequest(
 
 record ReviewReportRequest(
     @NotBlank String reason,
-    String detail) {}
+    String detail,
+    List<String> evidenceUrls) {}
 
 record MerchantReviewReplyRequest(
     @NotBlank String content) {}
@@ -45,7 +46,8 @@ record ReviewView(
     LocalDateTime repliedAt,
     LocalDateTime createdAt,
     String userMaskedNickname,
-    List<String> reportReasons) {}
+    List<String> reportReasons,
+    List<String> reportEvidenceUrls) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record ReviewHelpfulView(boolean helpful, int helpfulCount) {}
