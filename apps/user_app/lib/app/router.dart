@@ -6,12 +6,16 @@ import '../features/address/presentation/address_list_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
 import '../features/checkout/presentation/checkout_page.dart';
+import '../features/coupon/presentation/coupon_claim_page.dart';
+import '../features/coupon/presentation/coupon_page.dart';
+import '../features/coupon/presentation/coupon_selector_page.dart';
 import '../features/complaint/presentation/complaint_list_page.dart';
 import '../features/complaint/presentation/complaint_detail_page.dart';
 import '../features/complaint/presentation/complaint_submit_page.dart';
 import '../features/favorite/presentation/favorite_page.dart';
 import '../features/home/data/mock_data.dart';
 import '../features/home/presentation/module_page.dart';
+import '../features/member/presentation/member_center_page.dart';
 import '../features/merchant/presentation/item_detail_page.dart';
 import '../features/merchant/presentation/service_merchant_page.dart';
 import '../features/merchant/presentation/takeaway_merchant_page.dart';
@@ -51,6 +55,10 @@ class AppRouter {
     Routes.addressList,
     Routes.addressEdit,
     Routes.profile,
+    Routes.memberCenter,
+    Routes.coupons,
+    Routes.couponClaim,
+    Routes.couponSelector,
     Routes.settings,
     Routes.profileEdit,
     Routes.reviewPublish,
@@ -100,6 +108,13 @@ class AppRouter {
         settings,
       ),
       Routes.favorite => _page(const FavoritePage(), settings),
+      Routes.memberCenter => _page(const MemberCenterPage(), settings),
+      Routes.coupons => _page(const CouponPage(), settings),
+      Routes.couponClaim => _page(const CouponClaimPage(), settings),
+      Routes.couponSelector => _page(
+        CouponSelectorPage(args: _couponSelectorArgs(settings.arguments)),
+        settings,
+      ),
       Routes.addressList => _page(
         AddressListPage(args: _addressListArgs(settings.arguments)),
         settings,
@@ -237,4 +252,9 @@ class AppRouter {
 
   static BookingDetailArgs _bookingArgs(Object? args) =>
       args is BookingDetailArgs ? args : const BookingDetailArgs(orderId: '');
+
+  static CouponSelectorArgs _couponSelectorArgs(Object? args) =>
+      args is CouponSelectorArgs
+      ? args
+      : const CouponSelectorArgs(orderAmount: 0);
 }

@@ -55,7 +55,7 @@ class AboutPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Text('v1.0.13'),
+                  const Text('v1.0.14'),
                 ],
               ),
               const SizedBox(height: 16),

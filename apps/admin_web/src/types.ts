@@ -1,8 +1,11 @@
 export type AdminPage =
   | 'dashboard'
+  | 'profile'
   | 'orders'
   | 'merchants'
   | 'users'
+  | 'memberLevels'
+  | 'couponTemplates'
   | 'catalog'
   | 'delivery'
   | 'vouchers'
@@ -36,6 +39,78 @@ export interface DashboardView {
   userCount: number;
   itemCount: number;
   deliveringTasks: number;
+}
+
+export interface AdminProfile {
+  accountId: number;
+  accountNo: string;
+  accountType: string;
+  nickname: string;
+  phone?: string;
+  email?: string;
+  status: string;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+export interface MemberBenefitItem {
+  title: string;
+  desc: string;
+}
+
+export interface MemberLevel {
+  id: number;
+  levelCode: string;
+  levelName: string;
+  minGrowthValue: number;
+  benefits: MemberBenefitItem[];
+  iconUrl?: string;
+  color?: string;
+  sortOrder: number;
+  status: string;
+}
+
+export interface MemberLevelForm {
+  levelCode: string;
+  levelName: string;
+  minGrowthValue: number;
+  benefits: MemberBenefitItem[];
+  iconUrl?: string;
+  color?: string;
+  sortOrder?: number;
+  status?: string;
+}
+
+export interface CouponTemplate {
+  id: number;
+  name: string;
+  type: string;
+  faceValue: number;
+  thresholdAmount: number;
+  businessScope: string;
+  validKind: string;
+  validStart?: string;
+  validEnd?: string;
+  validDays?: number;
+  totalQty: number;
+  issuedQty: number;
+  perUserLimit: number;
+  status: string;
+}
+
+export interface CouponTemplateForm {
+  name: string;
+  type: string;
+  faceValue: number;
+  thresholdAmount?: number;
+  businessScope?: string;
+  validKind: string;
+  validStart?: string;
+  validEnd?: string;
+  validDays?: number;
+  totalQty?: number;
+  perUserLimit?: number;
+  status?: string;
 }
 
 export interface AdminMerchant {

@@ -9,6 +9,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/address_model.dart';
+import '../../coupon/data/coupon_repository.dart';
 import '../../home/data/backend_app_repository.dart';
 import '../../merchant/presentation/takeaway_amount_utils.dart';
 
@@ -26,6 +27,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   CheckoutPreviewData? _preview;
   List<AddressData> _addresses = const [];
   String? _selectedAddressId;
+  OrderCouponOption? _selectedCoupon;
   List<PaymentMethodData> _paymentMethods = const [];
   Object? _error;
   String _tablewareOption = 'merchant_decide';
@@ -118,6 +120,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   previewText: preview?.tablewareText,
                   onTap: _openTablewareSelector,
                 ),
+              _CouponCard(
+                coupon: _selectedCoupon,
+                discountAmount: preview?.discountAmount ?? 0,
+                enabled: _canUseBackend && preview != null,
+                onTap: _openCouponSelector,
+              ),
               _RemarkCard(controller: _remarkController),
               _PaymentMethodCard(methods: _paymentMethods),
               _FeeCard(preview: preview, fallbackAmount: widget.args.amount),
@@ -167,6 +175,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         tablewareCount: _tablewareOption == 'by_people'
             ? _tablewareCount
             : null,
+        couponId: _selectedCoupon?.userCouponId,
       );
       final paymentMethods = await backendRepository.fetchPaymentMethods();
       if (!mounted) return;
@@ -226,6 +235,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
     await _loadPreview();
   }
 
+  Future<void> _openCouponSelector() async {
+    final amount = _preview?.amount ?? widget.args.amount;
+    final result = await Navigator.pushNamed(
+      context,
+      Routes.couponSelector,
+      arguments: CouponSelectorArgs(
+        orderAmount: amount,
+        selectedCoupon: _selectedCoupon,
+      ),
+    );
+    if (result is! CouponSelectorResult || !mounted) return;
+    setState(() {
+      _selectedCoupon = result.clear ? null : result.coupon;
+    });
+    await _loadPreview();
+  }
+
   Future<void> _pay() async {
     if (widget.args.kind == OrderKind.takeaway && _selectedAddress == null) {
       showAppSnackBar(context, '请先新增或选择收货地址');
@@ -256,6 +282,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         tablewareCount: _tablewareOption == 'by_people'
             ? _tablewareCount
             : null,
+        couponId: _selectedCoupon?.userCouponId,
       );
       final paid = await backendRepository.payOrder(order.id);
       if (!mounted) return;
@@ -410,6 +437,57 @@ class _ArgLine extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _CouponCard extends StatelessWidget {
+  const _CouponCard({
+    required this.coupon,
+    required this.discountAmount,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final OrderCouponOption? coupon;
+  final double discountAmount;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = coupon != null;
+    final subtitle = selected
+        ? '已选 ${coupon!.name}，预计优惠 ¥${discountAmount.toStringAsFixed(2)}'
+        : '选择可用优惠券，后端会重新校验抵扣金额';
+    return AppCard(
+      onTap: enabled ? onTap : null,
+      child: Row(
+        children: [
+          const Icon(Icons.confirmation_num_outlined, color: AppColors.brand),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('优惠券', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+          if (selected)
+            Text(
+              '-¥${discountAmount.toStringAsFixed(2)}',
+              style: const TextStyle(
+                color: AppColors.brand,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right, color: AppColors.textLight),
+        ],
+      ),
+    );
+  }
 }
 
 class _TablewareCard extends StatelessWidget {

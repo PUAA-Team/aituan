@@ -1,3 +1,4 @@
+import '../features/coupon/data/coupon_repository.dart';
 import '../shared/enums/business_type.dart';
 import '../shared/models/address_model.dart';
 import '../shared/models/item_model.dart';
@@ -68,6 +69,23 @@ class OrderDetailArgs {
   final OrderKind kind;
   final OrderStatus status;
   final String? orderId;
+}
+
+class CouponSelectorArgs {
+  const CouponSelectorArgs({required this.orderAmount, this.selectedCoupon});
+
+  final double orderAmount;
+  final OrderCouponOption? selectedCoupon;
+}
+
+class CouponSelectorResult {
+  const CouponSelectorResult.selected(this.coupon) : clear = false;
+  const CouponSelectorResult.clear()
+    : coupon = null,
+      clear = true;
+
+  final OrderCouponOption? coupon;
+  final bool clear;
 }
 
 class ReviewArgs {

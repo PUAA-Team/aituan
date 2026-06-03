@@ -19,6 +19,10 @@ class Routes {
   static const addressList = '/address/list';
   static const addressEdit = '/address/edit';
   static const profile = '/profile';
+  static const memberCenter = '/member/center';
+  static const coupons = '/coupon/list';
+  static const couponClaim = '/coupon/claim';
+  static const couponSelector = '/coupon/select';
   static const settings = '/settings';
   static const about = '/about';
   static const userAgreement = '/about/user-agreement';

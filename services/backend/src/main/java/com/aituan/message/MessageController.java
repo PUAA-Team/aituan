@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/app/message")
+@RequestMapping({"/api/app/message", "/api/app/messages"})
 @Validated
 class MessageController {
   private final MessageService messageService;
@@ -23,10 +23,19 @@ class MessageController {
 
   @GetMapping("/station")
   ApiResponse<PageResponse<MessageView>> listMessages(
+      @RequestParam(required = false) String type,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
-    return ApiResponse.ok(messageService.listMessages(page, pageSize));
+    return ApiResponse.ok(messageService.listMessages(type, page, pageSize));
   }
+
+
+  @PatchMapping("/station/read-all")
+  ApiResponse<Void> markAllRead() {
+    messageService.markAllRead();
+    return ApiResponse.ok(null);
+  }
+
 
   @PatchMapping("/station/{messageId}/read")
   ApiResponse<Void> markRead(@PathVariable long messageId) {

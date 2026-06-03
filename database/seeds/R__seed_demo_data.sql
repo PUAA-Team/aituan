@@ -478,6 +478,38 @@ INSERT INTO sys_config (id, config_key, config_value, remark) VALUES
   (3, 'upload_storage_type', 'local', '当前图片上传使用本地文件夹，后续可替换对象存储实现')
 ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), remark = VALUES(remark);
 
+-- Stage6-A：会员等级、优惠券与消息跳转演示数据
+INSERT INTO member_level (id, level_code, level_name, min_growth_value, benefits, color, sort_order, status) VALUES
+  (1, 'NORMAL', '普通会员', 0, '[{"title":"基础服务","desc":"享受平台基础下单与售后服务"}]', '#8C8C8C', 1, 'enabled'),
+  (2, 'SILVER', '银卡会员', 300, '[{"title":"专享券","desc":"每月可领银卡专享优惠券"},{"title":"优先客服","desc":"客服优先响应"}]', '#9AA4B2', 2, 'enabled'),
+  (3, 'GOLD', '金卡会员', 800, '[{"title":"金卡折扣","desc":"部分商家专享折扣"},{"title":"生日礼","desc":"生日月双倍成长值"}]', '#E0A106', 3, 'enabled'),
+  (4, 'PLATINUM', '铂金会员', 2000, '[{"title":"铂金权益","desc":"专属活动与高额优惠券"},{"title":"专属客服","desc":"一对一专属客服"}]', '#3A3A3A', 4, 'enabled')
+ON DUPLICATE KEY UPDATE level_name = VALUES(level_name), min_growth_value = VALUES(min_growth_value), benefits = VALUES(benefits), color = VALUES(color), sort_order = VALUES(sort_order), status = VALUES(status);
+
+INSERT INTO coupon_template (id, name, type, face_value, threshold_amount, business_scope, valid_kind, valid_start, valid_end, valid_days, total_qty, issued_qty, per_user_limit, status) VALUES
+  (1, '满30减5', 'full_reduction', 5.00, 30.00, 'all', 'absolute', '2026-01-01 00:00:00', '2026-12-31 23:59:59', NULL, 1000, 0, 1, 'enabled'),
+  (2, '满50减10', 'full_reduction', 10.00, 50.00, 'all', 'absolute', '2026-01-01 00:00:00', '2026-12-31 23:59:59', NULL, 1000, 0, 1, 'enabled'),
+  (3, '新人9折券', 'discount', 0.90, 0.00, 'all', 'relative', NULL, NULL, 30, 0, 0, 1, 'enabled'),
+  (4, '满100减20', 'full_reduction', 20.00, 100.00, 'all', 'absolute', '2026-01-01 00:00:00', '2026-12-31 23:59:59', NULL, 500, 0, 1, 'enabled'),
+  (5, '已下架体验券', 'full_reduction', 8.00, 40.00, 'all', 'absolute', '2026-01-01 00:00:00', '2026-12-31 23:59:59', NULL, 100, 0, 1, 'disabled')
+ON DUPLICATE KEY UPDATE name = VALUES(name), type = VALUES(type), face_value = VALUES(face_value), threshold_amount = VALUES(threshold_amount), business_scope = VALUES(business_scope), valid_kind = VALUES(valid_kind), valid_start = VALUES(valid_start), valid_end = VALUES(valid_end), valid_days = VALUES(valid_days), total_qty = VALUES(total_qty), per_user_limit = VALUES(per_user_limit), status = VALUES(status);
+
+INSERT INTO user_coupon (id, template_id, user_id, status, claimed_at, expire_at, used_at, used_order_id, type_snapshot, face_value_snapshot, threshold_snapshot) VALUES
+  (9001, 1, 1, 'unused', CURRENT_TIMESTAMP, '2026-12-31 23:59:59', NULL, NULL, 'full_reduction', 5.00, 30.00),
+  (9002, 2, 1, 'unused', CURRENT_TIMESTAMP, '2026-12-31 23:59:59', NULL, NULL, 'full_reduction', 10.00, 50.00),
+  (9003, 3, 1, 'used', CURRENT_TIMESTAMP, '2026-12-31 23:59:59', CURRENT_TIMESTAMP, 9005, 'discount', 0.90, 0.00),
+  (9004, 4, 1, 'expired', CURRENT_TIMESTAMP, '2026-01-31 23:59:59', NULL, NULL, 'full_reduction', 20.00, 100.00)
+ON DUPLICATE KEY UPDATE status = VALUES(status), expire_at = VALUES(expire_at), used_at = VALUES(used_at), used_order_id = VALUES(used_order_id), is_deleted = 0;
+
+UPDATE support_station_message
+SET related_target_type = 'order', related_target_id = related_order_id
+WHERE related_order_id IS NOT NULL;
+
+INSERT INTO sys_audit_log (id, actor_type, actor_id, action_type, target_type, target_id, detail) VALUES
+  (9001, 'admin', 3, 'member_level_update', 'member_level', 3, '更新金卡会员权益说明'),
+  (9002, 'admin', 3, 'coupon_template_create', 'coupon_template', 4, '新增满100减20优惠券模板')
+ON DUPLICATE KEY UPDATE detail = VALUES(detail);
+
 -- Stage5-D：补齐 7 类非外卖差异化字段
 -- business_attributes 串格式：`key:value;key:value`，由用户端按业务类型解析
 UPDATE catalog_item SET

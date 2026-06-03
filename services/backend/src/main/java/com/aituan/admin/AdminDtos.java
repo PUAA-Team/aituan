@@ -14,6 +14,17 @@ record AdminDashboardView(
     Long itemCount,
     Long deliveringTasks) {}
 
+record AdminProfileView(
+    Long accountId,
+    String accountNo,
+    String accountType,
+    String nickname,
+    String phone,
+    String email,
+    String status,
+    LocalDateTime createdAt,
+    LocalDateTime lastLoginAt) {}
+
 record AdminMerchantView(
     Long merchantId,
     Long accountId,

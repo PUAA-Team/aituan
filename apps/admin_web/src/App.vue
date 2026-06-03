@@ -7,11 +7,14 @@ import AuditLogsPage from './pages/AuditLogsPage.vue';
 import BookingsPage from './pages/BookingsPage.vue';
 import CatalogPage from './pages/CatalogPage.vue';
 import ComplaintsPage from './pages/ComplaintsPage.vue';
+import CouponTemplatesPage from './pages/CouponTemplatesPage.vue';
 import DashboardPage from './pages/DashboardPage.vue';
 import DeliveryPage from './pages/DeliveryPage.vue';
 import LoginPage from './pages/LoginPage.vue';
+import MemberLevelsPage from './pages/MemberLevelsPage.vue';
 import MerchantsPage from './pages/MerchantsPage.vue';
 import OrdersPage from './pages/OrdersPage.vue';
+import AdminProfilePage from './pages/AdminProfilePage.vue';
 import ReviewsPage from './pages/ReviewsPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
 import UsersPage from './pages/UsersPage.vue';
@@ -28,9 +31,12 @@ const loggedIn = computed(() => token.value.length > 0);
 const pageTitle = computed(() => {
   const map: Record<AdminPage, string> = {
     dashboard: '平台总览',
+    profile: '管理员资料',
     orders: '订单治理',
     merchants: '商户门店',
     users: '用户管理',
+    memberLevels: '会员等级',
+    couponTemplates: '优惠券模板',
     catalog: '商品治理',
     delivery: '配送任务',
     vouchers: '券码治理',
@@ -91,9 +97,12 @@ function setNotice(message: string) {
     @logout="logout"
   >
     <DashboardPage v-if="activePage === 'dashboard'" :refresh-key="refreshKey" @notice="setNotice" />
+    <AdminProfilePage v-else-if="activePage === 'profile'" :refresh-key="refreshKey" @notice="setNotice" />
     <OrdersPage v-else-if="activePage === 'orders'" :refresh-key="refreshKey" @notice="setNotice" />
     <MerchantsPage v-else-if="activePage === 'merchants'" :refresh-key="refreshKey" @notice="setNotice" />
     <UsersPage v-else-if="activePage === 'users'" :refresh-key="refreshKey" @notice="setNotice" />
+    <MemberLevelsPage v-else-if="activePage === 'memberLevels'" :refresh-key="refreshKey" @notice="setNotice" />
+    <CouponTemplatesPage v-else-if="activePage === 'couponTemplates'" :refresh-key="refreshKey" @notice="setNotice" />
     <CatalogPage v-else-if="activePage === 'catalog'" :refresh-key="refreshKey" @notice="setNotice" />
     <DeliveryPage v-else-if="activePage === 'delivery'" :refresh-key="refreshKey" @notice="setNotice" />
     <VouchersPage v-else-if="activePage === 'vouchers'" :refresh-key="refreshKey" @notice="setNotice" />

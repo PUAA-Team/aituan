@@ -24,25 +24,50 @@ public class MessageRepository {
     return count == null ? 0 : count;
   }
 
-  long countMessages(long userId) {
+  long countMessages(long userId, String type) {
+    if (type == null || type.isBlank()) {
+      Long count = jdbcTemplate.queryForObject(
+          "select count(1) from support_station_message where user_id = ? and is_deleted = 0",
+          Long.class,
+          userId);
+      return count == null ? 0 : count;
+    }
     Long count = jdbcTemplate.queryForObject(
-        "select count(1) from support_station_message where user_id = ? and is_deleted = 0",
+        "select count(1) from support_station_message where user_id = ? and message_type = ? and is_deleted = 0",
         Long.class,
-        userId);
+        userId,
+        type.trim());
     return count == null ? 0 : count;
   }
 
-  List<MessageRow> listMessages(long userId, int offset, int limit) {
+  List<MessageRow> listMessages(long userId, String type, int offset, int limit) {
+    if (type == null || type.isBlank()) {
+      return jdbcTemplate.query(
+          """
+          select id, message_type, title, content, badge_text, read_status, related_order_id,
+                 related_target_type, related_target_id, created_at
+          from support_station_message
+          where user_id = ? and is_deleted = 0
+          order by created_at desc, id desc
+          limit ? offset ?
+          """,
+          this::mapMessage,
+          userId,
+          limit,
+          offset);
+    }
     return jdbcTemplate.query(
         """
-        select id, message_type, title, content, badge_text, read_status, related_order_id, created_at
+        select id, message_type, title, content, badge_text, read_status, related_order_id,
+               related_target_type, related_target_id, created_at
         from support_station_message
-        where user_id = ? and is_deleted = 0
+        where user_id = ? and message_type = ? and is_deleted = 0
         order by created_at desc, id desc
         limit ? offset ?
         """,
         this::mapMessage,
         userId,
+        type.trim(),
         limit,
         offset);
   }
@@ -54,9 +79,16 @@ public class MessageRepository {
         userId);
   }
 
+  void markAllRead(long userId) {
+    jdbcTemplate.update(
+        "update support_station_message set read_status = 'read', updated_at = current_timestamp where user_id = ? and read_status = 'unread' and is_deleted = 0",
+        userId);
+  }
+
   private MessageRow mapMessage(ResultSet rs, int rowNum) throws SQLException {
     Timestamp createdAt = rs.getTimestamp("created_at");
-    long relatedOrderId = rs.getLong("related_order_id");
+    Long relatedOrderId = nullableLong(rs, "related_order_id");
+    Long relatedTargetId = nullableLong(rs, "related_target_id");
     return new MessageRow(
         rs.getLong("id"),
         rs.getString("message_type"),
@@ -64,9 +96,17 @@ public class MessageRepository {
         rs.getString("content"),
         rs.getString("badge_text"),
         rs.getString("read_status"),
-        rs.wasNull() ? null : relatedOrderId,
+        relatedOrderId,
+        rs.getString("related_target_type"),
+        relatedTargetId,
         createdAt == null ? null : createdAt.toLocalDateTime());
   }
 
-  record MessageRow(Long id, String type, String title, String content, String badgeText, String readStatus, Long relatedOrderId, LocalDateTime createdAt) {}
+  private Long nullableLong(ResultSet rs, String column) throws SQLException {
+    long value = rs.getLong(column);
+    return rs.wasNull() ? null : value;
+  }
+
+  record MessageRow(Long id, String type, String title, String content, String badgeText, String readStatus,
+                    Long relatedOrderId, String relatedTargetType, Long relatedTargetId, LocalDateTime createdAt) {}
 }
