@@ -10,6 +10,7 @@ export type AdminPage =
   | 'announcements'
   | 'reviews'
   | 'complaints'
+  | 'support'
   | 'audit'
   | 'settings';
 
@@ -372,6 +373,43 @@ export interface AdminComplaintLogView {
 export interface AdminComplaintDetailView {
   complaint: AdminComplaintView;
   logs: AdminComplaintLogView[];
+}
+
+export interface AdminSupportSessionView {
+  id: number;
+  sessionNo: string;
+  storeId: number;
+  storeName: string;
+  topic: string;
+  status: string;
+  relatedOrderId?: number;
+  relatedOrderNo?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount: number;
+  userMaskedNickname?: string;
+  createdAt: string;
+  closeReason?: string;
+  serviceScope?: string;
+  assistantMode?: string;
+  platformInterventionStatus?: string;
+  humanRequestedAt?: string;
+  platformIntervenedAt?: string;
+}
+
+export interface AdminSupportMessageView {
+  id: number;
+  sessionId: number;
+  senderType: string;
+  senderId: number;
+  content: string;
+  messageKind: string;
+  createdAt: string;
+}
+
+export interface AdminSupportSessionDetailView {
+  session: AdminSupportSessionView;
+  messages: AdminSupportMessageView[];
 }
 
 export interface AdminGovernanceDashboardView {

@@ -324,6 +324,13 @@ export function closeMerchantSession(sessionId: number, reason?: string) {
   });
 }
 
+export function requestPlatformIntervention(sessionId: number) {
+  return request<SupportSessionView>(`/api/merchant/ops/sessions/${sessionId}/platform-intervention`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
 export function fetchSessionTemplates() {
   return request<string[]>('/api/merchant/ops/sessions/templates');
 }

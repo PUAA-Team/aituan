@@ -12,6 +12,7 @@ import DeliveryPage from './pages/DeliveryPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import MerchantsPage from './pages/MerchantsPage.vue';
 import OrdersPage from './pages/OrdersPage.vue';
+import PlatformSupportPage from './pages/PlatformSupportPage.vue';
 import ReviewsPage from './pages/ReviewsPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
 import UsersPage from './pages/UsersPage.vue';
@@ -21,7 +22,7 @@ import type { AdminPage } from './types';
 const token = ref(getToken());
 const loading = ref(false);
 const notice = ref('');
-const activePage = ref<AdminPage>('dashboard');
+const activePage = ref<AdminPage>(initialPage());
 const refreshKey = ref(0);
 
 const loggedIn = computed(() => token.value.length > 0);
@@ -38,6 +39,7 @@ const pageTitle = computed(() => {
     announcements: '公告运营',
     reviews: '评价审核',
     complaints: '投诉工单',
+    support: '平台客服',
     audit: '审计日志',
     settings: '平台设置',
   };
@@ -47,6 +49,27 @@ const pageTitle = computed(() => {
 onMounted(() => {
   if (loggedIn.value) refreshKey.value += 1;
 });
+
+function initialPage(): AdminPage {
+  const page = new URLSearchParams(window.location.search).get('page');
+  const allowed: AdminPage[] = [
+    'dashboard',
+    'orders',
+    'merchants',
+    'users',
+    'catalog',
+    'delivery',
+    'vouchers',
+    'bookings',
+    'announcements',
+    'reviews',
+    'complaints',
+    'support',
+    'audit',
+    'settings',
+  ];
+  return allowed.includes(page as AdminPage) ? page as AdminPage : 'dashboard';
+}
 
 async function submitLogin(payload: { account: string; password: string }) {
   try {
@@ -101,6 +124,7 @@ function setNotice(message: string) {
     <AnnouncementsPage v-else-if="activePage === 'announcements'" :refresh-key="refreshKey" @notice="setNotice" />
     <ReviewsPage v-else-if="activePage === 'reviews'" :refresh-key="refreshKey" @notice="setNotice" />
     <ComplaintsPage v-else-if="activePage === 'complaints'" :refresh-key="refreshKey" @notice="setNotice" />
+    <PlatformSupportPage v-else-if="activePage === 'support'" :refresh-key="refreshKey" @notice="setNotice" />
     <AuditLogsPage v-else-if="activePage === 'audit'" :refresh-key="refreshKey" @notice="setNotice" />
     <SettingsPage v-else :refresh-key="refreshKey" @notice="setNotice" />
   </AdminFrame>

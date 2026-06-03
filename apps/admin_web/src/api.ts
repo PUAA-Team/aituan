@@ -8,6 +8,9 @@ import type {
   AdminMerchantForm,
   AdminReviewView,
   AdminStore,
+  AdminSupportMessageView,
+  AdminSupportSessionDetailView,
+  AdminSupportSessionView,
   AdminStoreForm,
   AdminUser,
   AdminUserForm,
@@ -372,6 +375,26 @@ export function complaintAction(
   return request<AdminComplaintView>(`/api/admin/governance/complaints/${ticketId}/${action}`, {
     method: 'POST',
     body: remark ? { remark } : {},
+  });
+}
+
+export function fetchPlatformSupportSessions(params: { status?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 30),
+  });
+  if (params.status) query.set('status', params.status);
+  return request<PageResponse<AdminSupportSessionView>>(`/api/admin/governance/support/sessions?${query}`);
+}
+
+export function fetchPlatformSupportSessionDetail(sessionId: number) {
+  return request<AdminSupportSessionDetailView>(`/api/admin/governance/support/sessions/${sessionId}`);
+}
+
+export function sendPlatformSupportMessage(sessionId: number, content: string) {
+  return request<AdminSupportMessageView>(`/api/admin/governance/support/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: { content },
   });
 }
 

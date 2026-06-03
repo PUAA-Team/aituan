@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/route_constants.dart';
+import '../../complaint/presentation/complaint_submit_page.dart';
 import '../data/support_repository.dart';
 
 class SupportChatPage extends StatefulWidget {
@@ -43,7 +45,9 @@ class _SupportChatPageState extends State<SupportChatPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('加载失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('加载失败：$e')));
     }
   }
 
@@ -54,16 +58,52 @@ class _SupportChatPageState extends State<SupportChatPage> {
     try {
       final msg = await supportRepository.sendMessage(widget.sessionId, text);
       if (!mounted) return;
+      _controller.clear();
+      final (session, messages) = await supportRepository.fetchDetail(
+        widget.sessionId,
+      );
+      if (!mounted) return;
       setState(() {
-        _messages = [..._messages, msg];
-        _controller.clear();
+        _session = session;
+        _messages = messages.isEmpty ? [..._messages, msg] : messages;
         _sending = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('发送失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('发送失败：$e')));
     }
+  }
+
+  Future<void> _handoff() async {
+    try {
+      await supportRepository.handoffToHuman(widget.sessionId);
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已转接平台人工客服')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('转人工失败：$e')));
+    }
+  }
+
+  void _openComplaint() {
+    final session = _session;
+    Navigator.pushNamed(
+      context,
+      Routes.complaintSubmit,
+      arguments: ComplaintSubmitArgs(
+        orderId: session?.relatedOrderId,
+        orderTitle: session?.relatedOrderNo ?? session?.storeName,
+      ),
+    );
   }
 
   Future<void> _close() async {
@@ -73,8 +113,14 @@ class _SupportChatPageState extends State<SupportChatPage> {
         title: const Text('结束咨询'),
         content: const Text('确认关闭本次会话？关闭后无法再发送消息'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('确定')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定'),
+          ),
         ],
       ),
     );
@@ -85,18 +131,38 @@ class _SupportChatPageState extends State<SupportChatPage> {
       _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('关闭失败：$e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('关闭失败：$e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isOpen = _session?.status == 'open';
+    final canHandoff =
+        isOpen &&
+        (_session?.isPlatform ?? false) &&
+        (_session?.isAiMode ?? false);
     return Scaffold(
       appBar: AppBar(
         title: Text(_session?.storeName ?? '咨询'),
         actions: [
-          if (isOpen) TextButton(onPressed: _close, child: const Text('结束', style: TextStyle(color: Colors.white))),
+          IconButton(
+            tooltip: '投诉',
+            onPressed: _openComplaint,
+            icon: const Icon(Icons.report_outlined),
+          ),
+          if (canHandoff)
+            TextButton(
+              onPressed: _handoff,
+              child: const Text('转人工', style: TextStyle(color: Colors.white)),
+            ),
+          if (isOpen)
+            TextButton(
+              onPressed: _close,
+              child: const Text('结束', style: TextStyle(color: Colors.white)),
+            ),
         ],
       ),
       body: _loading
@@ -105,14 +171,21 @@ class _SupportChatPageState extends State<SupportChatPage> {
               children: [
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     itemCount: _messages.length,
-                    itemBuilder: (_, i) => _MessageBubble(message: _messages[i]),
+                    itemBuilder: (_, i) =>
+                        _MessageBubble(message: _messages[i]),
                   ),
                 ),
                 SafeArea(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       border: Border(top: BorderSide(color: Color(0x11000000))),
@@ -124,10 +197,16 @@ class _SupportChatPageState extends State<SupportChatPage> {
                             controller: _controller,
                             decoration: InputDecoration(
                               hintText: isOpen ? '输入消息…' : '会话已关闭',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
                               filled: true,
                               fillColor: Colors.grey.shade100,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                             ),
                             enabled: isOpen && !_sending,
                           ),
@@ -162,7 +241,10 @@ class _MessageBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         constraints: const BoxConstraints(maxWidth: 280),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Text(message.content),
       ),
     );

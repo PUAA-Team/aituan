@@ -26,6 +26,7 @@ const navItems: Array<{ key: AdminPage; label: string; desc: string }> = [
   { key: 'announcements', label: '公告运营', desc: '客户端公告发布' },
   { key: 'reviews', label: '评价审核', desc: '违规评价屏蔽与恢复' },
   { key: 'complaints', label: '投诉工单', desc: '受理、处理、关闭' },
+  { key: 'support', label: '平台客服', desc: 'AI 转人工与平台介入' },
   { key: 'audit', label: '审计日志', desc: '全量操作回溯' },
   { key: 'settings', label: '平台设置', desc: '运行参数配置' },
 ];

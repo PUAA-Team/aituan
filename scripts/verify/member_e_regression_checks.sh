@@ -36,6 +36,14 @@ if ! grep -q "平台客服" "$ROOT/apps/user_app/lib/features/support/presentati
   fail "support sessions should expose platform support"
 fi
 
+if ! grep -q "handoffToHuman" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "support chat should expose platform AI to human handoff"
+fi
+
+if ! grep -q "Routes.complaintSubmit" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "support chat should expose complaint entry"
+fi
+
 if ! grep -q "商家客服" "$ROOT/apps/user_app/lib/features/support/presentation/support_sessions_page.dart"; then
   fail "support sessions should expose merchant support"
 fi
@@ -54,6 +62,26 @@ fi
 
 if ! grep -q "关键词自动回复" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
   fail "merchant sessions should show keyword auto reply rules"
+fi
+
+if ! grep -q "requestPlatformIntervention" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant sessions should support platform intervention"
+fi
+
+if ! grep -q "投诉工单" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant sessions should expose complaint ticket entry"
+fi
+
+if ! grep -q "PlatformSupportPage" "$ROOT/apps/admin_web/src/App.vue"; then
+  fail "admin web should expose platform support queue"
+fi
+
+if ! grep -q "sendPlatformSupportMessage" "$ROOT/apps/admin_web/src/pages/PlatformSupportPage.vue"; then
+  fail "admin platform support page should send human replies"
+fi
+
+if ! grep -q "assistant_mode" "$ROOT/database/migrations/V011__support_platform_handoff.sql"; then
+  fail "support handoff migration should include assistant mode"
 fi
 
 if ! grep -q "Routes.supportSessions" "$ROOT/apps/user_app/lib/features/message/presentation/message_page.dart"; then
