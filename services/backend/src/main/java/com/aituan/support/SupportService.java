@@ -39,17 +39,19 @@ class SupportService {
   @Transactional
   SupportSessionView createUserSession(SupportSessionCreateRequest request) {
     CurrentUser current = requireUser();
-    if (request.storeId() == null) {
-      throw new BusinessException(ErrorCode.BAD_REQUEST, "请选择门店");
-    }
-    long merchantId = supportRepository.findStoreMerchantId(request.storeId())
+    boolean platformSession = request.storeId() == null || request.storeId() <= 0;
+    long storeId = platformSession ? 0L : request.storeId();
+    long merchantId = platformSession ? 0L : supportRepository.findStoreMerchantId(storeId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "门店不存在"));
-    String topic = request.topic() == null ? "" : request.topic().trim();
-    if (topic.isEmpty()) {
-      throw new BusinessException(ErrorCode.BAD_REQUEST, "请填写咨询主题");
-    }
+    String topic = platformSession ? "平台客服" : "商家客服咨询";
+    if (request.relatedOrderId() != null) topic = topic + " · 订单咨询";
     String sessionNo = "SS" + System.currentTimeMillis() + "-" + current.userId();
-    Long id = supportRepository.insertSession(sessionNo, current.userId(), request.storeId(), merchantId, topic, request.relatedOrderId());
+    Long id = supportRepository.insertSession(sessionNo, current.userId(), storeId, merchantId, topic, request.relatedOrderId());
+    if (platformSession) {
+      Long welcomeId = supportRepository.insertMessage(id, "platform", 0L,
+          "您好，我是平台客服助手。订单、投诉、退款相关问题都可以在这里描述，我会先帮您整理并转交平台处理。", "ai");
+      supportRepository.updateLastMessage(id, welcomeId, "platform");
+    }
     supportRepository.insertSysAuditLog("user", current.accountId(), "support_session_create", "support_session", id,
         "用户发起咨询：" + topic);
     return supportRepository.findById(id)
@@ -80,6 +82,7 @@ class SupportService {
     }
     Long messageId = supportRepository.insertMessage(sessionId, "user", current.userId(), request.content().trim(), "text");
     supportRepository.updateLastMessage(sessionId, messageId, "user");
+    autoReplyIfMatched(row, request.content().trim());
     return supportRepository.findMessageById(messageId)
         .map(this::toMessageView)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -184,6 +187,35 @@ class SupportService {
         row.senderType(), row.senderId(),
         row.content(), row.messageKind(),
         row.createdAt());
+  }
+
+  private void autoReplyIfMatched(SupportRepository.SessionRow row, String content) {
+    String normalized = content == null ? "" : content.trim();
+    if (normalized.isEmpty()) return;
+    String reply = null;
+    String senderType = "merchant";
+    long senderId = row.merchantId();
+    if (row.storeId() == 0) {
+      senderType = "platform";
+      senderId = 0L;
+      reply = "平台客服助手已收到。我会优先整理您的问题，涉及投诉、退款或订单异常时会同步给平台处理人员。";
+    } else if (containsAny(normalized, "配送", "多久", "时间", "催", "慢")) {
+      reply = "您好，系统已收到您的催单/时效问题，商家会尽快确认处理。";
+    } else if (containsAny(normalized, "退款", "退单", "取消")) {
+      reply = "您好，退款/取消问题建议先说明订单情况，商家会结合订单状态回复。";
+    } else if (containsAny(normalized, "发票", "票据")) {
+      reply = "您好，发票或票据问题已记录，请补充抬头和联系方式。";
+    }
+    if (reply == null) return;
+    Long autoId = supportRepository.insertMessage(row.id(), senderType, senderId, reply, "auto_reply");
+    supportRepository.updateLastMessage(row.id(), autoId, senderType);
+  }
+
+  private boolean containsAny(String text, String... keywords) {
+    for (String keyword : keywords) {
+      if (text.contains(keyword)) return true;
+    }
+    return false;
   }
 
   // ============ 鉴权工具 ============

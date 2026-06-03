@@ -82,7 +82,7 @@ class _TakeawayMerchantPageState extends State<TakeawayMerchantPage> {
                 onRemove: _remove,
               )
             else if (_tab == 1)
-              const TakeawayReviewPanel()
+              TakeawayReviewPanel(merchant: merchant)
             else
               TakeawayMerchantInfoPanel(merchant: merchant),
             const SizedBox(height: 90),

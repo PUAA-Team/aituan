@@ -14,6 +14,8 @@ record ComplaintCreateRequest(
 
 record ComplaintActionRequest(String remark) {}
 
+record ComplaintSupplementRequest(@NotBlank String content) {}
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record ComplaintView(
     Long id,

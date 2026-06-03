@@ -7,7 +7,7 @@ import java.util.List;
 
 record SupportSessionCreateRequest(
     Long storeId,
-    @NotBlank String topic,
+    String topic,
     Long relatedOrderId) {}
 
 record SupportMessageCreateRequest(

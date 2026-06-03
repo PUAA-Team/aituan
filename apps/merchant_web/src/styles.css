@@ -647,7 +647,39 @@ td span {
   }
 
   .console-side {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: block;
+    border-right: 0;
+    border-bottom: 1px solid #e5e8ef;
+  }
+
+  .brand-block {
+    padding: 14px 16px 10px;
+  }
+
+  .side-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px 12px;
+  }
+
+  .side-nav button {
+    min-width: 132px;
+  }
+
+  .side-footer {
+    display: none;
+  }
+
+  .console-main {
+    padding: 14px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
   }
 
   .toolbar-actions,

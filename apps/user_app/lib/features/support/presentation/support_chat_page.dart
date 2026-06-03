@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/app_card.dart';
 import '../data/support_repository.dart';
 
 class SupportChatPage extends StatefulWidget {
@@ -104,14 +103,6 @@ class _SupportChatPageState extends State<SupportChatPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                if (_session != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: AppCard(
-                      padding: const EdgeInsets.all(8),
-                      child: Text('主题：${_session!.topic}', style: Theme.of(context).textTheme.bodySmall),
-                    ),
-                  ),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

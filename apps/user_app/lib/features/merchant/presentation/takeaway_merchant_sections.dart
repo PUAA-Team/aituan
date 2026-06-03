@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../review/data/review_repository.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
 import 'merchant_category_widgets.dart';
@@ -63,31 +64,129 @@ class TakeawayOrderPanel extends StatelessWidget {
   );
 }
 
-class TakeawayReviewPanel extends StatelessWidget {
-  const TakeawayReviewPanel({super.key});
+class TakeawayReviewPanel extends StatefulWidget {
+  const TakeawayReviewPanel({super.key, required this.merchant});
+
+  final MerchantModel merchant;
 
   @override
-  Widget build(BuildContext context) => const Column(
-    children: [
-      AppCard(
-        child: Text(
-          '4.8 分 · 出餐稳定 · 包装完整 · 配送体验好',
-          style: TextStyle(fontWeight: FontWeight.w700),
+  State<TakeawayReviewPanel> createState() => _TakeawayReviewPanelState();
+}
+
+class _TakeawayReviewPanelState extends State<TakeawayReviewPanel> {
+  late Future<List<ReviewSummary>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<ReviewSummary>> _load() async {
+    final storeId = int.tryParse(widget.merchant.id);
+    if (storeId == null) return const [];
+    return reviewRepository.fetchStoreReviews(storeId);
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<ReviewSummary>>(
+    future: _future,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const AppCard(child: Center(child: CircularProgressIndicator()));
+      }
+      final reviews = snapshot.data ?? const [];
+      return Column(
+        children: [
+          AppCard(
+            child: Text(
+              _ratingLine(widget.merchant, reviews),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (snapshot.hasError)
+            AppCard(
+              child: Text(
+                '评价加载失败：${snapshot.error}',
+                style: const TextStyle(color: AppColors.textSub),
+              ),
+            )
+          else if (reviews.isEmpty)
+            const AppCard(
+              child: Text(
+                '暂无用户评价，完成订单后可以发布第一条评价。',
+                style: TextStyle(color: AppColors.textSub),
+              ),
+            )
+          else
+            for (final review in reviews) _ReviewCard(review: review),
+        ],
+      );
+    },
+  );
+}
+
+String _ratingLine(MerchantModel merchant, List<ReviewSummary> reviews) {
+  final rating = merchant.rating <= 0 ? '暂无评分' : '${merchant.rating.toStringAsFixed(1)}分';
+  if (reviews.isEmpty) return '$rating · 暂无评价';
+  final labels = reviews.expand((review) => review.labels).take(3).join(' · ');
+  return labels.isEmpty ? '$rating · ${reviews.length}条评价' : '$rating · $labels';
+}
+
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({required this.review});
+
+  final ReviewSummary review;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                review.userMaskedNickname ?? '爱团用户',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Text(
+              '${review.rating}星',
+              style: const TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
-      ),
-      AppCard(
-        child: Text(
-          '汉堡现做热乎，套餐份量适合单人晚餐，骑手送达也很快。',
-          style: TextStyle(color: AppColors.textSub),
-        ),
-      ),
-      AppCard(
-        child: Text(
-          '多次回购，餐品口味稳定，适合附近工作日点餐。',
-          style: TextStyle(color: AppColors.textSub),
-        ),
-      ),
-    ],
+        const SizedBox(height: 6),
+        Text(review.content, style: const TextStyle(color: AppColors.textSub)),
+        if (review.labels.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final label in review.labels)
+                Chip(label: Text(label), visualDensity: VisualDensity.compact),
+            ],
+          ),
+        ],
+        if (review.replyContent != null && review.replyContent!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.soft,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('商家回复：${review.replyContent!}'),
+          ),
+        ],
+      ],
+    ),
   );
 }
 

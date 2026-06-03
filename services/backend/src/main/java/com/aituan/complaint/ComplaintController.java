@@ -40,4 +40,9 @@ class ComplaintController {
   ApiResponse<ComplaintDetailView> detail(@PathVariable long id) {
     return ApiResponse.ok(complaintService.myTicketDetail(id));
   }
+
+  @PostMapping("/{id}/supplements")
+  ApiResponse<ComplaintDetailView> supplement(@PathVariable long id, @Valid @RequestBody ComplaintSupplementRequest request) {
+    return ApiResponse.ok(complaintService.supplement(id, request));
+  }
 }

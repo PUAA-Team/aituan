@@ -84,7 +84,7 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
                       setState(() => _selectedCategory = value),
                 ),
               ] else if (_tab == 1)
-                const ServiceReviewPanel()
+                TakeawayReviewPanel(merchant: merchant)
               else
                 ServiceMerchantInfoPanel(merchant: merchant),
               const SizedBox(height: 24),

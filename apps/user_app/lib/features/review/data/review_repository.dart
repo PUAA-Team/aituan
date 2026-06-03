@@ -7,6 +7,7 @@ class ReviewSummary {
     required this.orderId,
     required this.orderTitle,
     required this.storeName,
+    required this.userMaskedNickname,
     required this.rating,
     required this.content,
     required this.labels,
@@ -25,6 +26,7 @@ class ReviewSummary {
   final int orderId;
   final String orderTitle;
   final String storeName;
+  final String? userMaskedNickname;
   final int rating;
   final String content;
   final List<String> labels;
@@ -46,6 +48,7 @@ class ReviewSummary {
       orderId: (json['orderId'] as num?)?.toInt() ?? 0,
       orderTitle: (json['orderTitle'] ?? '') as String,
       storeName: (json['storeName'] ?? '') as String,
+      userMaskedNickname: json['userMaskedNickname'] as String?,
       rating: (json['rating'] as num?)?.toInt() ?? 0,
       content: (json['content'] ?? '') as String,
       labels: stringList(json['labels']),
@@ -84,6 +87,13 @@ class ReviewRepository {
     final data = json['data'];
     if (data == null) return null;
     return ReviewSummary.fromApi(data as Map<String, dynamic>);
+  }
+
+  Future<List<ReviewSummary>> fetchStoreReviews(int storeId, {int page = 1, int pageSize = 10}) async {
+    final json = await _client.get('/api/app/interaction/stores/$storeId/reviews?page=$page&pageSize=$pageSize');
+    final data = json['data'] as Map<String, dynamic>? ?? const {};
+    final list = (data['list'] as List?) ?? const [];
+    return list.map((e) => ReviewSummary.fromApi(e as Map<String, dynamic>)).toList();
   }
 
   Future<ReviewSummary> fetchDetail(int reviewId) async {

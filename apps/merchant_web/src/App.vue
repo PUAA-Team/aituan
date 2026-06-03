@@ -26,7 +26,7 @@ const loggedIn = computed(() => token.value.length > 0);
 const isTakeaway = computed(() => store.value?.businessType === 'takeaway');
 const pageTitle = computed(() => {
   const map: Record<ConsolePage, string> = {
-    dashboard: '商家驾驶舱',
+    dashboard: '经营概览',
     orders: '订单中心',
     catalog: isTakeaway.value ? '商品管理' : '服务与套餐',
     fulfillment: '履约设置',

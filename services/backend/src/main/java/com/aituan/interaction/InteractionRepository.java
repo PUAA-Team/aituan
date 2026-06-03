@@ -89,6 +89,25 @@ class InteractionRepository {
         this::mapReview, userId, statusFilter, limit, offset);
   }
 
+  long countStoreReviews(long storeId) {
+    Long count = jdbcTemplate.queryForObject(
+        "select count(1) from review_record where store_id = ? and status = 'published' and is_deleted = 0",
+        Long.class,
+        storeId);
+    return count == null ? 0 : count;
+  }
+
+  List<ReviewRow> listStoreReviews(long storeId, int offset, int limit) {
+    return jdbcTemplate.query(
+        REVIEW_SELECT_CORE
+            + " where r.store_id = ? and r.status = 'published' and r.is_deleted = 0"
+            + " order by r.created_at desc, r.id desc limit ? offset ?",
+        this::mapReview,
+        storeId,
+        limit,
+        offset);
+  }
+
   // ============ 评价提交 ============
 
   Long insertReview(long userId, OrderReviewRow order, ReviewCreateRequest request, String labels, String imageUrls) {

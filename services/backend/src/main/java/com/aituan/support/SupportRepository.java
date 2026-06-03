@@ -204,15 +204,18 @@ class SupportRepository {
   private SessionRow mapSession(ResultSet rs, int rowNum) throws SQLException {
     long relatedOrderRaw = rs.getLong("related_order_id");
     Long relatedOrderId = rs.wasNull() ? null : relatedOrderRaw;
+    long storeId = rs.getLong("store_id");
+    long merchantId = rs.getLong("merchant_id");
     Timestamp lastAt = rs.getTimestamp("last_message_at");
     Timestamp closedAt = rs.getTimestamp("closed_at");
     Timestamp createdAt = rs.getTimestamp("created_at");
     return new SessionRow(
         rs.getLong("id"), rs.getString("session_no"),
-        rs.getLong("user_id"), rs.getLong("store_id"), rs.getLong("merchant_id"),
+        rs.getLong("user_id"), storeId, merchantId,
         rs.getString("topic"), rs.getString("status"),
         relatedOrderId, rs.getString("related_order_no"),
-        rs.getString("store_name"), rs.getString("user_nickname"),
+        storeId == 0 ? "平台客服" : rs.getString("store_name"),
+        rs.getString("user_nickname"),
         rs.getInt("user_unread_count"), rs.getInt("merchant_unread_count"),
         lastAt == null ? null : lastAt.toLocalDateTime(),
         closedAt == null ? null : closedAt.toLocalDateTime(),
