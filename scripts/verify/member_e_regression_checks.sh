@@ -40,6 +40,18 @@ if ! grep -q "handoffToHuman" "$ROOT/apps/user_app/lib/features/support/presenta
   fail "support chat should expose platform AI to human handoff"
 fi
 
+if ! grep -q "TextInputAction.send" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "support chat should submit messages with the keyboard send action"
+fi
+
+if ! grep -q "onSubmitted" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "support chat should send messages when pressing enter"
+fi
+
+if grep -q "TextStyle(color: Colors.white)" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "support chat app bar actions should not hard-code white text"
+fi
+
 if ! grep -q "Routes.complaintSubmit" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
   fail "support chat should expose complaint entry"
 fi

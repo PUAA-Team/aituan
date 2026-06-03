@@ -52,6 +52,7 @@ class _SupportChatPageState extends State<SupportChatPage> {
   }
 
   Future<void> _send() async {
+    if (_sending) return;
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     setState(() => _sending = true);
@@ -144,6 +145,9 @@ class _SupportChatPageState extends State<SupportChatPage> {
         isOpen &&
         (_session?.isPlatform ?? false) &&
         (_session?.isAiMode ?? false);
+    final actionButtonStyle = TextButton.styleFrom(
+      foregroundColor: Theme.of(context).colorScheme.primary,
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(_session?.storeName ?? '咨询'),
@@ -155,13 +159,15 @@ class _SupportChatPageState extends State<SupportChatPage> {
           ),
           if (canHandoff)
             TextButton(
+              style: actionButtonStyle,
               onPressed: _handoff,
-              child: const Text('转人工', style: TextStyle(color: Colors.white)),
+              child: const Text('转人工'),
             ),
           if (isOpen)
             TextButton(
+              style: actionButtonStyle,
               onPressed: _close,
-              child: const Text('结束', style: TextStyle(color: Colors.white)),
+              child: const Text('结束'),
             ),
         ],
       ),
@@ -195,6 +201,8 @@ class _SupportChatPageState extends State<SupportChatPage> {
                         Expanded(
                           child: TextField(
                             controller: _controller,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _send(),
                             decoration: InputDecoration(
                               hintText: isOpen ? '输入消息…' : '会话已关闭',
                               border: OutlineInputBorder(
