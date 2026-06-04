@@ -30,9 +30,9 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
   }
 
   void _load() {
-    setState(
-      () => _future = complaintRepository.fetchDetail(widget.complaintId),
-    );
+    setState(() {
+      _future = complaintRepository.fetchDetail(widget.complaintId);
+    });
   }
 
   Future<void> _submitSupplement() async {

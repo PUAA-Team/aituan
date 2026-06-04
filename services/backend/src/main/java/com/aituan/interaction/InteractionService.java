@@ -114,7 +114,8 @@ class InteractionService {
     if (reason == null || reason.isEmpty()) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "举报原因不能为空");
     }
-    Long reportId = interactionRepository.insertReport(reviewId, current.userId(), reason, request.detail());
+    Long reportId = interactionRepository.insertReport(
+        reviewId, current.userId(), reason, request.detail(), joinList(request.evidenceUrls()));
     interactionRepository.incrementReportedCount(reviewId);
     interactionRepository.insertSysAuditLog(
         "user", current.accountId(), "review_report", "review", reviewId,
@@ -217,7 +218,7 @@ class InteractionService {
         row.rating(), row.content(), splitList(row.labels()), splitList(row.imageUrls()),
         row.helpfulCount(), row.reportedCount(), helpfulByMe,
         row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
-        null, null);
+        null, null, null);
   }
 
   private ReviewView toMerchantReviewView(InteractionRepository.ReviewRow row) {
@@ -227,18 +228,22 @@ class InteractionService {
         row.rating(), row.content(), splitList(row.labels()), splitList(row.imageUrls()),
         row.helpfulCount(), row.reportedCount(), null,
         row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
-        maskNickname(row.userNickname()), null);
+        maskNickname(row.userNickname()), null, null);
   }
 
   private ReviewView toAdminReviewView(InteractionRepository.ReviewRow row) {
     List<String> reportReasons = interactionRepository.listActiveReportReasons(row.id());
+    List<String> reportEvidenceUrls = interactionRepository.listActiveReportEvidenceUrls(row.id()).stream()
+        .flatMap(value -> splitList(value).stream())
+        .toList();
     return new ReviewView(
         row.id(), row.orderId(), row.orderNo(), row.orderTitle(),
         row.storeId(), row.storeName(),
         row.rating(), row.content(), splitList(row.labels()), splitList(row.imageUrls()),
         row.helpfulCount(), row.reportedCount(), null,
         row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
-        maskNickname(row.userNickname()), reportReasons.isEmpty() ? null : reportReasons);
+        maskNickname(row.userNickname()), reportReasons.isEmpty() ? null : reportReasons,
+        reportEvidenceUrls.isEmpty() ? null : reportEvidenceUrls);
   }
 
   private ReviewView toPublicReviewView(InteractionRepository.ReviewRow row) {
@@ -248,7 +253,7 @@ class InteractionService {
         row.rating(), row.content(), splitList(row.labels()), splitList(row.imageUrls()),
         row.helpfulCount(), null, null,
         row.status(), row.replied(), row.replyContent(), row.repliedAt(), row.createdAt(),
-        maskNickname(row.userNickname()), null);
+        maskNickname(row.userNickname()), null, null);
   }
 
   // ============ 鉴权工具 ============
@@ -295,7 +300,7 @@ class InteractionService {
     if (value == null || value.isBlank()) return null;
     String v = value.trim().toLowerCase();
     return switch (v) {
-      case "published", "hidden" -> v;
+      case "published", "hidden", "reported" -> v;
       default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "状态不正确");
     };
   }

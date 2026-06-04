@@ -166,10 +166,10 @@ class InteractionRepository {
 
   // ============ 评价举报 ============
 
-  Long insertReport(long reviewId, long reporterUserId, String reason, String detail) {
+  Long insertReport(long reviewId, long reporterUserId, String reason, String detail, String evidenceUrls) {
     jdbcTemplate.update(
-        "insert into review_report(review_id, reporter_user_id, reason, detail, status) values (?, ?, ?, ?, 'submitted')",
-        reviewId, reporterUserId, reason, detail);
+        "insert into review_report(review_id, reporter_user_id, reason, detail, evidence_urls, status) values (?, ?, ?, ?, ?, 'submitted')",
+        reviewId, reporterUserId, reason, detail, evidenceUrls);
     return jdbcTemplate.queryForObject(
         "select max(id) from review_report where review_id = ? and reporter_user_id = ?",
         Long.class, reviewId, reporterUserId);
@@ -192,7 +192,13 @@ class InteractionRepository {
 
   List<String> listActiveReportReasons(long reviewId) {
     return jdbcTemplate.queryForList(
-        "select reason from review_report where review_id = ? and status = 'submitted' and is_deleted = 0 order by id desc",
+        "select concat(reason, coalesce(concat('：', detail), '')) from review_report where review_id = ? and status = 'submitted' and is_deleted = 0 order by id desc",
+        String.class, reviewId);
+  }
+
+  List<String> listActiveReportEvidenceUrls(long reviewId) {
+    return jdbcTemplate.queryForList(
+        "select evidence_urls from review_report where review_id = ? and status = 'submitted' and is_deleted = 0 and evidence_urls is not null order by id desc",
         String.class, reviewId);
   }
 
@@ -207,8 +213,12 @@ class InteractionRepository {
     List<Object> args = new java.util.ArrayList<>();
     args.add(merchantId);
     if (statusFilter != null) {
-      sql.append(" and r.status = ? ");
-      args.add(statusFilter);
+      if ("reported".equals(statusFilter)) {
+        sql.append(" and r.reported_count > 0 ");
+      } else {
+        sql.append(" and r.status = ? ");
+        args.add(statusFilter);
+      }
     }
     if (replied != null) {
       sql.append(" and r.replied = ? ");
@@ -225,8 +235,12 @@ class InteractionRepository {
     List<Object> args = new java.util.ArrayList<>();
     args.add(merchantId);
     if (statusFilter != null) {
-      sql.append(" and r.status = ? ");
-      args.add(statusFilter);
+      if ("reported".equals(statusFilter)) {
+        sql.append(" and r.reported_count > 0 ");
+      } else {
+        sql.append(" and r.status = ? ");
+        args.add(statusFilter);
+      }
     }
     if (replied != null) {
       sql.append(" and r.replied = ? ");

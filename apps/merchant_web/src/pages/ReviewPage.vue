@@ -82,6 +82,11 @@ function statusLabel(status: string) {
   return status === 'hidden' ? '已屏蔽' : '已发布';
 }
 
+function ratingText(rating: number | undefined) {
+  const value = Math.max(0, Math.min(5, Number(rating || 0)));
+  return '★'.repeat(value) + '☆'.repeat(5 - value);
+}
+
 function timeText(value: string | undefined) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
 }
@@ -116,7 +121,7 @@ function timeText(value: string | undefined) {
             :class="{ active: active && active.id === row.id }"
             @click="openReview(row)"
           >
-            <td>{{ '★'.repeat(row.rating) }}</td>
+            <td><span class="rating">{{ ratingText(row.rating) }}</span></td>
             <td>{{ row.userMaskedNickname || '匿名用户' }}<span>{{ row.orderTitle }}</span></td>
             <td>{{ row.content }}<span v-if="(row.reportedCount || 0) > 0">举报 {{ row.reportedCount }}</span></td>
             <td>{{ row.replied ? '已回复' : '待回复' }}<span>{{ statusLabel(row.status) }}</span></td>
@@ -134,7 +139,7 @@ function timeText(value: string | undefined) {
       <div v-if="!active" class="empty-card">在左侧选择一条评价查看与回复</div>
       <div v-else class="review-detail">
         <div class="review-head">
-          <span class="rating">{{ '★'.repeat(active.rating) }}</span>
+          <span class="rating">{{ ratingText(active.rating) }}</span>
           <span>{{ active.userMaskedNickname || '匿名用户' }}</span>
           <small>{{ timeText(active.createdAt) }}</small>
         </div>

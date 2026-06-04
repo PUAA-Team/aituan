@@ -45,6 +45,11 @@ export interface SupportSessionView {
   userMaskedNickname?: string;
   createdAt: string;
   closeReason?: string;
+  serviceScope?: string;
+  assistantMode?: string;
+  platformInterventionStatus?: string;
+  humanRequestedAt?: string;
+  platformIntervenedAt?: string;
 }
 
 export interface SupportMessageView {

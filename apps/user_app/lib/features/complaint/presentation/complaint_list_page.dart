@@ -22,7 +22,9 @@ class _ComplaintListPageState extends State<ComplaintListPage> {
   }
 
   void _load() {
-    setState(() => _future = complaintRepository.fetchMy(status: _status));
+    setState(() {
+      _future = complaintRepository.fetchMy(status: _status);
+    });
   }
 
   Future<void> _openSubmit() async {
@@ -154,6 +156,7 @@ class _StatusBadge extends StatelessWidget {
 String _statusText(String status) => switch (status) {
   'pending' => '待受理',
   'accepted' => '处理中',
+  'processing' => '处理中',
   'resolved' => '已处理',
   'closed' => '已关闭',
   _ => status,

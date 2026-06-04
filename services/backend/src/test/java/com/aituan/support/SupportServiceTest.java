@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aituan.TestAuthSupport;
+import com.aituan.common.api.PageResponse;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import org.junit.jupiter.api.AfterEach;
@@ -64,6 +65,8 @@ class SupportServiceTest {
     assertThat(session.storeId()).isEqualTo(0L);
     assertThat(session.storeName()).isEqualTo("平台客服");
     assertThat(session.topic()).isEqualTo("平台客服");
+    assertThat(session.serviceScope()).isEqualTo("platform");
+    assertThat(session.assistantMode()).isEqualTo("ai");
   }
 
   @Test
@@ -80,5 +83,70 @@ class SupportServiceTest {
           assertThat(message.messageKind()).isEqualTo("auto_reply");
           assertThat(message.content()).contains("催单");
         });
+  }
+
+  @Test
+  void platformSessionCanBeTransferredToHumanByKeyword() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(null, null, null));
+
+    supportService.userSendMessage(session.id(), new SupportMessageCreateRequest("我要转人工"));
+    SupportSessionDetailView detail = supportService.userSessionDetail(session.id());
+
+    assertThat(detail.session().assistantMode()).isEqualTo("human");
+    assertThat(detail.session().serviceScope()).isEqualTo("platform");
+    assertThat(detail.messages())
+        .anySatisfy(message -> {
+          assertThat(message.senderType()).isEqualTo("platform");
+          assertThat(message.messageKind()).isEqualTo("handoff");
+          assertThat(message.content()).contains("人工客服");
+        });
+  }
+
+  @Test
+  void merchantCanRequestPlatformHumanIntervention() {
+    TestAuthSupport.loginAsMerchant(2L);
+    SupportSessionView escalated = supportService.requestPlatformIntervention(1L);
+
+    assertThat(escalated.platformInterventionStatus()).isEqualTo("active");
+    assertThat(escalated.assistantMode()).isEqualTo("human");
+    assertThat(escalated.serviceScope()).isEqualTo("platform");
+
+    SupportSessionDetailView detail = supportService.merchantSessionDetail(1L);
+    assertThat(detail.messages())
+        .anySatisfy(message -> {
+          assertThat(message.senderType()).isEqualTo("platform");
+          assertThat(message.messageKind()).isEqualTo("platform_intervention");
+          assertThat(message.content()).contains("平台客服已介入");
+        });
+  }
+
+  @Test
+  void adminCanReplyTransferredPlatformSession() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(null, null, null));
+    supportService.userHandoffToHuman(session.id());
+
+    TestAuthSupport.loginAsAdmin(3L);
+    PageResponse<SupportSessionView> sessions = supportService.adminPlatformSessions("open", 1, 20);
+    assertThat(sessions.list())
+        .anySatisfy(row -> assertThat(row.id()).isEqualTo(session.id()));
+
+    SupportMessageView reply = supportService.adminSendPlatformMessage(
+        session.id(), new SupportMessageCreateRequest("平台人工已接入，请补充订单号"));
+    assertThat(reply.senderType()).isEqualTo("platform");
+    assertThat(reply.messageKind()).isEqualTo("text");
+  }
+
+  @Test
+  void platformAssistantUsesDifferentKeywordReplies() {
+    AiSupportService ai = new AiSupportService();
+
+    assertThat(ai.reply("配送太慢了，多久能到")).contains("配送").contains("转人工");
+    assertThat(ai.reply("我要退款，订单想取消")).contains("退款").contains("转人工");
+    assertThat(ai.reply("我要投诉商家服务态度")).contains("投诉").contains("投诉入口");
+    assertThat(ai.reply("能开发票吗")).contains("发票").contains("抬头");
   }
 }

@@ -23,6 +23,8 @@ class SupportRepository {
              s.related_order_id, s.last_message_id, s.last_message_at,
              s.user_unread_count, s.merchant_unread_count,
              s.closed_at, s.close_reason, s.created_at,
+             s.service_scope, s.assistant_mode, s.platform_intervention_status,
+             s.human_requested_at, s.platform_intervened_at,
              ms.store_name as store_name,
              o.order_no as related_order_no,
              up.nickname as user_nickname
@@ -91,15 +93,41 @@ class SupportRepository {
         this::mapSession, merchantId, statusFilter, limit, offset);
   }
 
+  long countAdminPlatformSessions(String statusFilter) {
+    String base = """
+        select count(1)
+        from support_session
+        where service_scope = 'platform' and is_deleted = 0
+        """;
+    if (statusFilter == null) {
+      Long c = jdbcTemplate.queryForObject(base, Long.class);
+      return c == null ? 0 : c;
+    }
+    Long c = jdbcTemplate.queryForObject(base + " and status = ?", Long.class, statusFilter);
+    return c == null ? 0 : c;
+  }
+
+  List<SessionRow> listAdminPlatformSessions(String statusFilter, int offset, int limit) {
+    String tail = " order by coalesce(s.last_message_at, s.created_at) desc, s.id desc limit ? offset ?";
+    String where = " where s.service_scope = 'platform' and s.is_deleted = 0";
+    if (statusFilter == null) {
+      return jdbcTemplate.query(SESSION_SELECT + where + tail, this::mapSession, limit, offset);
+    }
+    return jdbcTemplate.query(SESSION_SELECT + where + " and s.status = ?" + tail,
+        this::mapSession, statusFilter, limit, offset);
+  }
+
   // ============ 写入 ============
 
-  Long insertSession(String sessionNo, long userId, long storeId, long merchantId, String topic, Long relatedOrderId) {
+  Long insertSession(String sessionNo, long userId, long storeId, long merchantId, String topic, Long relatedOrderId,
+                     String serviceScope, String assistantMode) {
     jdbcTemplate.update(
         """
-        insert into support_session(session_no, user_id, store_id, merchant_id, topic, status, related_order_id)
-        values (?, ?, ?, ?, ?, 'open', ?)
+        insert into support_session(session_no, user_id, store_id, merchant_id, topic, status, related_order_id,
+                                    service_scope, assistant_mode, platform_intervention_status)
+        values (?, ?, ?, ?, ?, 'open', ?, ?, ?, 'none')
         """,
-        sessionNo, userId, storeId, merchantId, topic, relatedOrderId);
+        sessionNo, userId, storeId, merchantId, topic, relatedOrderId, serviceScope, assistantMode);
     return jdbcTemplate.queryForObject(
         "select id from support_session where session_no = ?", Long.class, sessionNo);
   }
@@ -139,6 +167,31 @@ class SupportRepository {
         where id = ?
         """,
         closedByType, closedById, reason, sessionId);
+  }
+
+  void markHumanHandoff(long sessionId) {
+    jdbcTemplate.update(
+        """
+        update support_session
+        set service_scope = 'platform', assistant_mode = 'human',
+            human_requested_at = coalesce(human_requested_at, current_timestamp),
+            updated_at = current_timestamp
+        where id = ?
+        """,
+        sessionId);
+  }
+
+  void requestPlatformIntervention(long sessionId) {
+    jdbcTemplate.update(
+        """
+        update support_session
+        set service_scope = 'platform', assistant_mode = 'human',
+            platform_intervention_status = 'active',
+            platform_intervened_at = coalesce(platform_intervened_at, current_timestamp),
+            updated_at = current_timestamp
+        where id = ?
+        """,
+        sessionId);
   }
 
   // ============ 消息查询 ============
@@ -209,6 +262,8 @@ class SupportRepository {
     Timestamp lastAt = rs.getTimestamp("last_message_at");
     Timestamp closedAt = rs.getTimestamp("closed_at");
     Timestamp createdAt = rs.getTimestamp("created_at");
+    Timestamp humanRequestedAt = rs.getTimestamp("human_requested_at");
+    Timestamp platformIntervenedAt = rs.getTimestamp("platform_intervened_at");
     return new SessionRow(
         rs.getLong("id"), rs.getString("session_no"),
         rs.getLong("user_id"), storeId, merchantId,
@@ -220,7 +275,11 @@ class SupportRepository {
         lastAt == null ? null : lastAt.toLocalDateTime(),
         closedAt == null ? null : closedAt.toLocalDateTime(),
         rs.getString("close_reason"),
-        createdAt == null ? null : createdAt.toLocalDateTime());
+        createdAt == null ? null : createdAt.toLocalDateTime(),
+        rs.getString("service_scope"), rs.getString("assistant_mode"),
+        rs.getString("platform_intervention_status"),
+        humanRequestedAt == null ? null : humanRequestedAt.toLocalDateTime(),
+        platformIntervenedAt == null ? null : platformIntervenedAt.toLocalDateTime());
   }
 
   private MessageRow mapMessage(ResultSet rs, int rowNum) throws SQLException {
@@ -238,7 +297,9 @@ class SupportRepository {
                     String storeName, String userNickname,
                     int userUnreadCount, int merchantUnreadCount,
                     LocalDateTime lastMessageAt, LocalDateTime closedAt, String closeReason,
-                    LocalDateTime createdAt) {}
+                    LocalDateTime createdAt,
+                    String serviceScope, String assistantMode, String platformInterventionStatus,
+                    LocalDateTime humanRequestedAt, LocalDateTime platformIntervenedAt) {}
 
   record MessageRow(Long id, Long sessionId, String senderType, Long senderId,
                     String content, String messageKind, LocalDateTime createdAt) {}

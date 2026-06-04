@@ -31,7 +31,12 @@ record SupportSessionView(
     String userMaskedNickname,
     LocalDateTime createdAt,
     LocalDateTime closedAt,
-    String closeReason) {}
+    String closeReason,
+    String serviceScope,
+    String assistantMode,
+    String platformInterventionStatus,
+    LocalDateTime humanRequestedAt,
+    LocalDateTime platformIntervenedAt) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record SupportMessageView(
