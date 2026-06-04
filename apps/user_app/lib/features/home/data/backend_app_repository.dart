@@ -954,15 +954,36 @@ MerchantModel _merchantFromStoreCard(
 
 MerchantModel _merchantFromStoreDetail(Map<String, dynamic> json) {
   final store = _map(json['store']);
+  final reviewSummary = _map(json['reviewSummary']);
   final itemGroups = _list(json['itemGroups']);
   final items = <ItemModel>[];
   for (final group in itemGroups) {
     items.addAll(_items(_map(group)['items']));
   }
-  return _merchantFromStoreCard(
+  final merchant = _merchantFromStoreCard(
     store,
     items: items.isEmpty ? _items(store['matchedItems']) : items,
     deliveryRule: _deliveryRule(json['deliveryRule']),
+  );
+  return MerchantModel(
+    id: merchant.id,
+    name: merchant.name,
+    type: merchant.type,
+    distance: merchant.distance,
+    rating: _double(reviewSummary['rating']),
+    summary: merchant.summary,
+    address: merchant.address,
+    tags: merchant.tags,
+    items: merchant.items,
+    coverUrl: merchant.coverUrl,
+    estimatedTimeText: merchant.estimatedTimeText,
+    longitude: merchant.longitude,
+    latitude: merchant.latitude,
+    status: merchant.status,
+    businessHours: merchant.businessHours,
+    monthlySales: merchant.monthlySales,
+    avgPrice: merchant.avgPrice,
+    deliveryRule: merchant.deliveryRule,
   );
 }
 

@@ -186,6 +186,43 @@ class InteractionServiceTest {
   }
 
   @Test
+  void submittedReviewAppearsInMyStoreAndDetailViewsWithImages() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9902L, "AT202606049902", 1L, 11L, "牛排先生", "group_buy", "新评价显示测试订单",
+        "used", "paid", "completed",
+        68.00, 0.00, 0.00, 68.00);
+
+    ReviewView submitted = interactionService.submitReview(
+        9902L,
+        new ReviewCreateRequest(
+            4,
+            "后续发布的评价应展示出来",
+            java.util.List.of("核销快"),
+            java.util.List.of("/api/common/files/review/new-review.png")));
+
+    var mine = interactionService.myReviews(null, 1, 20);
+    var store = interactionService.storeReviews(11L, 1, 20);
+    ReviewView detail = interactionService.reviewDetail(submitted.id());
+
+    assertThat(mine.list()).anySatisfy(review -> {
+      assertThat(review.id()).isEqualTo(submitted.id());
+      assertThat(review.imageUrls()).contains("/api/common/files/review/new-review.png");
+    });
+    assertThat(store.list()).anySatisfy(review -> {
+      assertThat(review.id()).isEqualTo(submitted.id());
+      assertThat(review.imageUrls()).contains("/api/common/files/review/new-review.png");
+    });
+    assertThat(detail.imageUrls()).contains("/api/common/files/review/new-review.png");
+  }
+
+  @Test
   void merchantReportedFilterUsesReportedCountInsteadOfStatus() {
     TestAuthSupport.loginAsMerchant(30L);
 

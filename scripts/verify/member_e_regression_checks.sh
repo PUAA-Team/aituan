@@ -132,6 +132,18 @@ if ! grep -q "bizType: 'report'" "$ROOT/apps/user_app/lib/features/review/presen
   fail "review report dialog should upload report evidence images"
 fi
 
+if ! grep -q "Routes.reviewDetail" "$ROOT/apps/user_app/lib/features/merchant/presentation/takeaway_merchant_sections.dart"; then
+  fail "merchant review cards should open the review detail page"
+fi
+
+if ! grep -q "backendRepository.resolveAssetUrl" "$ROOT/apps/user_app/lib/features/merchant/presentation/takeaway_merchant_sections.dart"; then
+  fail "merchant review cards should render attached review images"
+fi
+
+if ! grep -q "reviewSummary" "$ROOT/apps/user_app/lib/features/home/data/backend_app_repository.dart"; then
+  fail "merchant detail rating should use the review summary average"
+fi
+
 if ! grep -q "_helpfulBusy" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
   fail "review helpful action should prevent duplicate taps"
 fi
