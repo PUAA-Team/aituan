@@ -143,6 +143,13 @@ export function runOrderAction(orderId: number, action: string, remark = '') {
   });
 }
 
+export function refundOrder(orderId: number, reason = '平台人工退款') {
+  return request<OrderDetail>(`/api/admin/trade/orders/${orderId}/refund`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
 export function fetchMerchants(keyword = '') {
   const query = new URLSearchParams({ page: '1', pageSize: '50' });
   if (keyword) query.set('keyword', keyword);

@@ -76,6 +76,7 @@ OrderModel _order(
   double amount,
   String desc, {
   String fulfillmentStatus = '',
+  String refundStatus = 'none',
 }) => OrderModel(
   id: id,
   title: title,
@@ -83,6 +84,7 @@ OrderModel _order(
   kind: kind,
   status: status,
   fulfillmentStatus: fulfillmentStatus,
+  refundStatus: refundStatus,
   businessType: businessType,
   amount: amount,
   desc: desc,

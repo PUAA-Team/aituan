@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { fetchOrderDetail, fetchOrders, fetchStats, runOrderAction } from '../api';
+import { fetchOrderDetail, fetchOrders, fetchStats, refundOrder, runOrderAction } from '../api';
 import type { OpsOrder, OrderDetail, OrderStatusCount } from '../types';
 
 const props = defineProps<{
@@ -28,6 +28,7 @@ const statusOptions = [
   { value: 'completed', label: '已完成' },
   { value: 'abnormal', label: '异常处理中' },
   { value: 'cancelled', label: '已取消' },
+  { value: 'refunded', label: '已退款' },
 ];
 
 watch(() => props.refreshKey, load, { immediate: true });
@@ -65,13 +66,36 @@ async function act(order: OpsOrder | OrderDetail, action: string) {
   }
 }
 
+async function doRefund(order: OpsOrder | OrderDetail) {
+  const reason = window.prompt('请输入退款原因', '平台人工退款');
+  if (reason === null) return;
+  try {
+    selected.value = await refundOrder(order.id, reason.trim() || '平台人工退款');
+    emit('notice', `${order.orderNo} 已退款`);
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function canRefund(order: OpsOrder | OrderDetail) {
+  return order.paymentStatus === 'paid' && (order as OrderDetail).refundableByStaff !== false && order.displayStatus !== 'refunded' && order.refundStatus !== 'succeeded';
+}
+
 function stageText(stage: string, fallback = '') {
   return statusOptions.find((item) => item.value === stage)?.label || fallback || stage;
 }
 
-function canAdvance(order: OpsOrder | OrderDetail) {
+function orderStatusText(order: OpsOrder | OrderDetail) {
+  if (order.displayStatus === 'refunded' || order.refundStatus === 'succeeded') return '已退款';
   const stage = 'currentStage' in order ? order.currentStage || order.fulfillmentStatus : order.deliveryTimeline?.currentStage || order.fulfillmentStatus;
-  return !['completed', 'merchant_rejected', 'abnormal', 'cancelled'].includes(stage);
+  return stageText(stage, 'currentStageText' in order ? order.currentStageText : '');
+}
+
+function canAdvance(order: OpsOrder | OrderDetail) {
+  if (order.displayStatus === 'refunded' || order.refundStatus === 'succeeded') return false;
+  const stage = 'currentStage' in order ? order.currentStage || order.fulfillmentStatus : order.deliveryTimeline?.currentStage || order.fulfillmentStatus;
+  return order.orderKind === 'takeaway' && !['completed', 'merchant_rejected', 'abnormal', 'cancelled', 'refunded'].includes(stage);
 }
 
 function money(value: number | undefined) {
@@ -106,13 +130,14 @@ function timeText(value: string | undefined) {
             <tr v-for="order in orders" :key="order.id">
               <td class="mono">{{ order.orderNo }}<span>{{ order.title }}</span></td>
               <td>{{ order.storeName }}</td>
-              <td><span class="tag">{{ stageText(order.currentStage || order.fulfillmentStatus, order.currentStageText) }}</span></td>
+              <td><span class="tag">{{ orderStatusText(order) }}</span></td>
               <td class="amount">{{ money(order.amount) }}</td>
               <td>{{ timeText(order.createdAt) }}</td>
               <td>
                 <div class="row-actions">
                   <button class="secondary-btn small" @click="open(order)">详情</button>
                   <button v-if="canAdvance(order)" class="primary-btn small" @click="act(order, 'delivery/advance')">推进</button>
+                  <button v-if="canRefund(order)" class="secondary-btn small" @click="doRefund(order)">退款</button>
                   <button class="secondary-btn small" @click="act(order, 'abnormal')">异常</button>
                 </div>
               </td>
@@ -131,17 +156,20 @@ function timeText(value: string | undefined) {
       <div class="info-list">
         <span>{{ selected.storeName }}</span>
         <span>{{ selected.addressSnapshot || '暂无收货地址' }}</span>
-        <span>状态：{{ stageText(selected.deliveryTimeline?.currentStage || selected.fulfillmentStatus) }}</span>
+        <span>状态：{{ orderStatusText(selected) }}</span>
+        <span v-if="selected.refundStatus && selected.refundStatus !== 'none'">退款状态：{{ selected.refundStatus }} {{ money(selected.refundAmount) }}</span>
+        <span v-if="selected.refundReason">退款原因：{{ selected.refundReason }}</span>
       </div>
       <div class="line-list">
         <div v-for="line in selected.items" :key="line.itemId" class="line-row"><span>{{ line.itemName }} ×{{ line.quantity }}</span><b>{{ money(line.totalPrice) }}</b></div>
       </div>
-      <div class="fee-box"><span>商品 {{ money(selected.amount) }}</span><span>配送 {{ money(selected.deliveryFee) }}</span><strong>实付 {{ money(selected.payableAmount) }}</strong></div>
+      <div class="fee-box"><span>商品 {{ money(selected.amount) }}</span><span>配送 {{ money(selected.deliveryFee) }}</span><span v-if="selected.refundAmount">已退款 {{ money(selected.refundAmount) }}</span><strong>实付 {{ money(selected.payableAmount) }}</strong></div>
       <div class="timeline-list">
         <div v-for="node in selected.deliveryTimeline?.nodes || []" :key="node.code" class="timeline-row" :class="{ done: node.reachedAt }"><i></i><span>{{ node.text }}</span><small>{{ timeText(node.reachedAt) }}</small></div>
       </div>
       <div class="row-actions">
         <button v-if="canAdvance(selected)" class="primary-btn small" @click="act(selected, 'delivery/advance')">推进配送</button>
+        <button v-if="canRefund(selected)" class="secondary-btn small" @click="doRefund(selected)">平台退款</button>
         <button class="secondary-btn small" @click="act(selected, 'abnormal')">标记异常</button>
       </div>
     </aside>

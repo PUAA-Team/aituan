@@ -140,6 +140,10 @@ class TradeService {
     if (!PaymentStatus.UNPAID.code().equals(order.paymentStatus())) {
       return getOrderDetail(orderId);
     }
+    if (!DisplayOrderStatus.UNPAID.code().equals(order.displayStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前状态不能支付");
+    }
+    ensureNotRefunded(order);
     tradeRepository.markPaymentSuccess(orderId, request.paymentMode(), order.payableAmount());
     if (TAKEAWAY.equals(order.orderType())) {
       createTakeawayDeliveryAfterPaid(order);
@@ -157,18 +161,57 @@ class TradeService {
     if (!TAKEAWAY.equals(order.orderType())) {
       throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "仅支持取消外卖订单");
     }
-    if (DisplayOrderStatus.CANCELLED.code().equals(order.displayStatus())) {
+    if (isRefunded(order) || DisplayOrderStatus.CANCELLED.code().equals(order.displayStatus())) {
       return getOrderDetail(orderId);
     }
-    if (DisplayOrderStatus.USED.code().equals(order.displayStatus()) || "completed".equals(order.fulfillmentStatus()) || "delivering".equals(order.fulfillmentStatus())) {
+    CurrentUser current = CurrentUserContext.required();
+    String remark = actionRemark(request) == null ? "用户取消订单" : actionRemark(request);
+    if (PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      if (!"merchant_pending".equals(order.fulfillmentStatus())) {
+        throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "商家接单后需联系商家或平台处理退款");
+      }
+      return refundOrder(order, new RefundRequest(remark), "user", current.accountId(), true, "user_refund", "用户申请退款");
+    }
+    if (!PaymentStatus.UNPAID.code().equals(order.paymentStatus())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前状态不能取消");
     }
-    CurrentUser current = CurrentUserContext.required();
     tradeRepository.updateTakeawayFulfillment(orderId, DisplayOrderStatus.CANCELLED.code(), "cancelled", true);
     tradeRepository.cancelDeliveryTask(orderId);
     couponService.releaseByOrder(orderId);
-    writeOrderLogs(order, "cancelled", "user_cancel", "user", current.accountId(), actionRemark(request) == null ? "用户取消订单" : actionRemark(request));
+    restoreOrderStock(orderId);
+    writeOrderLogs(order, "cancelled", "user_cancel", "user", current.accountId(), remark);
     return getOrderDetail(orderId);
+  }
+
+  @Transactional
+  OrderDetailView refundOrderForUser(long orderId, RefundRequest request) {
+    TradeRepository.OrderRow order = requireOrder(orderId);
+    if (isRefunded(order)) {
+      return getOrderDetail(orderId);
+    }
+    if (!PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "只有已支付订单可以退款");
+    }
+    TradeRepository.VoucherRow voucher = TAKEAWAY.equals(order.orderType()) ? null : tradeRepository.findVoucher(order.id()).orElse(null);
+    if (!canUserRefund(order, voucher)) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, refundHint(order, false, canStaffRefund(order)));
+    }
+    CurrentUser current = CurrentUserContext.required();
+    return refundOrder(order, request, "user", current.accountId(), true, "user_refund", "用户申请退款");
+  }
+
+  @Transactional
+  OrderDetailView refundOrderForStaff(long orderId, RefundRequest request) {
+    TradeRepository.OrderRow order = requireOrderForStaff(orderId);
+    if (isRefunded(order)) {
+      return getOrderDetailForStaff(orderId);
+    }
+    if (!PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "只有已支付订单可以退款");
+    }
+    CurrentUser current = CurrentUserContext.required();
+    String actorType = current.accountType().name().toLowerCase();
+    return refundOrder(order, request, actorType, current.accountId(), false, actorType + "_refund", "商家/平台人工退款");
   }
 
   @Transactional
@@ -318,7 +361,19 @@ class TradeService {
 
   @Transactional
   OrderDetailView rejectTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
-    return moveTakeawayOrder(orderId, "merchant_pending", nextStage("merchant_rejected", "商家已拒单", DisplayOrderStatus.CANCELLED.code(), true, false), "merchant_reject", request);
+    TradeRepository.OrderRow order = requireTakeawayOrderForStaff(orderId);
+    TradeRepository.DeliveryTaskRow task = tradeRepository.findDeliveryTask(orderId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"merchant_pending".equals(task.currentStage())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
+    }
+    CurrentUser current = CurrentUserContext.required();
+    String remark = actionRemark(request) == null ? "商家拒单，系统自动退款" : actionRemark(request);
+    if (PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      return refundOrder(order, new RefundRequest(remark), current.accountType().name().toLowerCase(), current.accountId(), true, "merchant_reject_refund", "商家拒单自动退款");
+    }
+    applyTakeawayStage(order, task, nextStage("merchant_rejected", "商家已拒单", DisplayOrderStatus.CANCELLED.code(), true, false), "merchant_reject", current.accountType().name().toLowerCase(), current.accountId(), remark);
+    return buildOrderDetail(requireOrderById(orderId));
   }
 
   @Transactional
@@ -339,6 +394,7 @@ class TradeService {
   @Transactional
   OrderDetailView markTakeawayAbnormal(long orderId, TakeawayOrderActionRequest request) {
     TradeRepository.OrderRow order = requireTakeawayOrderForStaff(orderId);
+    ensureNotRefunded(order);
     TradeRepository.DeliveryTaskRow task = tradeRepository.findDeliveryTask(orderId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     CurrentUser current = CurrentUserContext.required();
@@ -399,12 +455,13 @@ class TradeService {
     TradeRepository.VoucherRow voucher = tradeRepository.findVoucherByCode(voucherCode)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!"unused".equals(voucher.status())) {
-      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "券码已核销");
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "refunded".equals(voucher.status()) ? "券码已退款失效" : "券码已核销");
     }
     if (voucher.effectiveTo() != null && voucher.effectiveTo().isBefore(LocalDateTime.now())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "券码已过期");
     }
-    requireOrderForStaff(voucher.orderId());
+    TradeRepository.OrderRow order = requireOrderForStaff(voucher.orderId());
+    ensureNotRefunded(order);
     tradeRepository.setOrderUsed(voucher.orderId(), operatorId);
     return buildOrderDetail(requireOrderById(voucher.orderId()));
   }
@@ -429,17 +486,21 @@ class TradeService {
     List<OrderItemView> items = tradeRepository.listOrderItems(order.id()).stream().map(this::toOrderItemView).toList();
     DeliveryTimelineView deliveryTimeline = null;
     VoucherView voucher = null;
+    TradeRepository.VoucherRow voucherRow = null;
     BookingView booking = null;
     if ("takeaway".equals(order.orderType())) {
       deliveryTimeline = buildDeliveryTimeline(order);
     } else {
-      voucher = tradeRepository.findVoucher(order.id())
-          .map(row -> new VoucherView(row.voucherCode(), row.qrPayload(), row.status(), row.effectiveFrom(), row.effectiveTo()))
-          .orElse(null);
+      voucherRow = tradeRepository.findVoucher(order.id()).orElse(null);
+      voucher = voucherRow == null
+          ? null
+          : new VoucherView(voucherRow.voucherCode(), voucherRow.qrPayload(), voucherRow.status(), voucherRow.effectiveFrom(), voucherRow.effectiveTo());
       booking = tradeRepository.findBookingByOrder(order.id())
           .map(row -> toBookingView(order, row))
           .orElse(null);
     }
+    boolean refundableByUser = canUserRefund(order, voucherRow);
+    boolean refundableByStaff = canStaffRefund(order);
     return new OrderDetailView(
         order.id(),
         order.orderNo(),
@@ -466,6 +527,13 @@ class TradeService {
         order.tablewareCount(),
         tablewareText(order.tablewareOption(), order.tablewareCount()),
         order.remark(),
+        order.refundStatus(),
+        order.refundAmount(),
+        order.refundReason(),
+        order.refundedAt(),
+        refundableByUser,
+        refundableByStaff,
+        refundHint(order, refundableByUser, refundableByStaff),
         order.createdAt(),
         order.paidAt(),
         order.completedAt(),
@@ -493,6 +561,7 @@ class TradeService {
 
   private OrderDetailView moveTakeawayOrder(long orderId, String expectedStage, TakeawayStage nextStage, String actionType, TakeawayOrderActionRequest request) {
     TradeRepository.OrderRow order = requireTakeawayOrderForStaff(orderId);
+    ensureNotRefunded(order);
     TradeRepository.DeliveryTaskRow task = tradeRepository.findDeliveryTask(orderId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!expectedStage.equals(task.currentStage())) {
@@ -504,6 +573,7 @@ class TradeService {
   }
 
   private OrderDetailView advanceDeliveryInternal(TradeRepository.OrderRow order, String actionType, String operatorType, Long operatorId, String remark) {
+    ensureNotRefunded(order);
     TradeRepository.DeliveryTaskRow task = tradeRepository.findDeliveryTask(order.id())
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     TakeawayStage next = switch (task.currentStage()) {
@@ -524,6 +594,7 @@ class TradeService {
   }
 
   private void applyTakeawayStage(TradeRepository.OrderRow order, TradeRepository.DeliveryTaskRow task, TakeawayStage nextStage, String actionType, String operatorType, Long operatorId, String remark) {
+    ensureNotRefunded(order);
     LocalDateTime nextTickAt = nextStage.scheduleNext() ? LocalDateTime.now().plusMinutes(DELIVERY_TICK_MINUTES) : null;
     int updated = tradeRepository.updateDeliveryTaskStage(task.id(), task.currentStage(), nextStage.stage(), nextStage.text(), nextTickAt, nextStage.completed());
     if (updated == 0) {
@@ -539,6 +610,98 @@ class TradeService {
   private void writeOrderLogs(TradeRepository.OrderRow order, String toStatus, String actionType, String operatorType, Long operatorId, String remark) {
     tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), toStatus, actionType, operatorType, operatorId, remark);
     tradeRepository.insertAuditLog(operatorType, operatorId, actionType, "order", order.id(), remark == null ? order.orderNo() + " -> " + toStatus : remark);
+  }
+
+  private OrderDetailView refundOrder(
+      TradeRepository.OrderRow order,
+      RefundRequest request,
+      String initiatorType,
+      Long initiatorId,
+      boolean restoreStock,
+      String actionType,
+      String defaultReason) {
+    if (isRefunded(order)) {
+      return buildOrderDetail(requireOrderById(order.id()));
+    }
+    if (!PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "只有已支付订单可以退款");
+    }
+    String reason = request == null || request.reason() == null || request.reason().isBlank()
+        ? defaultReason
+        : request.reason().trim();
+    BigDecimal refundAmount = valueOrZero(order.payableAmount()).setScale(2, RoundingMode.HALF_UP);
+    String refundNo = "RF" + order.id() + System.currentTimeMillis();
+    tradeRepository.insertRefundRecord(
+        order.id(),
+        refundNo,
+        order.userId(),
+        order.storeId(),
+        refundAmount,
+        initiatorType,
+        initiatorId,
+        reason,
+        "MOCK-REFUND-" + refundNo);
+    tradeRepository.markOrderRefunded(order.id(), refundAmount, reason, initiatorType, initiatorId);
+    if (TAKEAWAY.equals(order.orderType())) {
+      tradeRepository.markDeliveryTaskRefunded(order.id());
+    } else {
+      tradeRepository.markVoucherRefunded(order.id());
+      tradeRepository.cancelBookingForRefund(order.id(), reason);
+    }
+    couponService.releaseByOrder(order.id());
+    if (restoreStock) {
+      restoreOrderStock(order.id());
+    }
+    writeOrderLogs(order, "refunded", actionType, initiatorType, initiatorId, reason);
+    return buildOrderDetail(requireOrderById(order.id()));
+  }
+
+  private void restoreOrderStock(long orderId) {
+    for (TradeRepository.OrderItemRow item : tradeRepository.listOrderItems(orderId)) {
+      tradeRepository.increaseSkuStockByItem(item.itemId(), item.quantity());
+    }
+  }
+
+  private boolean isRefunded(TradeRepository.OrderRow order) {
+    return DisplayOrderStatus.REFUNDED.code().equals(order.displayStatus())
+        || PaymentStatus.REFUNDED.code().equals(order.paymentStatus())
+        || "succeeded".equals(order.refundStatus());
+  }
+
+  private void ensureNotRefunded(TradeRepository.OrderRow order) {
+    if (isRefunded(order)) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "订单已退款，不能继续操作");
+    }
+  }
+
+  private boolean canUserRefund(TradeRepository.OrderRow order, TradeRepository.VoucherRow voucher) {
+    if (!PaymentStatus.PAID.code().equals(order.paymentStatus()) || isRefunded(order)) {
+      return false;
+    }
+    if (TAKEAWAY.equals(order.orderType())) {
+      return "merchant_pending".equals(order.fulfillmentStatus());
+    }
+    return voucher != null && "unused".equals(voucher.status());
+  }
+
+  private boolean canStaffRefund(TradeRepository.OrderRow order) {
+    return PaymentStatus.PAID.code().equals(order.paymentStatus()) && !isRefunded(order);
+  }
+
+  private String refundHint(TradeRepository.OrderRow order, boolean refundableByUser, boolean refundableByStaff) {
+    if (isRefunded(order)) {
+      return "订单已退款";
+    }
+    if (!PaymentStatus.PAID.code().equals(order.paymentStatus())) {
+      return null;
+    }
+    if (refundableByUser) {
+      return "当前订单支持自助退款";
+    }
+    if (refundableByStaff) {
+      return "当前阶段需联系商家或平台发起退款";
+    }
+    return null;
   }
 
   private TakeawayStage nextStage(String stage, String text, String displayStatus, boolean completed, boolean scheduleNext) {
@@ -932,6 +1095,7 @@ class TradeService {
         order.displayStatus(),
         order.paymentStatus(),
         order.fulfillmentStatus(),
+        order.refundStatus(),
         row.currentStage() == null ? order.fulfillmentStatus() : row.currentStage(),
         row.currentStageText(),
         order.storeName(),
@@ -952,6 +1116,7 @@ class TradeService {
       case "completed" -> "已完成";
       case "merchant_rejected" -> "商家已拒单";
       case "cancelled" -> "已取消";
+      case "refunded" -> "已退款";
       case "abnormal" -> "异常处理中";
       default -> status;
     };
@@ -964,6 +1129,7 @@ class TradeService {
         row.orderType(),
         row.displayStatus(),
         row.fulfillmentStatus(),
+        row.refundStatus(),
         row.storeName(),
         row.title(),
         row.payableAmount(),
@@ -1227,6 +1393,7 @@ class TradeService {
         voucher.status(),
         voucher.effectiveFrom(),
         voucher.effectiveTo(),
+        order.id(),
         order.orderNo(),
         order.title(),
         order.storeName(),
@@ -1260,7 +1427,9 @@ class TradeService {
         order.title(),
         order.displayStatus(),
         order.paymentStatus(),
-        order.payableAmount());
+        order.refundStatus(),
+        order.payableAmount(),
+        canStaffRefund(order));
   }
 
   private OpsVoucherView toOpsVoucherView(TradeRepository.OpsVoucherRow row) {
@@ -1281,6 +1450,8 @@ class TradeService {
         row.storeBusinessType() != null ? row.storeBusinessType() : order.orderType(),
         order.payableAmount(),
         order.displayStatus(),
+        order.refundStatus(),
+        canStaffRefund(order),
         order.createdAt());
   }
 

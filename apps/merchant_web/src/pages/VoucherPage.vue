@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { fetchVouchers, lookupVoucher, redeemVoucher } from '../api';
+import { fetchVouchers, lookupVoucher, redeemVoucher, refundOrder } from '../api';
 import type { MerchantStore, OpsVoucher, VoucherLookup } from '../types';
 
 const props = defineProps<{
@@ -23,6 +23,7 @@ const statusOptions = [
   { value: '', label: '全部状态' },
   { value: 'unused', label: '未核销' },
   { value: 'used', label: '已核销' },
+  { value: 'refunded', label: '已退款' },
 ];
 
 watch(() => props.refreshKey, load, { immediate: true });
@@ -66,6 +67,23 @@ async function doRedeem(code: string) {
   }
 }
 
+async function doRefund(row: OpsVoucher | VoucherLookup) {
+  const reason = window.prompt('请输入退款原因', '商家券码退款');
+  if (reason === null) return;
+  try {
+    await refundOrder(row.orderId, reason.trim() || '商家券码退款');
+    emit('notice', `订单 ${row.orderNo} 已退款`);
+    lookup.value = null;
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function canRefund(row: OpsVoucher | VoucherLookup) {
+  return row.status === 'unused' && 'orderId' in row;
+}
+
 function money(value: number | undefined) {
   return `￥${Number(value || 0).toFixed(1)}`;
 }
@@ -75,7 +93,10 @@ function timeText(value: string | undefined) {
 }
 
 function statusLabel(status: string) {
-  return status === 'used' ? '已核销' : status === 'unused' ? '未核销' : status;
+  if (status === 'used') return '已核销';
+  if (status === 'unused') return '未核销';
+  if (status === 'refunded') return '已退款';
+  return status;
 }
 </script>
 
@@ -100,9 +121,14 @@ function statusLabel(status: string) {
         <div class="result-actions">
           <button
             class="primary-btn"
-            :disabled="lookup.status === 'used'"
+            :disabled="lookup.status !== 'unused'"
             @click="doRedeem(lookup.voucherCode)"
-          >{{ lookup.status === 'used' ? '券码已核销' : '确认核销' }}</button>
+          >{{ lookup.status === 'used' ? '券码已核销' : lookup.status === 'refunded' ? '券码已退款' : '确认核销' }}</button>
+          <button
+            v-if="canRefund(lookup)"
+            class="secondary-btn"
+            @click="doRefund(lookup)"
+          >退款</button>
         </div>
       </div>
     </article>
@@ -142,9 +168,14 @@ function statusLabel(status: string) {
             <td>
               <button
                 class="text-btn"
-                :disabled="row.status === 'used'"
+                :disabled="row.status !== 'unused'"
                 @click="doRedeem(row.voucherCode)"
-              >{{ row.status === 'used' ? '已核销' : '核销' }}</button>
+              >{{ row.status === 'used' ? '已核销' : row.status === 'refunded' ? '已退款' : '核销' }}</button>
+              <button
+                v-if="canRefund(row)"
+                class="text-btn"
+                @click="doRefund(row)"
+              >退款</button>
             </td>
           </tr>
           <tr v-if="vouchers.length === 0">

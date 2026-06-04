@@ -81,6 +81,11 @@ class TradeController {
     return ApiResponse.ok(tradeService.cancelTakeawayOrder(orderId, request));
   }
 
+  @PostMapping("/orders/{orderId}/refund")
+  ApiResponse<OrderDetailView> refund(@PathVariable long orderId, @RequestBody(required = false) RefundRequest request) {
+    return ApiResponse.ok(tradeService.refundOrderForUser(orderId, request));
+  }
+
   @PostMapping("/orders/{orderId}/remind")
   ApiResponse<OrderDetailView> remind(@PathVariable long orderId, @RequestBody(required = false) TakeawayOrderActionRequest request) {
     return ApiResponse.ok(tradeService.remindTakeawayOrder(orderId, request));

@@ -201,6 +201,7 @@ class _OrderCard extends StatelessWidget {
     OrderStatus.unused => '待核销 ›',
     OrderStatus.used => '去评价 ›',
     OrderStatus.cancelled => '已关闭 ›',
+    OrderStatus.refunded => '已退款 ›',
   };
 }
 

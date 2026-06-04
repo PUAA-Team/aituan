@@ -177,7 +177,7 @@ class AppRouter {
         BookingDetailPage(args: _bookingArgs(settings.arguments)),
         settings,
       ),
-      _ => _page(const SplashPage(), settings),
+      _ => _page(const MainShell(), settings),
     };
   }
 

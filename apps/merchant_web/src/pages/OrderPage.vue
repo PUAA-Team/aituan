@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { fetchOrderDetail, fetchOrders, fetchStats, runOrderAction } from '../api';
+import { fetchOrderDetail, fetchOrders, fetchStats, refundOrder, runOrderAction } from '../api';
 import type { MerchantStore, OpsOrder, OrderDetail, OrderStatusCount } from '../types';
 
 const props = defineProps<{
@@ -30,6 +30,7 @@ const takeawayStatusOptions = [
   { value: 'delivered', label: '已送达' },
   { value: 'completed', label: '已完成' },
   { value: 'cancelled', label: '已取消' },
+  { value: 'refunded', label: '已退款' },
   { value: 'abnormal', label: '异常' },
 ];
 
@@ -39,6 +40,7 @@ const serviceStatusOptions = [
   { value: 'voucher_unused', label: '待核销' },
   { value: 'voucher_used', label: '已核销' },
   { value: 'cancelled', label: '已取消' },
+  { value: 'refunded', label: '已退款' },
 ];
 
 const statusOptions = computed(() => (isTakeaway.value ? takeawayStatusOptions : serviceStatusOptions));
@@ -91,7 +93,27 @@ async function act(order: OpsOrder, action: string, label: string) {
   }
 }
 
+async function doRefund(order: OpsOrder | OrderDetail) {
+  const reason = window.prompt('请输入退款原因', '商家人工退款');
+  if (reason === null) return;
+  try {
+    loading.value = true;
+    selectedOrder.value = await refundOrder(order.id, reason.trim() || '商家人工退款');
+    emit('notice', `${order.orderNo} 已退款`);
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  } finally {
+    loading.value = false;
+  }
+}
+
+function canRefund(order: OpsOrder | OrderDetail) {
+  return order.paymentStatus === 'paid' && (order as OrderDetail).refundableByStaff !== false && order.displayStatus !== 'refunded' && order.refundStatus !== 'succeeded';
+}
+
 function actionsFor(order: OpsOrder) {
+  if (order.displayStatus === 'refunded' || order.refundStatus === 'succeeded') return [];
   if (!isTakeaway.value || order.orderKind !== 'takeaway') return [];
   switch (order.currentStage || order.fulfillmentStatus) {
     case 'merchant_pending':
@@ -114,6 +136,7 @@ function actionsFor(order: OpsOrder) {
 }
 
 function statusText(order: OpsOrder) {
+  if (order.displayStatus === 'refunded' || order.refundStatus === 'succeeded') return '已退款';
   const value = order.currentStage || order.fulfillmentStatus;
   const option = statusOptions.value.find((item) => item.value === value);
   return option?.label || order.currentStageText || value;
@@ -187,6 +210,7 @@ function timeText(value: string | undefined) {
                   >
                     {{ item.text }}
                   </button>
+                  <button v-if="canRefund(order)" class="secondary-btn small" :disabled="loading" @click="doRefund(order)">退款</button>
                 </div>
               </td>
             </tr>
@@ -210,6 +234,8 @@ function timeText(value: string | undefined) {
         <span>{{ isTakeaway ? '收货地址' : '使用信息' }}：{{ selectedOrder.addressSnapshot || '暂无' }}</span>
         <span>备注：{{ selectedOrder.remark || '无' }}</span>
         <span>支付状态：{{ selectedOrder.paymentStatus }}</span>
+        <span v-if="selectedOrder.refundStatus && selectedOrder.refundStatus !== 'none'">退款状态：{{ selectedOrder.refundStatus }} {{ money(selectedOrder.refundAmount) }}</span>
+        <span v-if="selectedOrder.refundReason">退款原因：{{ selectedOrder.refundReason }}</span>
       </div>
       <div class="line-list">
         <div v-for="line in selectedOrder.items" :key="line.itemId" class="line-row">
@@ -220,7 +246,11 @@ function timeText(value: string | undefined) {
       <div class="fee-box">
         <span>{{ isTakeaway ? '商品金额' : '订单金额' }} {{ money(selectedOrder.amount) }}</span>
         <span v-if="isTakeaway">配送费 {{ money(selectedOrder.deliveryFee) }}</span>
+        <span v-if="selectedOrder.refundAmount">已退款 {{ money(selectedOrder.refundAmount) }}</span>
         <strong>实付 {{ money(selectedOrder.payableAmount) }}</strong>
+      </div>
+      <div class="row-actions">
+        <button v-if="canRefund(selectedOrder)" class="secondary-btn small" :disabled="loading" @click="doRefund(selectedOrder)">商家退款</button>
       </div>
       <div v-if="isTakeaway" class="timeline-list">
         <div

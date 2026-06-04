@@ -70,7 +70,7 @@ String orderKindApiCode(OrderKind kind) {
   };
 }
 
-enum OrderStatus { unpaid, pending, unused, used, cancelled }
+enum OrderStatus { unpaid, pending, unused, used, cancelled, refunded }
 
 OrderStatus orderStatusFromApi(String? code) {
   return switch ((code ?? '').toLowerCase()) {
@@ -79,6 +79,7 @@ OrderStatus orderStatusFromApi(String? code) {
     'unused' => OrderStatus.unused,
     'used' => OrderStatus.used,
     'cancelled' => OrderStatus.cancelled,
+    'refunded' => OrderStatus.refunded,
     _ => OrderStatus.unpaid,
   };
 }
@@ -90,6 +91,7 @@ String orderStatusApiCode(OrderStatus status) {
     OrderStatus.unused => 'unused',
     OrderStatus.used => 'used',
     OrderStatus.cancelled => 'cancelled',
+    OrderStatus.refunded => 'refunded',
   };
 }
 
@@ -101,6 +103,7 @@ extension OrderStatusText on OrderStatus {
       OrderStatus.unused => '未使用',
       OrderStatus.used => '已使用',
       OrderStatus.cancelled => '已取消',
+      OrderStatus.refunded => '已退款',
     };
   }
 
@@ -111,6 +114,7 @@ extension OrderStatusText on OrderStatus {
         OrderStatus.pending => '配送中',
         OrderStatus.unused || OrderStatus.used => '已完成',
         OrderStatus.cancelled => '已取消',
+        OrderStatus.refunded => '已退款',
       };
     }
     return switch (this) {
@@ -119,6 +123,7 @@ extension OrderStatusText on OrderStatus {
       OrderStatus.unused => '待使用',
       OrderStatus.used => '已使用',
       OrderStatus.cancelled => '已取消',
+      OrderStatus.refunded => '已退款',
     };
   }
 }

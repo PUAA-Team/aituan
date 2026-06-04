@@ -4,6 +4,7 @@ public enum PaymentStatus {
   UNPAID("unpaid"),
   PAYING("paying"),
   PAID("paid"),
+  REFUNDED("refunded"),
   FAILED("failed"),
   TIMEOUT("timeout");
 

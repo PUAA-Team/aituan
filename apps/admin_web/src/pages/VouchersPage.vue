@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { adminRedeemVoucher, fetchVouchers } from '../api';
+import { adminRedeemVoucher, fetchVouchers, refundOrder } from '../api';
 import type { OpsVoucher } from '../types';
 
 const props = defineProps<{
@@ -20,6 +20,7 @@ const statusOptions = [
   { value: '', label: '全部状态' },
   { value: 'unused', label: '未核销' },
   { value: 'used', label: '已核销' },
+  { value: 'refunded', label: '已退款' },
 ];
 
 watch(() => props.refreshKey, load, { immediate: true });
@@ -40,7 +41,7 @@ async function load() {
 }
 
 async function forceRedeem(row: OpsVoucher) {
-  if (row.status === 'used') return;
+  if (row.status !== 'unused') return;
   try {
     await adminRedeemVoucher(row.voucherCode);
     emit('notice', `券码 ${row.voucherCode} 已平台代为核销`);
@@ -48,6 +49,22 @@ async function forceRedeem(row: OpsVoucher) {
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   }
+}
+
+async function doRefund(row: OpsVoucher) {
+  const reason = window.prompt('请输入退款原因', '平台券码退款');
+  if (reason === null) return;
+  try {
+    await refundOrder(row.orderId, reason.trim() || '平台券码退款');
+    emit('notice', `订单 ${row.orderNo} 已退款`);
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function canRefund(row: OpsVoucher) {
+  return row.status === 'unused' && row.refundableByStaff !== false;
 }
 
 function money(value: number | undefined) {
@@ -59,7 +76,10 @@ function timeText(value: string | undefined) {
 }
 
 function statusLabel(status: string) {
-  return status === 'used' ? '已核销' : status === 'unused' ? '未核销' : status;
+  if (status === 'used') return '已核销';
+  if (status === 'unused') return '未核销';
+  if (status === 'refunded') return '已退款';
+  return status;
 }
 
 function businessLabel(code: string) {
@@ -119,9 +139,14 @@ function businessLabel(code: string) {
             <td>
               <button
                 class="text-btn"
-                :disabled="row.status === 'used'"
+                :disabled="row.status !== 'unused'"
                 @click="forceRedeem(row)"
-              >{{ row.status === 'used' ? '已核销' : '平台核销' }}</button>
+              >{{ row.status === 'used' ? '已核销' : row.status === 'refunded' ? '已退款' : '平台核销' }}</button>
+              <button
+                v-if="canRefund(row)"
+                class="text-btn"
+                @click="doRefund(row)"
+              >平台退款</button>
             </td>
           </tr>
           <tr v-if="vouchers.length === 0">

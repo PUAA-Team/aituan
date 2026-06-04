@@ -164,6 +164,7 @@ export interface OpsOrder {
   displayStatus: string;
   paymentStatus: string;
   fulfillmentStatus: string;
+  refundStatus: string;
   currentStage: string;
   currentStageText: string;
   storeName: string;
@@ -207,6 +208,13 @@ export interface OrderDetail {
   createdAt: string;
   paidAt?: string;
   completedAt?: string;
+  refundStatus?: string;
+  refundAmount?: number;
+  refundReason?: string;
+  refundedAt?: string;
+  refundableByUser?: boolean;
+  refundableByStaff?: boolean;
+  refundHint?: string;
   items: OrderLineItem[];
   deliveryTimeline?: {
     currentStage: string;
@@ -301,6 +309,8 @@ export interface OpsVoucher {
   businessType: string;
   payableAmount: number;
   displayStatus: string;
+  refundStatus?: string;
+  refundableByStaff?: boolean;
   orderCreatedAt?: string;
 }
 
@@ -310,6 +320,7 @@ export interface VoucherLookup {
   status: string;
   effectiveFrom?: string;
   effectiveTo?: string;
+  orderId: number;
   orderNo: string;
   orderTitle: string;
   storeName: string;
@@ -339,5 +350,7 @@ export interface OpsBooking {
   orderTitle: string;
   displayStatus: string;
   paymentStatus: string;
+  refundStatus?: string;
   payableAmount: number;
+  refundableByStaff?: boolean;
 }
