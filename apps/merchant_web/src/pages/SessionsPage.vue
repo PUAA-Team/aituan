@@ -2,16 +2,23 @@
 import { onMounted, ref, watch } from 'vue';
 import {
   closeMerchantSession,
+  createAutoReplyRule,
+  deleteAutoReplyRule,
+  fetchAutoReplyRules,
   fetchMerchantSessionDetail,
   fetchMerchantSessions,
   fetchSessionTemplates,
   requestPlatformIntervention,
   sendMerchantMessage,
+  updateAutoReplyRule,
 } from '../api';
-import type { SupportMessageView, SupportSessionView } from '../types';
+import type { SupportAutoReplyRuleView, SupportMessageView, SupportSessionView } from '../types';
 
 const props = defineProps<{ refreshKey: number }>();
-const emit = defineEmits<{ notice: [message: string] }>();
+const emit = defineEmits<{
+  notice: [message: string];
+  openComplaints: [filters: { orderNo?: string; storeName?: string }];
+}>();
 
 const loading = ref(false);
 const filter = ref<'all' | 'open' | 'closed'>('all');
@@ -22,11 +29,9 @@ const draft = ref('');
 const sending = ref(false);
 const intervening = ref(false);
 const templates = ref<string[]>([]);
-const autoReplyRules = [
-  { keyword: '配送 / 多久 / 催 / 慢', reply: '自动回复催单与时效说明' },
-  { keyword: '退款 / 退单 / 取消', reply: '自动提示补充订单状态' },
-  { keyword: '发票 / 票据', reply: '自动提示补充抬头和联系方式' },
-];
+const autoReplyRules = ref<SupportAutoReplyRuleView[]>([]);
+const ruleForm = ref({ id: 0, keywords: '', replyContent: '', enabled: true });
+const savingRule = ref(false);
 
 const filterOptions: Array<{ value: typeof filter.value; label: string }> = [
   { value: 'all', label: '全部' },
@@ -35,7 +40,7 @@ const filterOptions: Array<{ value: typeof filter.value; label: string }> = [
 ];
 
 onMounted(async () => {
-  await Promise.all([load(), loadTemplates()]);
+  await Promise.all([load(), loadTemplates(), loadAutoReplyRules()]);
 });
 watch(() => props.refreshKey, load);
 watch(filter, load);
@@ -66,6 +71,14 @@ async function load() {
 async function loadTemplates() {
   try {
     templates.value = await fetchSessionTemplates();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function loadAutoReplyRules() {
+  try {
+    autoReplyRules.value = await fetchAutoReplyRules();
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   }
@@ -129,19 +142,64 @@ async function requestIntervention() {
 }
 
 function openComplaintEntry() {
-  const query = new URLSearchParams({ page: 'complaints' });
-  if (activeSession.value?.relatedOrderNo) {
-    query.set('orderNo', activeSession.value.relatedOrderNo);
-  }
-  if (activeSession.value?.storeName) {
-    query.set('storeName', activeSession.value.storeName);
-  }
-  const url = `${window.location.protocol}//${window.location.hostname}:5174/?${query}`;
-  window.open(url, '_blank');
+  emit('openComplaints', {
+    orderNo: activeSession.value?.relatedOrderNo,
+    storeName: activeSession.value?.storeName,
+  });
 }
 
 function useTemplate(text: string) {
   draft.value = draft.value ? `${draft.value} ${text}` : text;
+}
+
+function editRule(rule: SupportAutoReplyRuleView) {
+  ruleForm.value = {
+    id: rule.id,
+    keywords: rule.keywords,
+    replyContent: rule.replyContent,
+    enabled: rule.enabled,
+  };
+}
+
+function resetRuleForm() {
+  ruleForm.value = { id: 0, keywords: '', replyContent: '', enabled: true };
+}
+
+async function saveRule() {
+  const keywords = ruleForm.value.keywords.trim();
+  const replyContent = ruleForm.value.replyContent.trim();
+  if (!keywords || !replyContent) {
+    emit('notice', '请填写触发关键词和回复内容');
+    return;
+  }
+  try {
+    savingRule.value = true;
+    const payload = { keywords, replyContent, enabled: ruleForm.value.enabled };
+    if (ruleForm.value.id > 0) {
+      await updateAutoReplyRule(ruleForm.value.id, payload);
+      emit('notice', '自动回复规则已更新');
+    } else {
+      await createAutoReplyRule(payload);
+      emit('notice', '自动回复规则已新增');
+    }
+    resetRuleForm();
+    await loadAutoReplyRules();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  } finally {
+    savingRule.value = false;
+  }
+}
+
+async function removeRule(rule: SupportAutoReplyRuleView) {
+  if (!confirm(`删除规则「${rule.keywords}」？`)) return;
+  try {
+    await deleteAutoReplyRule(rule.id);
+    await loadAutoReplyRules();
+    emit('notice', '自动回复规则已删除');
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
 }
 
 function timeText(value: string | undefined) {
@@ -233,10 +291,28 @@ function timeText(value: string | undefined) {
           >{{ t }}</button>
         </div>
         <div class="auto-rules">
-          <span class="tip">关键词自动回复</span>
-          <span v-for="rule in autoReplyRules" :key="rule.keyword" class="rule-chip">
-            {{ rule.keyword }}：{{ rule.reply }}
-          </span>
+          <div class="rule-head">
+            <span class="tip">关键词自动回复</span>
+            <button type="button" class="secondary-btn small" @click="resetRuleForm">新建规则</button>
+          </div>
+          <form class="rule-form" @submit.prevent="saveRule">
+            <input v-model="ruleForm.keywords" placeholder="关键词，用逗号分隔，例如：停车,排队" />
+            <input v-model="ruleForm.replyContent" placeholder="自动回复内容" />
+            <label class="check-line">
+              <input v-model="ruleForm.enabled" type="checkbox" />
+              启用
+            </label>
+            <button class="primary-btn small" :disabled="savingRule">{{ savingRule ? '保存中' : '保存规则' }}</button>
+          </form>
+          <div class="rule-list">
+            <div v-for="rule in autoReplyRules" :key="rule.id" class="rule-row">
+              <span>{{ rule.keywords }}：{{ rule.replyContent }}</span>
+              <small>{{ rule.enabled ? '启用' : '停用' }}</small>
+              <button type="button" class="secondary-btn small" @click="editRule(rule)">编辑</button>
+              <button type="button" class="secondary-btn small" @click="removeRule(rule)">删除</button>
+            </div>
+            <div v-if="autoReplyRules.length === 0" class="empty-card">暂无自动回复规则</div>
+          </div>
         </div>
         <form class="composer" @submit.prevent="send">
           <textarea
@@ -380,21 +456,60 @@ function timeText(value: string | undefined) {
 }
 .auto-rules {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
 }
 .auto-rules .tip {
   color: #86909c;
   font-size: 12px;
 }
-.rule-chip {
-  padding: 4px 8px;
-  border: 1px solid #d9dee7;
-  border-radius: 12px;
-  background: #f7f8fa;
+.rule-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.rule-form {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1.2fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.rule-form input:not([type]),
+.rule-form input[type='text'] {
+  height: 34px;
+}
+.check-line {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  white-space: nowrap;
   color: #4e5969;
-  font-size: 12px;
+  font-size: 13px;
+}
+.rule-list {
+  display: grid;
+  gap: 6px;
+}
+.rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #d9dee7;
+  border-radius: 6px;
+  background: #fff;
+}
+.rule-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rule-row small {
+  color: #86909c;
 }
 .templates .tip {
   color: #86909c;
@@ -408,6 +523,15 @@ function timeText(value: string | undefined) {
   font-size: 12px;
   height: 24px;
   min-height: 24px;
+}
+@media (max-width: 900px) {
+  .rule-form,
+  .rule-row {
+    grid-template-columns: 1fr;
+  }
+  .rule-row span {
+    white-space: normal;
+  }
 }
 .composer {
   display: grid;

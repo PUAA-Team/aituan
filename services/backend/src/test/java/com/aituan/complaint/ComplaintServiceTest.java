@@ -90,4 +90,34 @@ class ComplaintServiceTest {
           assertThat(ticket.storeName()).isEqualTo("光影剧场");
         });
   }
+
+  @Test
+  void merchantCanListOnlyOwnComplaintTickets() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    ComplaintView submitted = complaintService.submit(new ComplaintCreateRequest(
+        9011L,
+        "service",
+        "商家端投诉列表测试",
+        "用户反馈希望商家能在自己的工单页看到",
+        java.util.List.of()));
+
+    TestAuthSupport.loginAsMerchant(2L);
+    var page = complaintService.merchantTickets(null, null, null, 1, 20);
+
+    assertThat(page.list()).anySatisfy(ticket -> {
+      assertThat(ticket.id()).isEqualTo(submitted.id());
+      assertThat(ticket.storeName()).isEqualTo("塔斯汀中国汉堡");
+    });
+    assertThat(page.list()).allSatisfy(ticket -> assertThat(ticket.merchantId()).isEqualTo(1L));
+  }
+
+  @Test
+  void merchantCannotOpenOtherMerchantComplaintTicket() {
+    TestAuthSupport.loginAsMerchant(30L);
+
+    assertThatThrownBy(() -> complaintService.merchantTicketDetail(1L))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.NOT_FOUND));
+  }
 }

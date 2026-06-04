@@ -243,6 +243,72 @@ class SupportRepository {
         String.class);
   }
 
+  List<AutoReplyRuleRow> listAutoReplyRules(long merchantId) {
+    return jdbcTemplate.query(
+        """
+        select id, merchant_id, keywords, reply_content, enabled, created_at, updated_at
+        from merchant_support_auto_reply_rule
+        where merchant_id = ? and is_deleted = 0
+        order by id desc
+        """,
+        this::mapAutoReplyRule,
+        merchantId);
+  }
+
+  List<AutoReplyRuleRow> listEnabledAutoReplyRules(long merchantId) {
+    return jdbcTemplate.query(
+        """
+        select id, merchant_id, keywords, reply_content, enabled, created_at, updated_at
+        from merchant_support_auto_reply_rule
+        where merchant_id = ? and enabled = 1 and is_deleted = 0
+        order by id desc
+        """,
+        this::mapAutoReplyRule,
+        merchantId);
+  }
+
+  Optional<AutoReplyRuleRow> findAutoReplyRule(long id) {
+    List<AutoReplyRuleRow> rows = jdbcTemplate.query(
+        """
+        select id, merchant_id, keywords, reply_content, enabled, created_at, updated_at
+        from merchant_support_auto_reply_rule
+        where id = ? and is_deleted = 0
+        limit 1
+        """,
+        this::mapAutoReplyRule,
+        id);
+    return rows.stream().findFirst();
+  }
+
+  Long insertAutoReplyRule(long merchantId, String keywords, String replyContent, boolean enabled) {
+    jdbcTemplate.update(
+        """
+        insert into merchant_support_auto_reply_rule(merchant_id, keywords, reply_content, enabled)
+        values (?, ?, ?, ?)
+        """,
+        merchantId, keywords, replyContent, enabled ? 1 : 0);
+    return jdbcTemplate.queryForObject(
+        "select max(id) from merchant_support_auto_reply_rule where merchant_id = ?",
+        Long.class,
+        merchantId);
+  }
+
+  void updateAutoReplyRule(long id, String keywords, String replyContent, boolean enabled) {
+    jdbcTemplate.update(
+        """
+        update merchant_support_auto_reply_rule
+        set keywords = ?, reply_content = ?, enabled = ?, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        keywords, replyContent, enabled ? 1 : 0, id);
+  }
+
+  void deleteAutoReplyRule(long id) {
+    jdbcTemplate.update(
+        "update merchant_support_auto_reply_rule set is_deleted = 1, updated_at = current_timestamp where id = ?",
+        id);
+  }
+
   void insertSysAuditLog(String actorType, long actorId, String actionType, String targetType, long targetId, String detail) {
     jdbcTemplate.update(
         """
@@ -291,6 +357,17 @@ class SupportRepository {
         t == null ? null : t.toLocalDateTime());
   }
 
+  private AutoReplyRuleRow mapAutoReplyRule(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp createdAt = rs.getTimestamp("created_at");
+    Timestamp updatedAt = rs.getTimestamp("updated_at");
+    return new AutoReplyRuleRow(
+        rs.getLong("id"), rs.getLong("merchant_id"),
+        rs.getString("keywords"), rs.getString("reply_content"),
+        rs.getBoolean("enabled"),
+        createdAt == null ? null : createdAt.toLocalDateTime(),
+        updatedAt == null ? null : updatedAt.toLocalDateTime());
+  }
+
   record SessionRow(Long id, String sessionNo, Long userId, Long storeId, Long merchantId,
                     String topic, String status,
                     Long relatedOrderId, String relatedOrderNo,
@@ -303,4 +380,7 @@ class SupportRepository {
 
   record MessageRow(Long id, Long sessionId, String senderType, Long senderId,
                     String content, String messageKind, LocalDateTime createdAt) {}
+
+  record AutoReplyRuleRow(Long id, Long merchantId, String keywords, String replyContent,
+                          boolean enabled, LocalDateTime createdAt, LocalDateTime updatedAt) {}
 }

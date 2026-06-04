@@ -242,7 +242,18 @@ class _MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUser = message.isUser;
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
-    final bgColor = isUser ? Colors.blue.shade50 : Colors.grey.shade200;
+    final bgColor = isUser
+        ? Colors.blue.shade50
+        : message.isPlatform
+        ? Colors.orange.shade50
+        : Colors.grey.shade200;
+    final label = isUser
+        ? '我'
+        : message.isPlatform
+        ? '平台客服'
+        : message.isMerchant
+        ? '商家客服'
+        : '系统消息';
     return Align(
       alignment: align,
       child: Container(
@@ -253,7 +264,21 @@ class _MessageBubble extends StatelessWidget {
           color: bgColor,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Text(message.content),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isUser ? Colors.blueGrey : Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(message.content),
+          ],
+        ),
       ),
     );
   }

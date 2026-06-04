@@ -5,6 +5,8 @@ import type {
   CatalogItem,
   CatalogItemForm,
   CertificationMaterial,
+  ComplaintDetailView,
+  ComplaintView,
   DeliveryRule,
   MerchantApplicationForm,
   MerchantApplicationView,
@@ -19,6 +21,7 @@ import type {
   OrderStatusCount,
   PageResponse,
   ReviewView,
+  SupportAutoReplyRuleView,
   SupportMessageView,
   SupportSessionDetailView,
   SupportSessionView,
@@ -333,6 +336,46 @@ export function requestPlatformIntervention(sessionId: number) {
 
 export function fetchSessionTemplates() {
   return request<string[]>('/api/merchant/ops/sessions/templates');
+}
+
+export function fetchAutoReplyRules() {
+  return request<SupportAutoReplyRuleView[]>('/api/merchant/ops/sessions/auto-reply-rules');
+}
+
+export function createAutoReplyRule(payload: { keywords: string; replyContent: string; enabled: boolean }) {
+  return request<SupportAutoReplyRuleView>('/api/merchant/ops/sessions/auto-reply-rules', {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function updateAutoReplyRule(ruleId: number, payload: { keywords: string; replyContent: string; enabled: boolean }) {
+  return request<SupportAutoReplyRuleView>(`/api/merchant/ops/sessions/auto-reply-rules/${ruleId}`, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+export function deleteAutoReplyRule(ruleId: number) {
+  return request<void>(`/api/merchant/ops/sessions/auto-reply-rules/${ruleId}/delete`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
+export function fetchMerchantComplaints(params: { status?: string; orderNo?: string; storeName?: string; page?: number; pageSize?: number } = {}) {
+  const query = new URLSearchParams({
+    page: String(params.page || 1),
+    pageSize: String(params.pageSize || 20),
+  });
+  if (params.status) query.set('status', params.status);
+  if (params.orderNo) query.set('orderNo', params.orderNo);
+  if (params.storeName) query.set('storeName', params.storeName);
+  return request<PageResponse<ComplaintView>>(`/api/merchant/ops/complaints?${query}`);
+}
+
+export function fetchMerchantComplaintDetail(id: number) {
+  return request<ComplaintDetailView>(`/api/merchant/ops/complaints/${id}`);
 }
 
 // ============ 经营概览（成员E） ============

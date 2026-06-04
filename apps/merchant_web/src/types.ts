@@ -7,7 +7,8 @@ export type ConsolePage =
   | 'bookings'
   | 'store'
   | 'reviews'
-  | 'sessions';
+  | 'sessions'
+  | 'complaints';
 
 export interface ReviewView {
   id: number;
@@ -65,6 +66,50 @@ export interface SupportMessageView {
 export interface SupportSessionDetailView {
   session: SupportSessionView;
   messages: SupportMessageView[];
+}
+
+export interface SupportAutoReplyRuleView {
+  id: number;
+  merchantId: number;
+  keywords: string;
+  replyContent: string;
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ComplaintView {
+  id: number;
+  ticketNo: string;
+  orderId?: number;
+  orderNo?: string;
+  storeId?: number;
+  storeName?: string;
+  merchantId?: number;
+  category: string;
+  title: string;
+  detail: string;
+  evidenceUrls?: string[];
+  status: string;
+  userMaskedNickname?: string;
+  acceptedBy?: number;
+  acceptedAt?: string;
+  resolvedBy?: number;
+  resolvedAt?: string;
+  closedAt?: string;
+  createdAt: string;
+}
+
+export interface ComplaintDetailView {
+  complaint: ComplaintView;
+  logs: Array<{
+    id: number;
+    action: string;
+    operatorType: string;
+    operatorId?: number;
+    remark?: string;
+    createdAt: string;
+  }>;
 }
 
 export interface MerchantDashboardView {

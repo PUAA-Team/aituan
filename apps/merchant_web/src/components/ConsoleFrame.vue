@@ -42,6 +42,11 @@ const navItems = computed<Array<{ key: ConsolePage; label: string; desc: string 
       desc: '用户咨询、快捷回复模板',
     },
     {
+      key: 'complaints',
+      label: '投诉工单',
+      desc: '查看用户投诉与平台处理记录',
+    },
+    {
       key: 'catalog',
       label: isTakeaway.value ? '商品管理' : '服务与套餐',
       desc: isTakeaway.value ? '新增、编辑、上下架' : '套餐、服务项、上下架',

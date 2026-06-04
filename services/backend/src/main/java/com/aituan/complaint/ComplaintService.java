@@ -114,6 +114,30 @@ class ComplaintService {
     return advance(id, "close", request, null, "closed", "complaint_close", "关闭工单");
   }
 
+  // ============ 商家端 ============
+
+  PageResponse<ComplaintView> merchantTickets(
+      String statusFilter, String orderNoFilter, String storeNameFilter, int page, int pageSize) {
+    long merchantId = currentMerchantId();
+    String s = normalizeStatus(statusFilter);
+    String orderNo = normalizeOptional(orderNoFilter);
+    String storeName = normalizeOptional(storeNameFilter);
+    long total = complaintRepository.countMerchantTickets(merchantId, s, orderNo, storeName);
+    List<ComplaintView> list = complaintRepository.listMerchantTickets(
+            merchantId, s, orderNo, storeName, (page - 1) * pageSize, pageSize)
+        .stream().map(row -> toView(row, true)).toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  ComplaintDetailView merchantTicketDetail(long id) {
+    long merchantId = currentMerchantId();
+    ComplaintRepository.TicketRow row = complaintRepository.findById(id)
+        .filter(r -> r.merchantId() != null && r.merchantId() == merchantId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    List<ComplaintLogView> logs = complaintRepository.listLogs(id).stream().map(this::toLogView).toList();
+    return new ComplaintDetailView(toView(row, true), logs);
+  }
+
   private ComplaintView advance(long id, String action, ComplaintActionRequest request,
                                 String expectedFrom, String toStatus,
                                 String auditAction, String auditDetailPrefix) {
@@ -145,7 +169,7 @@ class ComplaintService {
   private ComplaintView toView(ComplaintRepository.TicketRow row, boolean adminScope) {
     return new ComplaintView(
         row.id(), row.ticketNo(), row.orderId(), row.orderNo(),
-        row.storeId(), row.storeName(),
+        row.storeId(), row.storeName(), row.merchantId(),
         row.category(), row.title(), row.detail(),
         splitList(row.evidenceUrls()),
         row.status(),
@@ -171,6 +195,18 @@ class ComplaintService {
     CurrentUser c = CurrentUserContext.required();
     if (c.accountType() != AccountType.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
     return c;
+  }
+
+  private CurrentUser requireMerchant() {
+    CurrentUser c = CurrentUserContext.required();
+    if (c.accountType() != AccountType.MERCHANT) throw new BusinessException(ErrorCode.FORBIDDEN);
+    return c;
+  }
+
+  private long currentMerchantId() {
+    long accountId = requireMerchant().accountId();
+    return complaintRepository.findMerchantIdByAccount(accountId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "商家资料不存在"));
   }
 
   // ============ 字符串工具 ============

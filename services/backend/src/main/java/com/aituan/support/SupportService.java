@@ -6,6 +6,7 @@ import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -194,6 +195,51 @@ class SupportService {
     return supportRepository.listSupportTemplates();
   }
 
+  List<SupportAutoReplyRuleView> merchantAutoReplyRules() {
+    long merchantId = currentMerchantId();
+    return supportRepository.listAutoReplyRules(merchantId).stream()
+        .map(this::toAutoReplyRuleView)
+        .toList();
+  }
+
+  @Transactional
+  SupportAutoReplyRuleView createMerchantAutoReplyRule(SupportAutoReplyRuleUpsertRequest request) {
+    long merchantId = currentMerchantId();
+    Long id = supportRepository.insertAutoReplyRule(
+        merchantId,
+        cleanRequired(request.keywords(), "触发关键词不能为空"),
+        cleanRequired(request.replyContent(), "回复内容不能为空"),
+        request.enabled() == null || request.enabled());
+    return supportRepository.findAutoReplyRule(id)
+        .map(this::toAutoReplyRuleView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
+  SupportAutoReplyRuleView updateMerchantAutoReplyRule(long ruleId, SupportAutoReplyRuleUpsertRequest request) {
+    long merchantId = currentMerchantId();
+    SupportRepository.AutoReplyRuleRow row = supportRepository.findAutoReplyRule(ruleId)
+        .filter(rule -> rule.merchantId() == merchantId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    supportRepository.updateAutoReplyRule(
+        row.id(),
+        cleanRequired(request.keywords(), "触发关键词不能为空"),
+        cleanRequired(request.replyContent(), "回复内容不能为空"),
+        request.enabled() == null || request.enabled());
+    return supportRepository.findAutoReplyRule(ruleId)
+        .map(this::toAutoReplyRuleView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
+  void deleteMerchantAutoReplyRule(long ruleId) {
+    long merchantId = currentMerchantId();
+    SupportRepository.AutoReplyRuleRow row = supportRepository.findAutoReplyRule(ruleId)
+        .filter(rule -> rule.merchantId() == merchantId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    supportRepository.deleteAutoReplyRule(row.id());
+  }
+
   @Transactional
   SupportSessionView requestPlatformIntervention(long sessionId) {
     CurrentUser current = requireMerchant();
@@ -283,6 +329,12 @@ class SupportService {
         row.createdAt());
   }
 
+  private SupportAutoReplyRuleView toAutoReplyRuleView(SupportRepository.AutoReplyRuleRow row) {
+    return new SupportAutoReplyRuleView(
+        row.id(), row.merchantId(), row.keywords(), row.replyContent(),
+        row.enabled(), row.createdAt(), row.updatedAt());
+  }
+
   private void autoReplyIfMatched(SupportRepository.SessionRow row, String content) {
     String normalized = content == null ? "" : content.trim();
     if (normalized.isEmpty()) return;
@@ -294,12 +346,13 @@ class SupportService {
       senderType = "platform";
       senderId = 0L;
       reply = aiSupportService.reply(normalized);
-    } else if (containsAny(normalized, "配送", "多久", "时间", "催", "慢")) {
-      reply = "您好，系统已收到您的催单/时效问题，商家会尽快确认处理。";
-    } else if (containsAny(normalized, "退款", "退单", "取消")) {
-      reply = "您好，退款/取消问题建议先说明订单情况，商家会结合订单状态回复。";
-    } else if (containsAny(normalized, "发票", "票据")) {
-      reply = "您好，发票或票据问题已记录，请补充抬头和联系方式。";
+    } else {
+      for (SupportRepository.AutoReplyRuleRow rule : supportRepository.listEnabledAutoReplyRules(row.merchantId())) {
+        if (matchesRule(normalized, rule.keywords())) {
+          reply = rule.replyContent();
+          break;
+        }
+      }
     }
     if (reply == null) return;
     Long autoId = supportRepository.insertMessage(row.id(), senderType, senderId, reply, "auto_reply");
@@ -316,6 +369,14 @@ class SupportService {
 
   private boolean shouldTransferToHuman(String content) {
     return containsAny(content == null ? "" : content, "转人工", "人工客服", "找人工", "人工处理");
+  }
+
+  private boolean matchesRule(String content, String keywords) {
+    if (keywords == null || keywords.isBlank()) return false;
+    return Arrays.stream(keywords.split("[,，/、\\s]+"))
+        .map(String::trim)
+        .filter(keyword -> !keyword.isEmpty())
+        .anyMatch(content::contains);
   }
 
   private boolean containsAny(String text, String... keywords) {
@@ -368,5 +429,11 @@ class SupportService {
     if (nickname == null || nickname.isBlank()) return "匿名用户";
     if (nickname.length() <= 2) return nickname.charAt(0) + "*";
     return nickname.charAt(0) + "***" + nickname.charAt(nickname.length() - 1);
+  }
+
+  private String cleanRequired(String value, String message) {
+    String cleaned = value == null ? "" : value.trim();
+    if (cleaned.isEmpty()) throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+    return cleaned;
   }
 }

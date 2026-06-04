@@ -4,6 +4,7 @@ import { clearToken, fetchCurrentStore, fetchMerchantProfile, getToken, login } 
 import ConsoleFrame from './components/ConsoleFrame.vue';
 import BookingPage from './pages/BookingPage.vue';
 import CatalogPage from './pages/CatalogPage.vue';
+import ComplaintsPage from './pages/ComplaintsPage.vue';
 import DashboardPage from './pages/DashboardPage.vue';
 import FulfillmentPage from './pages/FulfillmentPage.vue';
 import LoginPage from './pages/LoginPage.vue';
@@ -21,6 +22,7 @@ const activePage = ref<ConsolePage>('dashboard');
 const refreshKey = ref(0);
 const profile = ref<MerchantProfile | null>(null);
 const store = ref<MerchantStore | null>(null);
+const complaintFilters = ref<{ orderNo?: string; storeName?: string }>({});
 
 const loggedIn = computed(() => token.value.length > 0);
 const isTakeaway = computed(() => store.value?.businessType === 'takeaway');
@@ -35,6 +37,7 @@ const pageTitle = computed(() => {
     store: '门店资料',
     reviews: '评价管理',
     sessions: '客服会话',
+    complaints: '投诉工单',
   };
   return map[activePage.value];
 });
@@ -95,6 +98,11 @@ function logout() {
 function setNotice(message: string) {
   notice.value = message;
 }
+
+function openComplaints(filters: { orderNo?: string; storeName?: string }) {
+  complaintFilters.value = filters;
+  activePage.value = 'complaints';
+}
 </script>
 
 <template>
@@ -115,7 +123,18 @@ function setNotice(message: string) {
     <OrderPage v-if="activePage === 'orders'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <DashboardPage v-else-if="activePage === 'dashboard'" :refresh-key="refreshKey" />
     <ReviewPage v-else-if="activePage === 'reviews'" :refresh-key="refreshKey" @notice="setNotice" />
-    <SessionsPage v-else-if="activePage === 'sessions'" :refresh-key="refreshKey" @notice="setNotice" />
+    <SessionsPage
+      v-else-if="activePage === 'sessions'"
+      :refresh-key="refreshKey"
+      @notice="setNotice"
+      @open-complaints="openComplaints"
+    />
+    <ComplaintsPage
+      v-else-if="activePage === 'complaints'"
+      :refresh-key="refreshKey"
+      :initial-filters="complaintFilters"
+      @notice="setNotice"
+    />
     <CatalogPage v-else-if="activePage === 'catalog'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <FulfillmentPage v-else-if="activePage === 'fulfillment'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />
     <VoucherPage v-else-if="activePage === 'vouchers'" :store="store" :refresh-key="refreshKey" @notice="setNotice" />

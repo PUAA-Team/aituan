@@ -76,12 +76,36 @@ if ! grep -q "关键词自动回复" "$ROOT/apps/merchant_web/src/pages/Sessions
   fail "merchant sessions should show keyword auto reply rules"
 fi
 
+if ! grep -q "auto-reply-rules" "$ROOT/apps/merchant_web/src/api.ts"; then
+  fail "merchant web should expose editable auto reply rules API"
+fi
+
+if ! grep -q "SupportAutoReplyRuleView" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant sessions should render editable auto reply rules"
+fi
+
 if ! grep -q "requestPlatformIntervention" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
   fail "merchant sessions should support platform intervention"
 fi
 
 if ! grep -q "投诉工单" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
   fail "merchant sessions should expose complaint ticket entry"
+fi
+
+if ! grep -q "ComplaintsPage" "$ROOT/apps/merchant_web/src/App.vue"; then
+  fail "merchant web should route to its own complaint ticket page"
+fi
+
+if grep -q "hostname}:5174" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant complaint entry should not open the admin web port"
+fi
+
+if ! grep -q "message.isPlatform" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "user support chat should visually distinguish platform messages"
+fi
+
+if ! grep -q "message.isMerchant" "$ROOT/apps/user_app/lib/features/support/presentation/support_chat_page.dart"; then
+  fail "user support chat should visually distinguish merchant messages"
 fi
 
 if ! grep -q "PlatformSupportPage" "$ROOT/apps/admin_web/src/App.vue"; then
