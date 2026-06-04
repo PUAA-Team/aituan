@@ -99,7 +99,6 @@ class ServiceCategoryPanel extends StatelessWidget {
     groups: groups,
     activeCategory: activeCategory,
     emptyText: '该商家暂未上架服务',
-    headerAction: '到店核销',
     onSelected: onSelected,
     itemBuilder: (_, item) => _ServiceItem(item: item),
   );

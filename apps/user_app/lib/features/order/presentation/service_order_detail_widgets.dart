@@ -51,6 +51,7 @@ class ServiceOrderStatusCard extends StatelessWidget {
     OrderStatus.unused => '待核销',
     OrderStatus.used => '可评价',
     OrderStatus.cancelled => '已取消',
+    OrderStatus.refunded => '已退款',
   };
 }
 
@@ -59,10 +60,12 @@ class ServiceVoucherCard extends StatelessWidget {
     super.key,
     required this.voucher,
     required this.used,
+    this.refunded = false,
   });
 
   final VoucherData? voucher;
   final bool used;
+  final bool refunded;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -96,7 +99,7 @@ class ServiceVoucherCard extends StatelessWidget {
           ),
         ],
         Text(
-          used ? '券码已核销' : '向商家出示二维码或券码号',
+          refunded ? '券码已退款失效' : (used ? '券码已核销' : '向商家出示二维码或券码号'),
           style: const TextStyle(fontSize: 13, color: AppColors.textSub),
         ),
       ],

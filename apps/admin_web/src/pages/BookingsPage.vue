@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { confirmBooking, fetchBookings } from '../api';
+import { confirmBooking, fetchBookings, refundOrder } from '../api';
 import type { OpsBooking } from '../types';
 
 const props = defineProps<{
@@ -20,6 +20,7 @@ const statusOptions = [
   { value: '', label: '全部状态' },
   { value: 'pending', label: '待确认' },
   { value: 'confirmed', label: '已确认' },
+  { value: 'cancelled', label: '已取消' },
 ];
 
 const businessOptions = [
@@ -58,12 +59,31 @@ async function confirm(orderId: number) {
   }
 }
 
+async function doRefund(row: OpsBooking) {
+  const reason = window.prompt('请输入退款原因', '平台预约退款');
+  if (reason === null) return;
+  try {
+    await refundOrder(row.booking.orderId, reason.trim() || '平台预约退款');
+    emit('notice', `订单 ${row.booking.orderNo} 已退款`);
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function canRefund(row: OpsBooking) {
+  return row.paymentStatus === 'paid' && row.refundableByStaff !== false && row.displayStatus !== 'refunded' && row.refundStatus !== 'succeeded';
+}
+
 function money(value: number | undefined) {
   return `￥${Number(value || 0).toFixed(1)}`;
 }
 
 function statusLabel(status: string) {
-  return status === 'confirmed' ? '已确认' : status === 'pending' ? '待确认' : status;
+  if (status === 'confirmed') return '已确认';
+  if (status === 'pending') return '待确认';
+  if (status === 'cancelled') return '已取消';
+  return status;
 }
 
 function businessLabel(code: string) {
@@ -131,9 +151,14 @@ function businessLabel(code: string) {
             <td>
               <button
                 class="text-btn"
-                :disabled="row.booking.storeConfirmStatus === 'confirmed'"
+                :disabled="row.booking.storeConfirmStatus === 'confirmed' || row.booking.storeConfirmStatus === 'cancelled'"
                 @click="confirm(row.booking.orderId)"
-              >{{ row.booking.storeConfirmStatus === 'confirmed' ? '已确认' : '平台代确认' }}</button>
+              >{{ row.booking.storeConfirmStatus === 'confirmed' ? '已确认' : row.booking.storeConfirmStatus === 'cancelled' ? '已取消' : '平台代确认' }}</button>
+              <button
+                v-if="canRefund(row)"
+                class="text-btn"
+                @click="doRefund(row)"
+              >平台退款</button>
             </td>
           </tr>
           <tr v-if="bookings.length === 0">

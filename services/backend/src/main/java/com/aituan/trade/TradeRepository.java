@@ -370,6 +370,28 @@ class TradeRepository {
         quantity);
   }
 
+  void increaseSkuStock(long skuId, int quantity) {
+    jdbcTemplate.update(
+        """
+        update catalog_sku
+        set stock = stock + ?, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        quantity,
+        skuId);
+  }
+
+  void increaseSkuStockByItem(long itemId, int quantity) {
+    jdbcTemplate.update(
+        """
+        update catalog_sku
+        set stock = stock + ?, updated_at = current_timestamp
+        where item_id = ? and sku_name = '默认' and is_deleted = 0
+        """,
+        quantity,
+        itemId);
+  }
+
   List<DeliveryTaskRow> listDueDeliveryTasks() {
     return jdbcTemplate.query(
         """
@@ -438,7 +460,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, package_fee, discount_amount, payable_amount,
-               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, refund_status, refund_amount, refund_reason, refunded_at, refund_initiator_type, refund_initiator_id, paid_at, completed_at, created_at, updated_at
         from order_main
         where id = ? and is_deleted = 0
         limit 1
@@ -456,7 +478,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, package_fee, discount_amount, payable_amount,
-               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, refund_status, refund_amount, refund_reason, refunded_at, refund_initiator_type, refund_initiator_id, paid_at, completed_at, created_at, updated_at
         from order_main
         where user_id = ? and idempotency_key = ? and is_deleted = 0
         limit 1
@@ -473,7 +495,7 @@ class TradeRepository {
           """
           select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                  fulfillment_status, payment_method, amount, delivery_fee, package_fee, discount_amount, payable_amount,
-                 address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, paid_at, completed_at, created_at, updated_at
+                 address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, refund_status, refund_amount, refund_reason, refunded_at, refund_initiator_type, refund_initiator_id, paid_at, completed_at, created_at, updated_at
           from order_main
           where user_id = ? and is_deleted = 0
           order by created_at desc, id desc
@@ -488,7 +510,7 @@ class TradeRepository {
         """
         select id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status,
                fulfillment_status, payment_method, amount, delivery_fee, package_fee, discount_amount, payable_amount,
-               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, paid_at, completed_at, created_at, updated_at
+               address_snapshot, delivery_distance_km, estimated_arrival_at, voucher_summary, tableware_option, tableware_count, remark, refund_status, refund_amount, refund_reason, refunded_at, refund_initiator_type, refund_initiator_id, paid_at, completed_at, created_at, updated_at
         from order_main
         where user_id = ? and display_status = ? and is_deleted = 0
         order by created_at desc, id desc
@@ -609,6 +631,77 @@ class TradeRepository {
         paymentMethod,
         amount,
         "MOCK" + orderId + System.currentTimeMillis());
+  }
+
+  void insertRefundRecord(long orderId, String refundNo, long userId, long storeId, BigDecimal refundAmount, String initiatorType, Long initiatorId, String reason, String providerRefundNo) {
+    jdbcTemplate.update(
+        """
+        insert into order_refund_record(refund_no, order_id, user_id, store_id, refund_amount, status, initiator_type, initiator_id, reason, provider_refund_no, completed_at)
+        values (?, ?, ?, ?, ?, 'succeeded', ?, ?, ?, ?, current_timestamp)
+        """,
+        refundNo,
+        orderId,
+        userId,
+        storeId,
+        refundAmount,
+        initiatorType,
+        initiatorId,
+        reason,
+        providerRefundNo);
+  }
+
+  void markOrderRefunded(long orderId, BigDecimal refundAmount, String reason, String initiatorType, Long initiatorId) {
+    jdbcTemplate.update(
+        """
+        update order_main
+        set display_status = 'refunded', payment_status = 'refunded', fulfillment_status = 'refunded',
+            refund_status = 'succeeded', refund_amount = ?, refund_reason = ?, refunded_at = current_timestamp,
+            refund_initiator_type = ?, refund_initiator_id = ?, completed_at = coalesce(completed_at, current_timestamp), updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        refundAmount,
+        reason,
+        initiatorType,
+        initiatorId,
+        orderId);
+    jdbcTemplate.update(
+        """
+        update order_payment_record
+        set status = 'refunded', updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0 and status = 'paid'
+        """,
+        orderId);
+  }
+
+  void markVoucherRefunded(long orderId) {
+    jdbcTemplate.update(
+        """
+        update order_voucher
+        set status = 'refunded', updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
+        """,
+        orderId);
+  }
+
+  void cancelBookingForRefund(long orderId, String reason) {
+    jdbcTemplate.update(
+        """
+        update order_booking_record
+        set store_confirm_status = 'cancelled', store_confirm_remark = coalesce(?, store_confirm_remark), updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
+        """,
+        reason,
+        orderId);
+  }
+
+  void markDeliveryTaskRefunded(long orderId) {
+    jdbcTemplate.update(
+        """
+        update delivery_task
+        set current_stage = 'refunded', current_stage_text = '订单已退款', next_tick_at = null, completed_at = current_timestamp, updated_at = current_timestamp
+        where order_id = ? and is_deleted = 0
+        """,
+        orderId);
   }
 
   void updateOrderAfterTakeawayPaid(long orderId, String fulfillmentStatus) {
@@ -831,7 +924,8 @@ class TradeRepository {
         select o.id, o.order_no, o.user_id, o.store_id, o.store_name, o.order_type, o.title, o.display_status, o.payment_status,
                o.fulfillment_status, o.payment_method, o.amount, o.delivery_fee, o.package_fee, o.discount_amount, o.payable_amount,
                o.address_snapshot, o.delivery_distance_km, o.estimated_arrival_at, o.voucher_summary,
-               o.tableware_option, o.tableware_count, o.remark, o.paid_at, o.completed_at, o.created_at, o.updated_at,
+               o.tableware_option, o.tableware_count, o.remark, o.refund_status, o.refund_amount, o.refund_reason,
+               o.refunded_at, o.refund_initiator_type, o.refund_initiator_id, o.paid_at, o.completed_at, o.created_at, o.updated_at,
                dt.current_stage, dt.current_stage_text
         from order_main o
         join merchant_store s on s.id = o.store_id
@@ -930,7 +1024,7 @@ class TradeRepository {
   }
 
   private void appendOpsFilters(StringBuilder sql, List<Object> params, Long merchantAccountId, String displayStatus, String fulfillmentStatus) {
-    sql.append(" where o.is_deleted = 0 and o.order_type = 'takeaway'");
+    sql.append(" where o.is_deleted = 0");
     if (merchantAccountId != null) {
       sql.append(" and m.account_id = ?");
       params.add(merchantAccountId);
@@ -1015,6 +1109,9 @@ class TradeRepository {
   }
 
   private OrderRow mapOrder(ResultSet rs, int rowNum) throws SQLException {
+    Timestamp estimatedArrivalAt = rs.getTimestamp("estimated_arrival_at");
+    Timestamp refundedAt = rs.getTimestamp("refunded_at");
+    Long refundInitiatorId = nullableLong(rs, "refund_initiator_id");
     Timestamp paidAt = rs.getTimestamp("paid_at");
     Timestamp completedAt = rs.getTimestamp("completed_at");
     Timestamp createdAt = rs.getTimestamp("created_at");
@@ -1038,11 +1135,17 @@ class TradeRepository {
         rs.getBigDecimal("payable_amount"),
         rs.getString("address_snapshot"),
         rs.getBigDecimal("delivery_distance_km"),
-        rs.getTimestamp("estimated_arrival_at") == null ? null : rs.getTimestamp("estimated_arrival_at").toLocalDateTime(),
+        estimatedArrivalAt == null ? null : estimatedArrivalAt.toLocalDateTime(),
         rs.getString("voucher_summary"),
         rs.getString("tableware_option"),
         (Integer) rs.getObject("tableware_count"),
         rs.getString("remark"),
+        rs.getString("refund_status"),
+        rs.getBigDecimal("refund_amount"),
+        rs.getString("refund_reason"),
+        refundedAt == null ? null : refundedAt.toLocalDateTime(),
+        rs.getString("refund_initiator_type"),
+        refundInitiatorId,
         paidAt == null ? null : paidAt.toLocalDateTime(),
         completedAt == null ? null : completedAt.toLocalDateTime(),
         createdAt == null ? null : createdAt.toLocalDateTime(),
@@ -1094,6 +1197,11 @@ class TradeRepository {
     return rs.wasNull() ? null : value;
   }
 
+  private Long nullableLong(ResultSet rs, String column) throws SQLException {
+    long value = rs.getLong(column);
+    return rs.wasNull() ? null : value;
+  }
+
   private DeliveryTaskRow mapDeliveryTask(ResultSet rs, int rowNum) throws SQLException {
     Timestamp nextTick = rs.getTimestamp("next_tick_at");
     Timestamp completedAt = rs.getTimestamp("completed_at");
@@ -1117,7 +1225,7 @@ class TradeRepository {
 
   record OrderInsertRow(Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal packageFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt, String voucherSummary, String tablewareOption, Integer tablewareCount, String remark, String idempotencyKey, String orderNo) {}
 
-  record OrderRow(Long id, String orderNo, Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal packageFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt, String voucherSummary, String tablewareOption, Integer tablewareCount, String remark, LocalDateTime paidAt, LocalDateTime completedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {}
+  record OrderRow(Long id, String orderNo, Long userId, Long storeId, String storeName, String orderType, String title, String displayStatus, String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee, BigDecimal packageFee, BigDecimal discountAmount, BigDecimal payableAmount, String addressSnapshot, BigDecimal deliveryDistanceKm, LocalDateTime estimatedArrivalAt, String voucherSummary, String tablewareOption, Integer tablewareCount, String remark, String refundStatus, BigDecimal refundAmount, String refundReason, LocalDateTime refundedAt, String refundInitiatorType, Long refundInitiatorId, LocalDateTime paidAt, LocalDateTime completedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {}
 
   record OrderItemRow(Long id, Long orderId, Long itemId, String itemName, String itemSubtitle, String businessType, Long categoryId, int quantity, BigDecimal unitPrice, BigDecimal totalPrice, String coverUrl, boolean isReviewed) {}
 
@@ -1223,7 +1331,9 @@ class TradeRepository {
                o.display_status, o.payment_status, o.fulfillment_status, o.payment_method,
                o.amount, o.delivery_fee, o.package_fee, o.discount_amount, o.payable_amount,
                o.address_snapshot, o.delivery_distance_km, o.estimated_arrival_at,
-               o.voucher_summary, o.tableware_option, o.tableware_count, o.remark, o.paid_at, o.completed_at,
+               o.voucher_summary, o.tableware_option, o.tableware_count, o.remark,
+               o.refund_status, o.refund_amount, o.refund_reason, o.refunded_at,
+               o.refund_initiator_type, o.refund_initiator_id, o.paid_at, o.completed_at,
                o.created_at as order_created_at, o.updated_at,
                s.business_type as store_business_type
         from order_booking_record b
@@ -1285,7 +1395,9 @@ class TradeRepository {
                o.display_status, o.payment_status, o.fulfillment_status, o.payment_method,
                o.amount, o.delivery_fee, o.package_fee, o.discount_amount, o.payable_amount,
                o.address_snapshot, o.delivery_distance_km, o.estimated_arrival_at,
-               o.voucher_summary, o.tableware_option, o.tableware_count, o.remark, o.paid_at, o.completed_at,
+               o.voucher_summary, o.tableware_option, o.tableware_count, o.remark,
+               o.refund_status, o.refund_amount, o.refund_reason, o.refunded_at,
+               o.refund_initiator_type, o.refund_initiator_id, o.paid_at, o.completed_at,
                o.created_at as order_created_at, o.updated_at,
                s.business_type as store_business_type
         from order_voucher v
@@ -1389,11 +1501,13 @@ class TradeRepository {
   }
 
   private OrderRow mapOrderForOps(ResultSet rs) throws SQLException {
+    Timestamp estimatedArrivalAt = rs.getTimestamp("estimated_arrival_at");
+    Timestamp refundedAt = rs.getTimestamp("refunded_at");
+    Long refundInitiatorId = nullableLong(rs, "refund_initiator_id");
     Timestamp paidAt = rs.getTimestamp("paid_at");
     Timestamp completedAt = rs.getTimestamp("completed_at");
     Timestamp createdAt = rs.getTimestamp("order_created_at");
     Timestamp updatedAt = rs.getTimestamp("updated_at");
-    Timestamp estimatedArrivalAt = rs.getTimestamp("estimated_arrival_at");
     return new OrderRow(
         rs.getLong("order_id"),
         rs.getString("order_no"),
@@ -1418,6 +1532,12 @@ class TradeRepository {
         rs.getString("tableware_option"),
         (Integer) rs.getObject("tableware_count"),
         rs.getString("remark"),
+        rs.getString("refund_status"),
+        rs.getBigDecimal("refund_amount"),
+        rs.getString("refund_reason"),
+        refundedAt == null ? null : refundedAt.toLocalDateTime(),
+        rs.getString("refund_initiator_type"),
+        refundInitiatorId,
         paidAt == null ? null : paidAt.toLocalDateTime(),
         completedAt == null ? null : completedAt.toLocalDateTime(),
         createdAt == null ? null : createdAt.toLocalDateTime(),

@@ -241,6 +241,13 @@ class BackendAppRepository {
     return OrderDetailData.fromApi(_map(json['data']));
   }
 
+  Future<OrderDetailData> requestRefund(String orderId, {String reason = '用户申请退款'}) async {
+    final json = await _post('/api/app/trade/orders/$orderId/refund', {
+      'reason': reason,
+    });
+    return OrderDetailData.fromApi(_map(json['data']));
+  }
+
   Future<OrderDetailData> remindOrder(String orderId) async {
     final json = await _post('/api/app/trade/orders/$orderId/remind', {
       'remark': '用户催单',
@@ -790,6 +797,13 @@ class OrderDetailData {
     required this.tablewareCount,
     required this.tablewareText,
     required this.remark,
+    required this.refundStatus,
+    required this.refundAmount,
+    required this.refundReason,
+    required this.refundedAt,
+    required this.refundableByUser,
+    required this.refundableByStaff,
+    required this.refundHint,
     required this.createdAt,
     required this.paidAt,
     required this.completedAt,
@@ -823,6 +837,13 @@ class OrderDetailData {
   final int? tablewareCount;
   final String? tablewareText;
   final String? remark;
+  final String refundStatus;
+  final double refundAmount;
+  final String? refundReason;
+  final DateTime? refundedAt;
+  final bool refundableByUser;
+  final bool refundableByStaff;
+  final String? refundHint;
   final DateTime? createdAt;
   final DateTime? paidAt;
   final DateTime? completedAt;
@@ -856,6 +877,13 @@ class OrderDetailData {
     tablewareCount: _nullableInt(json['tablewareCount']),
     tablewareText: _nullableString(json['tablewareText']),
     remark: _nullableString(json['remark']),
+    refundStatus: _string(json['refundStatus'], fallback: 'none'),
+    refundAmount: _double(json['refundAmount']),
+    refundReason: _nullableString(json['refundReason']),
+    refundedAt: _dateTime(json['refundedAt']),
+    refundableByUser: json['refundableByUser'] == true,
+    refundableByStaff: json['refundableByStaff'] == true,
+    refundHint: _nullableString(json['refundHint']),
     createdAt: _dateTime(json['createdAt']),
     paidAt: _dateTime(json['paidAt']),
     completedAt: _dateTime(json['completedAt']),
@@ -1213,6 +1241,7 @@ List<OrderModel> _orders(dynamic value) => _list(value).map((entry) {
     kind: kind,
     status: orderStatusFromApi(_string(json['displayStatus'])),
     fulfillmentStatus: _string(json['fulfillmentStatus']),
+    refundStatus: _string(json['refundStatus'], fallback: 'none'),
     businessType: type,
     amount: _double(json['amount']),
     desc: _string(json['title']),

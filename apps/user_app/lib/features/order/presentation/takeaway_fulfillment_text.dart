@@ -3,6 +3,7 @@ import '../../../shared/enums/business_type.dart';
 String takeawayStatusLabel(OrderStatus status, String fulfillmentStatus) {
   if (status == OrderStatus.unpaid) return '待付款';
   if (status == OrderStatus.cancelled) return '已取消';
+  if (status == OrderStatus.refunded) return '已退款';
   return switch (fulfillmentStatus) {
     'merchant_pending' => '待商家接单',
     'accepted' => '商家已接单',
@@ -21,6 +22,7 @@ String takeawayStatusLabel(OrderStatus status, String fulfillmentStatus) {
 String takeawayStatusDescription(OrderStatus status, String fulfillmentStatus) {
   if (status == OrderStatus.unpaid) return '订单已创建，请尽快完成支付。';
   if (status == OrderStatus.cancelled) return '订单已取消，本单不会继续配送。';
+  if (status == OrderStatus.refunded) return '订单已退款，本单不会继续配送。';
   return switch (fulfillmentStatus) {
     'merchant_pending' => '支付已完成，正在等待商家接单。',
     'accepted' => '商家已接单，正在安排制作。',
@@ -39,6 +41,7 @@ String takeawayStatusDescription(OrderStatus status, String fulfillmentStatus) {
 String takeawayStatusTag(OrderStatus status, String fulfillmentStatus) {
   if (status == OrderStatus.unpaid) return '等待付款';
   if (status == OrderStatus.cancelled) return '已取消';
+  if (status == OrderStatus.refunded) return '已退款';
   return switch (fulfillmentStatus) {
     'merchant_pending' => '待接单',
     'accepted' => '已接单',

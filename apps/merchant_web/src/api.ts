@@ -159,6 +159,13 @@ export function runOrderAction(orderId: number, action: string, remark = '') {
   });
 }
 
+export function refundOrder(orderId: number, reason = '商家人工退款') {
+  return request<OrderDetail>(`/api/merchant/trade/orders/${orderId}/refund`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
 export function redeemVoucher(voucherCode: string) {
   return request<OrderDetail>(`/api/merchant/trade/vouchers/${encodeURIComponent(voucherCode)}/redeem`, {
     method: 'POST',

@@ -47,7 +47,7 @@ class _SplashPageState extends State<SplashPage> {
       memberLevelName: session.memberLevelName,
       unreadMessageCount: session.unreadMessageCount,
     );
-    Navigator.pushReplacementNamed(context, Routes.main);
+    Navigator.pushNamedAndRemoveUntil(context, Routes.main, (_) => false);
   }
 
   @override
@@ -127,8 +127,11 @@ class _SplashPageState extends State<SplashPage> {
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white70),
                   ),
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, Routes.main),
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    Routes.main,
+                    (_) => false,
+                  ),
                   child: const Text('游客进入'),
                 ),
               ],

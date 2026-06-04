@@ -24,7 +24,7 @@ class CategoryGroupedList extends StatefulWidget {
     required this.groups,
     required this.activeCategory,
     required this.emptyText,
-    required this.headerAction,
+    this.headerAction,
     required this.onSelected,
     required this.itemBuilder,
   });
@@ -32,7 +32,7 @@ class CategoryGroupedList extends StatefulWidget {
   final Map<String, List<ItemModel>> groups;
   final String activeCategory;
   final String emptyText;
-  final String headerAction;
+  final String? headerAction;
   final ValueChanged<String> onSelected;
   final CategoryItemBuilder itemBuilder;
 
@@ -108,7 +108,7 @@ class _CategorySection extends StatelessWidget {
 
   final String category;
   final List<ItemModel> items;
-  final String headerAction;
+  final String? headerAction;
   final CategoryItemBuilder itemBuilder;
 
   @override

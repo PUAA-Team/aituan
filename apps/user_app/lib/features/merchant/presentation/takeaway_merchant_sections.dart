@@ -53,7 +53,6 @@ class TakeawayOrderPanel extends StatelessWidget {
     groups: groups,
     activeCategory: activeCategory,
     emptyText: '该商家暂未上架商品',
-    headerAction: '可直接加购',
     onSelected: onSelected,
     itemBuilder: (_, item) => TakeawayFoodRow(
       item: item,

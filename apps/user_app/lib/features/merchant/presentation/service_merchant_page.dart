@@ -73,10 +73,7 @@ class _ServiceMerchantPageState extends State<ServiceMerchantPage> {
               ),
               const SizedBox(height: 10),
               if (_tab == 0) ...[
-                SectionHeader(
-                  title: '${merchant.type.label}服务',
-                  action: '到店核销',
-                ),
+                SectionHeader(title: '${merchant.type.label}服务'),
                 ServiceCategoryPanel(
                   groups: groups,
                   activeCategory: active,

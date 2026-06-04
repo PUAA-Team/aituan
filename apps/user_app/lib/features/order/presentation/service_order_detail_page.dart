@@ -27,6 +27,7 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
   Object? _error;
   bool _loading = true;
   bool _paying = false;
+  bool _acting = false;
 
   String? get _orderId => widget.args.orderId;
 
@@ -72,8 +73,11 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
                 ServiceVoucherCard(
                   voucher: detail.voucher,
                   used: detail.status == OrderStatus.used,
+                  refunded: detail.status == OrderStatus.refunded,
                 ),
-              if (detail.voucher != null && detail.status != OrderStatus.unpaid)
+              if (detail.voucher != null &&
+                  detail.status != OrderStatus.unpaid &&
+                  detail.status != OrderStatus.refunded)
                 _LinkCard(
                   icon: Icons.qr_code,
                   title: '查看券码完整详情',
@@ -117,9 +121,9 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
                 label: const Text('联系商家'),
               ),
               primaryText: _primaryText(detail.status),
-              onPrimary: _paying ? null : () => _primaryAction(detail),
-              secondaryText: _secondaryText(detail.status),
-              onSecondary: () => _secondaryAction(detail),
+              onPrimary: (_paying || _acting) ? null : () => _primaryAction(detail),
+              secondaryText: _secondaryText(detail),
+              onSecondary: _acting ? null : () => _secondaryAction(detail),
             ),
     );
   }
@@ -166,6 +170,41 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     }
   }
 
+  Future<void> _refund(OrderDetailData detail) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('申请退款'),
+        content: const Text('未使用服务可自助退款，退款后券码将失效。确认提交吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('再想想'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认退款'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      setState(() => _acting = true);
+      final refunded = await backendRepository.requestRefund(detail.id, reason: '服务未使用，用户申请退款');
+      if (!mounted) return;
+      setState(() {
+        _detail = refunded;
+        _acting = false;
+      });
+      showAppSnackBar(context, '退款已提交');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      showAppSnackBar(context, '退款失败：$error');
+    }
+  }
+
   void _primaryAction(OrderDetailData detail) {
     if (detail.status == OrderStatus.unpaid) {
       _pay(detail);
@@ -183,8 +222,13 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
   }
 
   void _secondaryAction(OrderDetailData detail) {
+    if (detail.refundableByUser) {
+      _refund(detail);
+      return;
+    }
     if (detail.status == OrderStatus.unpaid ||
-        detail.status == OrderStatus.used) {
+        detail.status == OrderStatus.used ||
+        detail.status == OrderStatus.refunded) {
       _openStore(detail);
       return;
     }
@@ -230,10 +274,14 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     _ => '查看商家',
   };
 
-  String _secondaryText(OrderStatus status) => switch (status) {
-    OrderStatus.unpaid || OrderStatus.used => '查看商家',
-    _ => '刷新状态',
-  };
+  String _secondaryText(OrderDetailData detail) {
+    if (_acting && detail.refundableByUser) return '处理中';
+    if (detail.refundableByUser) return '申请退款';
+    return switch (detail.status) {
+      OrderStatus.unpaid || OrderStatus.used || OrderStatus.refunded => '查看商家',
+      _ => '刷新状态',
+    };
+  }
 
   String _desc(OrderDetailData detail) => switch (detail.status) {
     OrderStatus.unpaid => '订单已创建，请在 15 分钟内完成支付。',
@@ -241,7 +289,11 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
       detail.voucherSummary?.isNotEmpty == true
           ? '支付成功，${detail.voucherSummary}。'
           : '支付成功，请到店出示二维码或券码完成核销。',
-    _ => '券码已由商家核销，可以发布评价。',
+    OrderStatus.refunded => detail.refundReason?.isNotEmpty == true
+        ? '订单已退款：${detail.refundReason}'
+        : '订单已退款，券码已失效。',
+    OrderStatus.used => '券码已由商家核销，可以发布评价。',
+    _ => detail.refundHint ?? '订单正在处理中。',
   };
 
   bool _supportsBooking(OrderDetailData detail) {
@@ -376,7 +428,8 @@ class _RuleCard extends StatelessWidget {
     child: Column(
       children: [
         _Kv('有效期', _validityText(detail.voucher)),
-        _Kv('退款规则', detail.status == OrderStatus.unused ? '未使用可退' : '以商家规则为准'),
+        _Kv('退款规则', detail.refundHint ?? (detail.status == OrderStatus.unused ? '未使用可退' : '以商家规则为准')),
+        if (detail.refundAmount > 0) _Kv('已退款', _money(detail.refundAmount)),
         _Kv(
           '预约要求',
           detail.remark?.isNotEmpty == true ? detail.remark! : '高峰建议电话确认',
@@ -385,6 +438,9 @@ class _RuleCard extends StatelessWidget {
     ),
   );
 }
+
+String _money(double value) =>
+    '￥${value % 1 == 0 ? value.toInt() : value.toStringAsFixed(1)}';
 
 String _validityText(VoucherData? voucher) {
   if (voucher == null) return '以商家规则为准';

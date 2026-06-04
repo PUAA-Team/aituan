@@ -190,6 +190,41 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
     }
   }
 
+  Future<void> _refund(OrderDetailData detail) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('申请退款'),
+        content: const Text('外卖未接单时可自助退款，确认提交退款申请吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('再想想'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认退款'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      setState(() => _acting = true);
+      final refunded = await backendRepository.requestRefund(detail.id, reason: '外卖未接单，用户申请退款');
+      if (!mounted) return;
+      setState(() {
+        _detail = refunded;
+        _acting = false;
+      });
+      _showSnackBar('退款已提交');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      _showSnackBar('退款失败：$error');
+    }
+  }
+
   Future<void> _changeAddress(OrderDetailData detail) async {
     final selected = await Navigator.pushNamed(
       context,
@@ -254,6 +289,10 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   }
 
   void _secondaryAction(OrderDetailData detail) {
+    if (_canRefund(detail)) {
+      _refund(detail);
+      return;
+    }
     if (_canCancel(detail)) {
       _cancel(detail);
       return;
@@ -326,15 +365,11 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   }
 
   bool _canCancel(OrderDetailData detail) {
-    if (detail.status == OrderStatus.unpaid) return true;
-    if (detail.status != OrderStatus.pending) return false;
-    return !{
-      'delivering',
-      'delivered',
-      'completed',
-      'cancelled',
-      'merchant_rejected',
-    }.contains(detail.fulfillmentStatus);
+    return detail.status == OrderStatus.unpaid;
+  }
+
+  bool _canRefund(OrderDetailData detail) {
+    return detail.refundableByUser && detail.status == OrderStatus.pending;
   }
 
   String _primaryText(OrderDetailData detail) => switch (detail.status) {
@@ -345,7 +380,8 @@ class _TakeawayOrderDetailPageState extends State<TakeawayOrderDetailPage> {
   };
 
   String _secondaryText(OrderDetailData detail) {
-    if (_acting && _canCancel(detail)) return '处理中';
+    if (_acting && (_canRefund(detail) || _canCancel(detail))) return '处理中';
+    if (_canRefund(detail)) return '申请退款';
     if (_canCancel(detail)) return '取消订单';
     return detail.deliveryTimeline.isEmpty ? '刷新状态' : '配送跟踪';
   }
@@ -554,6 +590,7 @@ class _FeeCard extends StatelessWidget {
           _Kv('餐具', detail.tablewareText!),
         if (detail.discountAmount > 0)
           _Kv('优惠', '-${_money(detail.discountAmount)}'),
+        if (detail.refundAmount > 0) _Kv('已退款', _money(detail.refundAmount)),
         const Divider(),
         _Kv('实付', _money(detail.payableAmount), strong: true),
       ],

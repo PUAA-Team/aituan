@@ -53,6 +53,11 @@ class TradeOpsController {
     return ApiResponse.ok(tradeService.rejectTakeawayOrder(orderId, request));
   }
 
+  @PostMapping("/orders/{orderId}/refund")
+  ApiResponse<OrderDetailView> refund(@PathVariable long orderId, @RequestBody(required = false) RefundRequest request) {
+    return ApiResponse.ok(tradeService.refundOrderForStaff(orderId, request));
+  }
+
   @PostMapping("/orders/{orderId}/prepare")
   ApiResponse<OrderDetailView> prepare(@PathVariable long orderId, @RequestBody(required = false) TakeawayOrderActionRequest request) {
     return ApiResponse.ok(tradeService.prepareTakeawayOrder(orderId, request));

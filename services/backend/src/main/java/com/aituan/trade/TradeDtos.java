@@ -55,6 +55,8 @@ record PayOrderRequest(@NotBlank String paymentMode) {}
 
 record TakeawayOrderActionRequest(String remark) {}
 
+record RefundRequest(String reason) {}
+
 record OrderAddressUpdateRequest(@NotNull Long addressId) {}
 
 record TakeawaySettingRequest(@NotBlank String acceptMode) {}
@@ -167,6 +169,7 @@ record OrderSummaryView(
     String orderKind,
     String displayStatus,
     String fulfillmentStatus,
+    String refundStatus,
     String storeName,
     String title,
     BigDecimal amount,
@@ -179,6 +182,7 @@ record OpsOrderSummaryView(
     String displayStatus,
     String paymentStatus,
     String fulfillmentStatus,
+    String refundStatus,
     String currentStage,
     String currentStageText,
     String storeName,
@@ -226,7 +230,9 @@ record OpsBookingView(
     String orderTitle,
     String displayStatus,
     String paymentStatus,
-    java.math.BigDecimal payableAmount) {}
+    String refundStatus,
+    java.math.BigDecimal payableAmount,
+    Boolean refundableByStaff) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record OpsVoucherView(
@@ -244,6 +250,8 @@ record OpsVoucherView(
     String businessType,
     java.math.BigDecimal payableAmount,
     String displayStatus,
+    String refundStatus,
+    Boolean refundableByStaff,
     LocalDateTime orderCreatedAt) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -253,6 +261,7 @@ record VoucherLookupView(
     String status,
     LocalDateTime effectiveFrom,
     LocalDateTime effectiveTo,
+    Long orderId,
     String orderNo,
     String orderTitle,
     String storeName,
@@ -287,6 +296,13 @@ record OrderDetailView(
     Integer tablewareCount,
     String tablewareText,
     String remark,
+    String refundStatus,
+    BigDecimal refundAmount,
+    String refundReason,
+    LocalDateTime refundedAt,
+    Boolean refundableByUser,
+    Boolean refundableByStaff,
+    String refundHint,
     LocalDateTime createdAt,
     LocalDateTime paidAt,
     LocalDateTime completedAt,
