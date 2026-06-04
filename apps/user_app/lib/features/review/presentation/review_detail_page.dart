@@ -269,7 +269,7 @@ class _ReportDialogState extends State<_ReportDialog> {
       );
       if (picked == null) return;
       final url = await backendRepository.uploadCommonFile(
-        picked.path,
+        picked,
         bizType: 'report',
       );
       if (!mounted) return;
