@@ -41,8 +41,12 @@ class ReviewSummary {
   final String createdAt;
 
   factory ReviewSummary.fromApi(Map<String, dynamic> json) {
-    List<String> stringList(dynamic raw) =>
-        raw is List ? raw.map((e) => e?.toString() ?? '').where((e) => e.isNotEmpty).toList() : <String>[];
+    List<String> stringList(dynamic raw) => raw is List
+        ? raw
+              .map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList()
+        : <String>[];
     return ReviewSummary(
       id: (json['id'] as num).toInt(),
       orderId: (json['orderId'] as num?)?.toInt() ?? 0,
@@ -73,27 +77,43 @@ class ReviewRepository {
 
   final AppApiClient _client;
 
-  Future<List<ReviewSummary>> fetchMyReviews({String? status, int page = 1, int pageSize = 20}) async {
+  Future<List<ReviewSummary>> fetchMyReviews({
+    String? status,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     final query = StringBuffer('?page=$page&pageSize=$pageSize');
     if (status != null && status.isNotEmpty) query.write('&status=$status');
     final json = await _client.get('/api/app/interaction/reviews/me$query');
     final data = json['data'] as Map<String, dynamic>? ?? const {};
     final list = (data['list'] as List?) ?? const [];
-    return list.map((e) => ReviewSummary.fromApi(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ReviewSummary.fromApi(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ReviewSummary?> fetchByOrder(String orderId) async {
-    final json = await _client.get('/api/app/interaction/orders/$orderId/review');
+    final json = await _client.get(
+      '/api/app/interaction/orders/$orderId/review',
+    );
     final data = json['data'];
     if (data == null) return null;
     return ReviewSummary.fromApi(data as Map<String, dynamic>);
   }
 
-  Future<List<ReviewSummary>> fetchStoreReviews(int storeId, {int page = 1, int pageSize = 10}) async {
-    final json = await _client.get('/api/app/interaction/stores/$storeId/reviews?page=$page&pageSize=$pageSize');
+  Future<List<ReviewSummary>> fetchStoreReviews(
+    int storeId, {
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    final json = await _client.get(
+      '/api/app/interaction/stores/$storeId/reviews?page=$page&pageSize=$pageSize',
+    );
     final data = json['data'] as Map<String, dynamic>? ?? const {};
     final list = (data['list'] as List?) ?? const [];
-    return list.map((e) => ReviewSummary.fromApi(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => ReviewSummary.fromApi(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ReviewSummary> fetchDetail(int reviewId) async {
@@ -108,25 +128,40 @@ class ReviewRepository {
     required List<String> labels,
     List<String> imageUrls = const [],
   }) async {
-    final json = await _client.post('/api/app/interaction/orders/$orderId/review', {
-      'rating': rating,
-      'content': content,
-      'labels': labels,
-      'imageUrls': imageUrls,
-    });
+    final json = await _client.post(
+      '/api/app/interaction/orders/$orderId/review',
+      {
+        'rating': rating,
+        'content': content,
+        'labels': labels,
+        'imageUrls': imageUrls,
+      },
+    );
     return ReviewSummary.fromApi(json['data'] as Map<String, dynamic>);
   }
 
   Future<(bool helpful, int count)> toggleHelpful(int reviewId) async {
-    final json = await _client.post('/api/app/interaction/reviews/$reviewId/helpful', const {});
+    final json = await _client.post(
+      '/api/app/interaction/reviews/$reviewId/helpful',
+      const {},
+    );
     final data = json['data'] as Map<String, dynamic>;
-    return ((data['helpful'] as bool?) ?? false, (data['helpfulCount'] as num?)?.toInt() ?? 0);
+    return (
+      (data['helpful'] as bool?) ?? false,
+      (data['helpfulCount'] as num?)?.toInt() ?? 0,
+    );
   }
 
-  Future<void> report(int reviewId, String reason, {String? detail}) async {
+  Future<void> report(
+    int reviewId,
+    String reason, {
+    String? detail,
+    List<String> evidenceUrls = const [],
+  }) async {
     await _client.post('/api/app/interaction/reviews/$reviewId/report', {
       'reason': reason,
       if (detail != null && detail.isNotEmpty) 'detail': detail,
+      if (evidenceUrls.isNotEmpty) 'evidenceUrls': evidenceUrls,
     });
   }
 }

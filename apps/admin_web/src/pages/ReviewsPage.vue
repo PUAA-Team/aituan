@@ -140,6 +140,14 @@ function timeText(value: string | undefined) {
           <strong>举报原因</strong>
           <p v-for="(r, i) in active.reportReasons" :key="i">· {{ r }}</p>
         </div>
+        <div v-if="active.reportEvidenceUrls && active.reportEvidenceUrls.length" class="image-grid">
+          <img
+            v-for="url in active.reportEvidenceUrls"
+            :key="url"
+            :src="resolveAssetUrl(url)"
+            alt="举报证据"
+          />
+        </div>
         <div v-if="active.replied" class="reply-card">
           <strong>商家回复</strong>
           <p>{{ active.replyContent }}</p>

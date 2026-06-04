@@ -17,10 +17,12 @@ class SupportService {
 
   private final SupportRepository supportRepository;
   private final JdbcTemplate jdbcTemplate;
+  private final AiSupportService aiSupportService;
 
-  SupportService(SupportRepository supportRepository, JdbcTemplate jdbcTemplate) {
+  SupportService(SupportRepository supportRepository, JdbcTemplate jdbcTemplate, AiSupportService aiSupportService) {
     this.supportRepository = supportRepository;
     this.jdbcTemplate = jdbcTemplate;
+    this.aiSupportService = aiSupportService;
   }
 
   // ============ 用户端 ============
@@ -46,7 +48,10 @@ class SupportService {
     String topic = platformSession ? "平台客服" : "商家客服咨询";
     if (request.relatedOrderId() != null) topic = topic + " · 订单咨询";
     String sessionNo = "SS" + System.currentTimeMillis() + "-" + current.userId();
-    Long id = supportRepository.insertSession(sessionNo, current.userId(), storeId, merchantId, topic, request.relatedOrderId());
+    Long id = supportRepository.insertSession(
+        sessionNo, current.userId(), storeId, merchantId, topic, request.relatedOrderId(),
+        platformSession ? "platform" : "merchant",
+        platformSession ? "ai" : "human");
     if (platformSession) {
       Long welcomeId = supportRepository.insertMessage(id, "platform", 0L,
           "您好，我是平台客服助手。订单、投诉、退款相关问题都可以在这里描述，我会先帮您整理并转交平台处理。", "ai");
@@ -82,9 +87,32 @@ class SupportService {
     }
     Long messageId = supportRepository.insertMessage(sessionId, "user", current.userId(), request.content().trim(), "text");
     supportRepository.updateLastMessage(sessionId, messageId, "user");
-    autoReplyIfMatched(row, request.content().trim());
+    String content = request.content().trim();
+    if (shouldTransferToHuman(content) && "platform".equals(row.serviceScope())) {
+      transferToHuman(row);
+    } else {
+      autoReplyIfMatched(row, content);
+    }
     return supportRepository.findMessageById(messageId)
         .map(this::toMessageView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
+  SupportSessionView userHandoffToHuman(long sessionId) {
+    CurrentUser current = requireUser();
+    SupportRepository.SessionRow row = supportRepository.findById(sessionId)
+        .filter(r -> r.userId() == current.userId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"open".equals(row.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
+    }
+    if (!"platform".equals(row.serviceScope())) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "仅平台客服会话支持转人工");
+    }
+    transferToHuman(row);
+    return supportRepository.findById(sessionId)
+        .map(r -> toSessionView(r, "user"))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
   }
 
@@ -166,6 +194,67 @@ class SupportService {
     return supportRepository.listSupportTemplates();
   }
 
+  @Transactional
+  SupportSessionView requestPlatformIntervention(long sessionId) {
+    CurrentUser current = requireMerchant();
+    long merchantId = currentMerchantId();
+    SupportRepository.SessionRow row = supportRepository.findById(sessionId)
+        .filter(r -> r.merchantId() == merchantId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"open".equals(row.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
+    }
+    supportRepository.requestPlatformIntervention(sessionId);
+    Long messageId = supportRepository.insertMessage(sessionId, "platform", 0L,
+        "平台客服已介入，本次会话将由平台人工客服继续协助处理。", "platform_intervention");
+    supportRepository.updateLastMessage(sessionId, messageId, "platform");
+    supportRepository.insertSysAuditLog("merchant", current.accountId(), "support_platform_intervention", "support_session", sessionId,
+        "商家申请平台客服介入");
+    return supportRepository.findById(sessionId)
+        .map(r -> toSessionView(r, "merchant"))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  // ============ 后台平台客服 ============
+
+  PageResponse<SupportSessionView> adminPlatformSessions(String statusFilter, int page, int pageSize) {
+    requireAdmin();
+    String normalized = normalizeStatus(statusFilter);
+    long total = supportRepository.countAdminPlatformSessions(normalized);
+    List<SupportSessionView> list = supportRepository.listAdminPlatformSessions(normalized, (page - 1) * pageSize, pageSize)
+        .stream().map(row -> toSessionView(row, "admin")).toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  SupportSessionDetailView adminPlatformSessionDetail(long sessionId) {
+    requireAdmin();
+    SupportRepository.SessionRow row = supportRepository.findById(sessionId)
+        .filter(r -> "platform".equals(r.serviceScope()))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    SupportRepository.SessionRow refreshed = supportRepository.findById(sessionId).orElse(row);
+    List<SupportMessageView> messages = supportRepository.listMessages(sessionId, 0, DEFAULT_MESSAGE_LIMIT)
+        .stream().map(this::toMessageView).toList();
+    return new SupportSessionDetailView(toSessionView(refreshed, "admin"), messages);
+  }
+
+  @Transactional
+  SupportMessageView adminSendPlatformMessage(long sessionId, SupportMessageCreateRequest request) {
+    CurrentUser admin = requireAdmin();
+    SupportRepository.SessionRow row = supportRepository.findById(sessionId)
+        .filter(r -> "platform".equals(r.serviceScope()))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"open".equals(row.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
+    }
+    Long messageId = supportRepository.insertMessage(sessionId, "platform", admin.accountId(), request.content().trim(), "text");
+    supportRepository.updateLastMessage(sessionId, messageId, "platform");
+    supportRepository.insertSysAuditLog("admin", admin.accountId(), "support_platform_reply", "support_session", sessionId,
+        "平台人工客服回复");
+    return supportRepository.findMessageById(messageId)
+        .map(this::toMessageView)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
   // ============ 视图映射 ============
 
   private SupportSessionView toSessionView(SupportRepository.SessionRow row, String viewer) {
@@ -178,7 +267,9 @@ class SupportService {
         row.relatedOrderId(), row.relatedOrderNo(),
         lastMessage, row.lastMessageAt(),
         unread, maskedNickname,
-        row.createdAt(), row.closedAt(), row.closeReason());
+        row.createdAt(), row.closedAt(), row.closeReason(),
+        row.serviceScope(), row.assistantMode(), row.platformInterventionStatus(),
+        row.humanRequestedAt(), row.platformIntervenedAt());
   }
 
   private SupportMessageView toMessageView(SupportRepository.MessageRow row) {
@@ -195,10 +286,10 @@ class SupportService {
     String reply = null;
     String senderType = "merchant";
     long senderId = row.merchantId();
-    if (row.storeId() == 0) {
+    if ("platform".equals(row.serviceScope()) && "ai".equals(row.assistantMode())) {
       senderType = "platform";
       senderId = 0L;
-      reply = "平台客服助手已收到。我会优先整理您的问题，涉及投诉、退款或订单异常时会同步给平台处理人员。";
+      reply = aiSupportService.reply(normalized);
     } else if (containsAny(normalized, "配送", "多久", "时间", "催", "慢")) {
       reply = "您好，系统已收到您的催单/时效问题，商家会尽快确认处理。";
     } else if (containsAny(normalized, "退款", "退单", "取消")) {
@@ -209,6 +300,18 @@ class SupportService {
     if (reply == null) return;
     Long autoId = supportRepository.insertMessage(row.id(), senderType, senderId, reply, "auto_reply");
     supportRepository.updateLastMessage(row.id(), autoId, senderType);
+  }
+
+  private void transferToHuman(SupportRepository.SessionRow row) {
+    if ("human".equals(row.assistantMode())) return;
+    supportRepository.markHumanHandoff(row.id());
+    Long handoffId = supportRepository.insertMessage(row.id(), "platform", 0L,
+        "已为您转接平台人工客服，请继续补充问题细节。", "handoff");
+    supportRepository.updateLastMessage(row.id(), handoffId, "platform");
+  }
+
+  private boolean shouldTransferToHuman(String content) {
+    return containsAny(content == null ? "" : content, "转人工", "人工客服", "找人工", "人工处理");
   }
 
   private boolean containsAny(String text, String... keywords) {
@@ -229,6 +332,12 @@ class SupportService {
   private CurrentUser requireMerchant() {
     CurrentUser c = CurrentUserContext.required();
     if (c.accountType() != AccountType.MERCHANT) throw new BusinessException(ErrorCode.FORBIDDEN);
+    return c;
+  }
+
+  private CurrentUser requireAdmin() {
+    CurrentUser c = CurrentUserContext.required();
+    if (c.accountType() != AccountType.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
     return c;
   }
 

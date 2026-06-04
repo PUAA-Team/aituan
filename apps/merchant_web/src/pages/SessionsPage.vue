@@ -5,6 +5,7 @@ import {
   fetchMerchantSessionDetail,
   fetchMerchantSessions,
   fetchSessionTemplates,
+  requestPlatformIntervention,
   sendMerchantMessage,
 } from '../api';
 import type { SupportMessageView, SupportSessionView } from '../types';
@@ -19,6 +20,7 @@ const activeSession = ref<SupportSessionView | null>(null);
 const messages = ref<SupportMessageView[]>([]);
 const draft = ref('');
 const sending = ref(false);
+const intervening = ref(false);
 const templates = ref<string[]>([]);
 const autoReplyRules = [
   { keyword: '配送 / 多久 / 催 / 慢', reply: '自动回复催单与时效说明' },
@@ -109,6 +111,35 @@ async function closeSession() {
   }
 }
 
+async function requestIntervention() {
+  if (!activeSession.value) return;
+  if (!confirm('确认申请平台客服介入？介入后本会话将进入平台人工处理队列')) return;
+  try {
+    intervening.value = true;
+    const updated = await requestPlatformIntervention(activeSession.value.id);
+    activeSession.value = updated;
+    emit('notice', '平台客服已介入');
+    await openSession(updated);
+    await load();
+  } catch (error) {
+    emit('notice', error instanceof Error ? error.message : String(error));
+  } finally {
+    intervening.value = false;
+  }
+}
+
+function openComplaintEntry() {
+  const query = new URLSearchParams({ page: 'complaints' });
+  if (activeSession.value?.relatedOrderNo) {
+    query.set('orderNo', activeSession.value.relatedOrderNo);
+  }
+  if (activeSession.value?.storeName) {
+    query.set('storeName', activeSession.value.storeName);
+  }
+  const url = `${window.location.protocol}//${window.location.hostname}:5174/?${query}`;
+  window.open(url, '_blank');
+}
+
 function useTemplate(text: string) {
   draft.value = draft.value ? `${draft.value} ${text}` : text;
 }
@@ -155,15 +186,30 @@ function timeText(value: string | undefined) {
     <section class="panel-card">
       <div class="panel-toolbar">
         <h2>{{ activeSession?.userMaskedNickname || '消息面板' }}</h2>
-        <button
-          v-if="activeSession?.status === 'open'"
-          class="secondary-btn small"
-          @click="closeSession"
-        >关闭会话</button>
+        <div v-if="activeSession" class="toolbar-actions">
+          <button class="secondary-btn small" @click="openComplaintEntry">投诉工单</button>
+          <button
+            v-if="activeSession.status === 'open' && activeSession.platformInterventionStatus !== 'active'"
+            class="secondary-btn small"
+            :disabled="intervening"
+            @click="requestIntervention"
+          >{{ intervening ? '介入中' : '平台介入' }}</button>
+          <button
+            v-if="activeSession.status === 'open'"
+            class="secondary-btn small"
+            @click="closeSession"
+          >关闭会话</button>
+        </div>
       </div>
       <div v-if="!activeSession" class="empty-card">在左侧选择一个会话开始</div>
       <div v-else class="chat-area">
         <div class="message-list">
+          <div
+            v-if="activeSession.platformInterventionStatus === 'active'"
+            class="intervention-banner"
+          >
+            平台客服已介入，后续由平台人工协助处理
+          </div>
           <div
             v-for="msg in messages"
             :key="msg.id"
@@ -292,6 +338,16 @@ function timeText(value: string | undefined) {
   min-height: 240px;
   max-height: 420px;
   overflow-y: auto;
+}
+.intervention-banner {
+  justify-self: stretch;
+  padding: 8px 10px;
+  border: 1px solid #bae0ff;
+  border-radius: 6px;
+  background: #e6f4ff;
+  color: #0958d9;
+  font-size: 13px;
+  text-align: center;
 }
 .bubble {
   display: grid;
