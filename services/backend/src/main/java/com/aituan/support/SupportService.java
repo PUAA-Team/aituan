@@ -246,6 +246,9 @@ class SupportService {
     if (!"open".equals(row.status())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
     }
+    if ("ai".equals(row.assistantMode())) {
+      supportRepository.markHumanHandoff(sessionId);
+    }
     Long messageId = supportRepository.insertMessage(sessionId, "platform", admin.accountId(), request.content().trim(), "text");
     supportRepository.updateLastMessage(sessionId, messageId, "platform");
     supportRepository.insertSysAuditLog("admin", admin.accountId(), "support_platform_reply", "support_session", sessionId,
@@ -286,7 +289,8 @@ class SupportService {
     String reply = null;
     String senderType = "merchant";
     long senderId = row.merchantId();
-    if ("platform".equals(row.serviceScope()) && "ai".equals(row.assistantMode())) {
+    if ("platform".equals(row.serviceScope())) {
+      if (!"ai".equals(row.assistantMode())) return;
       senderType = "platform";
       senderId = 0L;
       reply = aiSupportService.reply(normalized);

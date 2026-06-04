@@ -9,6 +9,9 @@ const emit = defineEmits<{ notice: [message: string] }>();
 const loading = ref(false);
 const status = ref<'all' | 'pending' | 'processing' | 'resolved' | 'closed'>('all');
 const category = ref<'all' | 'service' | 'quality' | 'delivery' | 'other'>('all');
+const initialQuery = new URLSearchParams(window.location.search);
+const orderNoKeyword = ref(initialQuery.get('orderNo')?.trim() || '');
+const storeNameKeyword = ref(initialQuery.get('storeName')?.trim() || '');
 const tickets = ref<AdminComplaintView[]>([]);
 const active = ref<AdminComplaintView | null>(null);
 const remark = ref('');
@@ -40,10 +43,15 @@ async function load() {
     const params: Parameters<typeof fetchGovernanceComplaints>[0] = { pageSize: 40 };
     if (status.value !== 'all') params.status = status.value;
     if (category.value !== 'all') params.category = category.value;
+    if (orderNoKeyword.value.trim()) params.orderNo = orderNoKeyword.value.trim();
+    if (storeNameKeyword.value.trim()) params.storeName = storeNameKeyword.value.trim();
     const page = await fetchGovernanceComplaints(params);
     tickets.value = page.list;
     if (active.value) {
       active.value = tickets.value.find(t => t.id === active.value!.id) || null;
+    }
+    if (!active.value && hasEntryFilter() && tickets.value.length > 0) {
+      open(tickets.value[0]);
     }
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
@@ -55,6 +63,17 @@ async function load() {
 function open(ticket: AdminComplaintView) {
   active.value = ticket;
   remark.value = '';
+}
+
+function hasEntryFilter() {
+  return Boolean(orderNoKeyword.value.trim() || storeNameKeyword.value.trim());
+}
+
+async function clearEntryFilter() {
+  orderNoKeyword.value = '';
+  storeNameKeyword.value = '';
+  active.value = null;
+  await load();
 }
 
 async function run(action: 'accept' | 'resolve' | 'close') {
@@ -111,7 +130,10 @@ function canRun(action: 'accept' | 'resolve' | 'close') {
           <select v-model="category">
             <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
+          <input v-model="orderNoKeyword" placeholder="订单号" @keyup.enter="load" />
+          <input v-model="storeNameKeyword" placeholder="门店名" @keyup.enter="load" />
           <button class="secondary-btn" :disabled="loading" @click="load">{{ loading ? '刷新中' : '刷新' }}</button>
+          <button v-if="hasEntryFilter()" class="secondary-btn" :disabled="loading" @click="clearEntryFilter">清除定位</button>
         </div>
       </div>
       <table>
@@ -203,6 +225,9 @@ function canRun(action: 'accept' | 'resolve' | 'close') {
 }
 .toolbar-actions select {
   width: 140px;
+}
+.toolbar-actions input {
+  width: 150px;
 }
 tbody tr {
   cursor: pointer;

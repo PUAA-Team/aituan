@@ -92,6 +92,30 @@ if ! grep -q "sendPlatformSupportMessage" "$ROOT/apps/admin_web/src/pages/Platfo
   fail "admin platform support page should send human replies"
 fi
 
+if ! grep -q "markHumanHandoff(sessionId)" "$ROOT/services/backend/src/main/java/com/aituan/support/SupportService.java"; then
+  fail "admin platform support replies should switch AI sessions to human mode"
+fi
+
+if ! grep -q '!\"ai\".equals(row.assistantMode())' "$ROOT/services/backend/src/main/java/com/aituan/support/SupportService.java"; then
+  fail "platform human sessions should not continue keyword auto replies"
+fi
+
+if ! grep -q "orderNoKeyword" "$ROOT/apps/admin_web/src/pages/ComplaintsPage.vue"; then
+  fail "admin complaints page should read support entry order number filter"
+fi
+
+if ! grep -q "storeNameKeyword" "$ROOT/apps/admin_web/src/pages/ComplaintsPage.vue"; then
+  fail "admin complaints page should read support entry store name filter"
+fi
+
+if ! grep -q "query.set('orderNo'" "$ROOT/apps/admin_web/src/api.ts"; then
+  fail "admin complaints API should pass orderNo filter"
+fi
+
+if ! grep -q "query.set('storeName'" "$ROOT/apps/admin_web/src/api.ts"; then
+  fail "admin complaints API should pass storeName filter"
+fi
+
 if grep -q "/v1/responses\\|OPENAI_API_KEY\\|RestClient" "$ROOT/services/backend/src/main/java/com/aituan/support/AiSupportService.java"; then
   fail "platform assistant should use local keyword replies instead of OpenAI calls"
 fi
@@ -108,12 +132,40 @@ if ! grep -q "bizType: 'report'" "$ROOT/apps/user_app/lib/features/review/presen
   fail "review report dialog should upload report evidence images"
 fi
 
+if ! grep -q "_helpfulBusy" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
+  fail "review helpful action should prevent duplicate taps"
+fi
+
+if ! grep -q "_reporting" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
+  fail "review report action should prevent duplicate submissions"
+fi
+
+if ! grep -q "_uploading ? null : _submit" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
+  fail "review report dialog should block submit while evidence is uploading"
+fi
+
 if ! grep -q "ratingText" "$ROOT/apps/merchant_web/src/pages/ReviewPage.vue"; then
   fail "merchant review page should render non-fixed full rating text"
 fi
 
+if ! grep -q "ratingText" "$ROOT/apps/admin_web/src/pages/ReviewsPage.vue"; then
+  fail "admin review page should render bounded rating text"
+fi
+
 if ! grep -q "reportEvidenceUrls" "$ROOT/apps/admin_web/src/pages/ReviewsPage.vue"; then
   fail "admin review page should show report evidence images"
+fi
+
+if ! grep -q "findActiveReport" "$ROOT/services/backend/src/main/java/com/aituan/interaction/InteractionRepository.java"; then
+  fail "review reports should detect duplicate active reports"
+fi
+
+if ! grep -q "activeReportExistsSql" "$ROOT/services/backend/src/main/java/com/aituan/interaction/InteractionRepository.java"; then
+  fail "reported filters should use active report existence"
+fi
+
+if ! grep -q "refreshReportedCount" "$ROOT/services/backend/src/main/java/com/aituan/interaction/InteractionService.java"; then
+  fail "review audit/report flow should refresh reported counts"
 fi
 
 if ! grep -q "assistant_mode" "$ROOT/database/migrations/V011__support_platform_handoff.sql"; then

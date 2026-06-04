@@ -26,9 +26,11 @@ class ComplaintAdminController {
   ApiResponse<PageResponse<ComplaintView>> tickets(
       @RequestParam(required = false) String status,
       @RequestParam(required = false) String category,
+      @RequestParam(required = false) String orderNo,
+      @RequestParam(required = false) String storeName,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "20") @Min(1) int pageSize) {
-    return ApiResponse.ok(complaintService.adminTickets(status, category, page, pageSize));
+    return ApiResponse.ok(complaintService.adminTickets(status, category, orderNo, storeName, page, pageSize));
   }
 
   @PostMapping("/{id}/accept")

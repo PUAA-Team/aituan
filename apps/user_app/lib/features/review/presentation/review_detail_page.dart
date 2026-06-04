@@ -17,6 +17,8 @@ class ReviewDetailPage extends StatefulWidget {
 class _ReviewDetailPageState extends State<ReviewDetailPage> {
   ReviewSummary? _review;
   bool _loading = true;
+  bool _helpfulBusy = false;
+  bool _reporting = false;
   String? _error;
 
   @override
@@ -47,6 +49,8 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
   }
 
   Future<void> _toggleHelpful() async {
+    if (_helpfulBusy) return;
+    setState(() => _helpfulBusy = true);
     try {
       final (helpful, count) = await reviewRepository.toggleHelpful(
         widget.reviewId,
@@ -80,15 +84,20 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('操作失败：$e')));
+    } finally {
+      if (mounted) setState(() => _helpfulBusy = false);
     }
   }
 
   Future<void> _report() async {
+    if (_reporting) return;
     final result = await showDialog<_ReportDraft>(
       context: context,
       builder: (_) => const _ReportDialog(),
     );
     if (result == null) return;
+    if (!mounted) return;
+    setState(() => _reporting = true);
     try {
       await reviewRepository.report(
         widget.reviewId,
@@ -105,6 +114,8 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('举报失败：$e')));
+    } finally {
+      if (mounted) setState(() => _reporting = false);
     }
   }
 
@@ -207,13 +218,13 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                   r.helpfulByMe ? Icons.thumb_up : Icons.thumb_up_outlined,
                 ),
                 label: Text('有用 ${r.helpfulCount}'),
-                onPressed: _toggleHelpful,
+                onPressed: _helpfulBusy ? null : _toggleHelpful,
               ),
               const Spacer(),
               TextButton.icon(
                 icon: const Icon(Icons.flag_outlined),
-                label: const Text('举报'),
-                onPressed: _report,
+                label: Text(_reporting ? '提交中' : '举报'),
+                onPressed: _reporting ? null : _report,
               ),
             ],
           ),
@@ -284,6 +295,12 @@ class _ReportDialogState extends State<_ReportDialog> {
   }
 
   void _submit() {
+    if (_uploading) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('图片上传中，请稍候')));
+      return;
+    }
     Navigator.pop(
       context,
       _ReportDraft(
@@ -352,7 +369,10 @@ class _ReportDialogState extends State<_ReportDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('取消'),
         ),
-        TextButton(onPressed: _submit, child: const Text('提交')),
+        TextButton(
+          onPressed: _uploading ? null : _submit,
+          child: Text(_uploading ? '上传中…' : '提交'),
+        ),
       ],
     );
   }

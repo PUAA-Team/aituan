@@ -86,12 +86,15 @@ class ComplaintService {
 
   // ============ 后台端 ============
 
-  PageResponse<ComplaintView> adminTickets(String statusFilter, String categoryFilter, int page, int pageSize) {
+  PageResponse<ComplaintView> adminTickets(
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter, int page, int pageSize) {
     requireAdmin();
     String s = normalizeStatus(statusFilter);
     String c = categoryFilter == null ? null : normalizeCategory(categoryFilter);
-    long total = complaintRepository.countAdminTickets(s, c);
-    List<ComplaintView> list = complaintRepository.listAdminTickets(s, c, (page - 1) * pageSize, pageSize)
+    String orderNo = normalizeOptional(orderNoFilter);
+    String storeName = normalizeOptional(storeNameFilter);
+    long total = complaintRepository.countAdminTickets(s, c, orderNo, storeName);
+    List<ComplaintView> list = complaintRepository.listAdminTickets(s, c, orderNo, storeName, (page - 1) * pageSize, pageSize)
         .stream().map(row -> toView(row, true)).toList();
     return PageResponse.of(list, page, pageSize, total);
   }
@@ -189,6 +192,11 @@ class ComplaintService {
     if (value == null || value.trim().isEmpty()) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, label + "不能为空");
     }
+    return value.trim();
+  }
+
+  private String normalizeOptional(String value) {
+    if (value == null || value.isBlank()) return null;
     return value.trim();
   }
 

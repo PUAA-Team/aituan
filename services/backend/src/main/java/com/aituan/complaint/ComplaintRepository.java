@@ -68,24 +68,38 @@ class ComplaintRepository {
 
   // ============ 后台端 ============
 
-  long countAdminTickets(String statusFilter, String categoryFilter) {
-    StringBuilder sql = new StringBuilder("select count(1) from complaint_ticket where is_deleted = 0");
+  long countAdminTickets(String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from complaint_ticket t
+        left join order_main o on o.id = t.order_id and o.is_deleted = 0
+        left join merchant_store ms on ms.id = t.store_id and ms.is_deleted = 0
+        where t.is_deleted = 0
+        """);
     List<Object> args = new ArrayList<>();
-    if (statusFilter != null) { sql.append(" and status = ?"); args.add(statusFilter); }
-    if (categoryFilter != null) { sql.append(" and category = ?"); args.add(categoryFilter); }
+    appendAdminFilters(sql, args, statusFilter, categoryFilter, orderNoFilter, storeNameFilter);
     Long c = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
     return c == null ? 0 : c;
   }
 
-  List<TicketRow> listAdminTickets(String statusFilter, String categoryFilter, int offset, int limit) {
+  List<TicketRow> listAdminTickets(
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter, int offset, int limit) {
     StringBuilder sql = new StringBuilder(TICKET_SELECT).append(" where t.is_deleted = 0");
     List<Object> args = new ArrayList<>();
-    if (statusFilter != null) { sql.append(" and t.status = ?"); args.add(statusFilter); }
-    if (categoryFilter != null) { sql.append(" and t.category = ?"); args.add(categoryFilter); }
+    appendAdminFilters(sql, args, statusFilter, categoryFilter, orderNoFilter, storeNameFilter);
     sql.append(" order by t.created_at desc, t.id desc limit ? offset ?");
     args.add(limit);
     args.add(offset);
     return jdbcTemplate.query(sql.toString(), this::mapTicket, args.toArray());
+  }
+
+  private void appendAdminFilters(
+      StringBuilder sql, List<Object> args,
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter) {
+    if (statusFilter != null) { sql.append(" and t.status = ?"); args.add(statusFilter); }
+    if (categoryFilter != null) { sql.append(" and t.category = ?"); args.add(categoryFilter); }
+    if (orderNoFilter != null) { sql.append(" and o.order_no = ?"); args.add(orderNoFilter); }
+    if (storeNameFilter != null) { sql.append(" and ms.store_name like ?"); args.add("%" + storeNameFilter + "%"); }
   }
 
   // ============ 写入 ============

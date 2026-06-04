@@ -357,13 +357,22 @@ export function auditGovernanceReview(reviewId: number, action: 'pass' | 'hide' 
   });
 }
 
-export function fetchGovernanceComplaints(params: { status?: string; category?: string; page?: number; pageSize?: number } = {}) {
+export function fetchGovernanceComplaints(params: {
+  status?: string;
+  category?: string;
+  orderNo?: string;
+  storeName?: string;
+  page?: number;
+  pageSize?: number;
+} = {}) {
   const query = new URLSearchParams({
     page: String(params.page || 1),
     pageSize: String(params.pageSize || 30),
   });
   if (params.status) query.set('status', params.status);
   if (params.category) query.set('category', params.category);
+  if (params.orderNo) query.set('orderNo', params.orderNo);
+  if (params.storeName) query.set('storeName', params.storeName);
   return request<PageResponse<AdminComplaintView>>(`/api/admin/governance/complaints?${query}`);
 }
 

@@ -67,4 +67,27 @@ class ComplaintServiceTest {
           assertThat(log.remark()).contains("继续跟进");
         });
   }
+
+  @Test
+  void adminTicketsCanFilterByOrderNoAndStoreNameFromSupportEntry() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    var byOrderNo = complaintService.adminTickets(
+        null, null, "AT202605179011", null, 1, 20);
+    assertThat(byOrderNo.list())
+        .singleElement()
+        .satisfies(ticket -> {
+          assertThat(ticket.ticketNo()).isEqualTo("CP202605170001");
+          assertThat(ticket.orderNo()).isEqualTo("AT202605179011");
+        });
+
+    var byStoreName = complaintService.adminTickets(
+        null, null, null, "光影剧场", 1, 20);
+    assertThat(byStoreName.list())
+        .singleElement()
+        .satisfies(ticket -> {
+          assertThat(ticket.ticketNo()).isEqualTo("CP202605170002");
+          assertThat(ticket.storeName()).isEqualTo("光影剧场");
+        });
+  }
 }
