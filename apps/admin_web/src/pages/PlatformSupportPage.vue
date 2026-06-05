@@ -80,6 +80,12 @@ async function send() {
   }
 }
 
+function submitOnEnter(event: KeyboardEvent) {
+  if (event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  void send();
+}
+
 function openComplaintEntry() {
   const query = new URLSearchParams({ page: 'complaints' });
   if (active.value?.relatedOrderNo) {
@@ -178,6 +184,7 @@ function timeText(value: string | undefined) {
             rows="3"
             :disabled="active.status !== 'open'"
             :placeholder="active.status === 'open' ? '输入平台人工回复…' : '会话已关闭'"
+            @keydown.enter="submitOnEnter"
           ></textarea>
           <button class="primary-btn" :disabled="sending || active.status !== 'open'">
             {{ sending ? '发送中' : '发送' }}

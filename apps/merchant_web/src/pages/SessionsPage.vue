@@ -111,6 +111,12 @@ async function send() {
   }
 }
 
+function submitOnEnter(event: KeyboardEvent) {
+  if (event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  void send();
+}
+
 async function closeSession() {
   if (!activeSession.value) return;
   if (!confirm('确认关闭本次会话？关闭后无法继续回复')) return;
@@ -320,6 +326,7 @@ function timeText(value: string | undefined) {
             rows="3"
             :disabled="activeSession.status !== 'open'"
             :placeholder="activeSession.status === 'open' ? '输入消息…' : '会话已关闭'"
+            @keydown.enter="submitOnEnter"
           ></textarea>
           <button
             class="primary-btn"

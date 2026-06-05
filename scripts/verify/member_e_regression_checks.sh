@@ -228,6 +228,14 @@ if ! grep -q "senderLabel" "$ROOT/apps/admin_web/src/pages/PlatformSupportPage.v
   fail "admin platform support messages should show Chinese sender labels"
 fi
 
+if ! grep -q "submitOnEnter" "$ROOT/apps/admin_web/src/pages/PlatformSupportPage.vue"; then
+  fail "admin platform support should send messages with the enter key"
+fi
+
+if ! grep -q "submitOnEnter" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant support should send messages with the enter key"
+fi
+
 if ! grep -q "findActiveReport" "$ROOT/services/backend/src/main/java/com/aituan/interaction/InteractionRepository.java"; then
   fail "review reports should detect duplicate active reports"
 fi
