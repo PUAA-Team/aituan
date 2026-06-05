@@ -440,6 +440,10 @@ function timeText(value: string | undefined) {
   background: #fff5f6;
   justify-self: flex-end;
 }
+.bubble.platform {
+  background: #e6f4ff;
+  justify-self: center;
+}
 .bubble.system {
   background: #e6f4ff;
   justify-self: center;

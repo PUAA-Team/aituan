@@ -208,6 +208,19 @@ class _ReviewCard extends StatelessWidget {
               child: Text('商家回复：${review.replyContent!}'),
             ),
           ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.thumb_up_alt_outlined, size: 16, color: AppColors.textSub),
+              const SizedBox(width: 4),
+              Text(
+                '${review.helpfulCount} 人觉得有用',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSub,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ),

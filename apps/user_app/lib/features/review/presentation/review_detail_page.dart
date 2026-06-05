@@ -211,7 +211,11 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
             ),
           ),
         AppCard(
-          child: Row(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               TextButton.icon(
                 icon: Icon(
@@ -220,7 +224,6 @@ class _ReviewDetailPageState extends State<ReviewDetailPage> {
                 label: Text('有用 ${r.helpfulCount}'),
                 onPressed: _helpfulBusy ? null : _toggleHelpful,
               ),
-              const Spacer(),
               TextButton.icon(
                 icon: const Icon(Icons.flag_outlined),
                 label: Text(_reporting ? '提交中' : '举报'),
@@ -344,22 +347,11 @@ class _ReportDialogState extends State<_ReportDialog> {
               ),
             ),
             const SizedBox(height: 6),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final url in _imageUrls)
-                  InputChip(
-                    label: const Text('已上传图片'),
-                    onDeleted: () => setState(() => _imageUrls.remove(url)),
-                  ),
-                if (_imageUrls.length < _maxImages)
-                  OutlinedButton.icon(
-                    onPressed: _uploading ? null : _pickImage,
-                    icon: const Icon(Icons.image_outlined),
-                    label: Text(_uploading ? '上传中…' : '添加图片'),
-                  ),
-              ],
+            _ReportEvidenceImageGrid(
+              urls: _imageUrls,
+              uploading: _uploading,
+              onAdd: _pickImage,
+              onRemove: (url) => setState(() => _imageUrls.remove(url)),
             ),
           ],
         ),
@@ -372,6 +364,99 @@ class _ReportDialogState extends State<_ReportDialog> {
         TextButton(
           onPressed: _uploading ? null : _submit,
           child: Text(_uploading ? '上传中…' : '提交'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReportEvidenceImageGrid extends StatelessWidget {
+  const _ReportEvidenceImageGrid({
+    required this.urls,
+    required this.uploading,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<String> urls;
+  final bool uploading;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = <Widget>[
+      for (final url in urls)
+        _ReportEvidenceImageTile(url: url, onRemove: () => onRemove(url)),
+      if (urls.length < _ReportDialogState._maxImages)
+        InkWell(
+          onTap: uploading ? null : onAdd,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: uploading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_outlined, color: Colors.grey),
+          ),
+        ),
+    ];
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      children: tiles,
+    );
+  }
+}
+
+class _ReportEvidenceImageTile extends StatelessWidget {
+  const _ReportEvidenceImageTile({required this.url, required this.onRemove});
+
+  final String url;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = backendRepository.resolveAssetUrl(url);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: resolved == null
+              ? Container(color: Colors.grey.shade200)
+              : Image.network(
+                  resolved,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    color: Colors.grey.shade200,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+                  ),
+                ),
+        ),
+        Positioned(
+          top: 2,
+          right: 2,
+          child: InkWell(
+            onTap: onRemove,
+            child: const CircleAvatar(
+              radius: 10,
+              backgroundColor: Colors.black54,
+              child: Icon(Icons.close, size: 12, color: Colors.white),
+            ),
+          ),
         ),
       ],
     );

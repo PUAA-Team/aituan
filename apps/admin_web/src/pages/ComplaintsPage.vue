@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { complaintAction, fetchGovernanceComplaints } from '../api';
+import { complaintAction, fetchGovernanceComplaints, resolveAssetUrl } from '../api';
 import type { AdminComplaintView } from '../types';
 
 const props = defineProps<{ refreshKey: number }>();
@@ -113,7 +113,7 @@ function canRun(action: 'accept' | 'resolve' | 'close') {
   if (active.value.status === 'closed') return false;
   if (action === 'accept') return active.value.status === 'pending';
   if (action === 'resolve') return active.value.status === 'processing';
-  if (action === 'close') return active.value.status !== 'closed';
+  if (action === 'close') return active.value.status === 'resolved';
   return false;
 }
 </script>
@@ -192,7 +192,7 @@ function canRun(action: 'accept' | 'resolve' | 'close') {
           <span>处理结果</span><strong>{{ active.resolvedBy || '-' }}（{{ timeText(active.resolvedAt) }}）</strong>
         </div>
         <div v-if="active.evidenceUrls && active.evidenceUrls.length" class="image-grid">
-          <img v-for="url in active.evidenceUrls" :key="url" :src="url" alt="证据" />
+          <img v-for="url in active.evidenceUrls" :key="url" :src="resolveAssetUrl(url)" alt="证据" />
         </div>
         <label>备注
           <input v-model="remark" placeholder="处理意见，将写入工单日志" />

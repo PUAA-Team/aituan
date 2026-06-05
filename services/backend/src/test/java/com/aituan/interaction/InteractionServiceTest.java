@@ -186,6 +186,44 @@ class InteractionServiceTest {
   }
 
   @Test
+  void submitReviewRejectsRatingOutsideAllowedRangeAsBusinessError() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9903L, "AT202606049903", 1L, 1L, "塔斯汀中国汉堡", "takeaway", "低评分测试订单",
+        "used", "paid", "completed",
+        18.80, 4.00, 0.00, 22.80);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9904L, "AT202606049904", 1L, 1L, "塔斯汀中国汉堡", "takeaway", "高评分测试订单",
+        "used", "paid", "completed",
+        18.80, 4.00, 0.00, 22.80);
+
+    assertThatThrownBy(() -> interactionService.submitReview(
+        9903L,
+        new ReviewCreateRequest(0, "评分低于范围", java.util.List.of(), java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.BAD_REQUEST));
+    assertThatThrownBy(() -> interactionService.submitReview(
+        9904L,
+        new ReviewCreateRequest(6, "评分高于范围", java.util.List.of(), java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.BAD_REQUEST));
+  }
+
+  @Test
   void submittedReviewAppearsInMyStoreAndDetailViewsWithImages() {
     TestAuthSupport.loginAsUser(1L, 1L);
     jdbcTemplate.update(

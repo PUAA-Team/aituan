@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/app_card.dart';
+import '../../home/data/backend_app_repository.dart';
 import '../data/complaint_repository.dart';
 
 class ComplaintDetailPage extends StatefulWidget {
@@ -97,7 +98,7 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
                   Text(item.detail),
                   if (item.evidenceUrls.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text('已上传图片：${item.evidenceUrls.length} 张'),
+                    _EvidenceImageGrid(urls: item.evidenceUrls),
                   ],
                 ],
               ),
@@ -178,6 +179,51 @@ class _ComplaintDetailPageState extends State<ComplaintDetailPage> {
       },
     ),
   );
+}
+
+class _EvidenceImageGrid extends StatelessWidget {
+  const _EvidenceImageGrid({required this.urls});
+
+  final List<String> urls;
+
+  @override
+  Widget build(BuildContext context) => GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 3,
+    crossAxisSpacing: 8,
+    mainAxisSpacing: 8,
+    children: [
+      for (final url in urls)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: _EvidenceImage(url: url),
+        ),
+    ],
+  );
+}
+
+class _EvidenceImage extends StatelessWidget {
+  const _EvidenceImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = backendRepository.resolveAssetUrl(url);
+    if (resolved == null) {
+      return Container(color: Colors.grey.shade200);
+    }
+    return Image.network(
+      resolved,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+      ),
+    );
+  }
 }
 
 class _StatusBadge extends StatelessWidget {

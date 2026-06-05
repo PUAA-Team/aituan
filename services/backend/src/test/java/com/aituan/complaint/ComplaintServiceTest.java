@@ -56,6 +56,20 @@ class ComplaintServiceTest {
   }
 
   @Test
+  void closeBeforeResolvedShouldBeRejected() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    assertThatThrownBy(() -> complaintService.close(1L, new ComplaintActionRequest("未受理直接关闭")))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
+    assertThatThrownBy(() -> complaintService.close(2L, new ComplaintActionRequest("处理中直接关闭")))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
+  }
+
+  @Test
   void userCanSupplementOpenComplaint() {
     TestAuthSupport.loginAsUser(1L, 1L);
     ComplaintDetailView detail = complaintService.supplement(

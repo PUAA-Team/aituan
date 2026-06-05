@@ -244,22 +244,11 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
               children: [
                 Text('补充图片', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final url in _imageUrls)
-                      InputChip(
-                        label: const Text('已上传图片'),
-                        onDeleted: () => setState(() => _imageUrls.remove(url)),
-                      ),
-                    if (_imageUrls.length < 3)
-                      OutlinedButton.icon(
-                        onPressed: _uploading ? null : _pickImage,
-                        icon: const Icon(Icons.image_outlined),
-                        label: Text(_uploading ? '上传中…' : '添加图片'),
-                      ),
-                  ],
+                _EvidenceImageGrid(
+                  urls: _imageUrls,
+                  uploading: _uploading,
+                  onAdd: _pickImage,
+                  onRemove: (url) => setState(() => _imageUrls.remove(url)),
                 ),
               ],
             ),
@@ -268,8 +257,101 @@ class _ComplaintSubmitPageState extends State<ComplaintSubmitPage> {
       ),
       bottomNavigationBar: AppBottomActionBar(
         primaryText: _submitting ? '提交中…' : '提交',
-        onPrimary: _submitting ? null : _submit,
+        onPrimary: _submitting || _uploading ? null : _submit,
       ),
+    );
+  }
+}
+
+class _EvidenceImageGrid extends StatelessWidget {
+  const _EvidenceImageGrid({
+    required this.urls,
+    required this.uploading,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<String> urls;
+  final bool uploading;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = <Widget>[
+      for (final url in urls)
+        _EvidenceImageTile(url: url, onRemove: () => onRemove(url)),
+      if (urls.length < 3)
+        InkWell(
+          onTap: uploading ? null : onAdd,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: uploading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add_a_photo_outlined, color: Colors.grey),
+          ),
+        ),
+    ];
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      children: tiles,
+    );
+  }
+}
+
+class _EvidenceImageTile extends StatelessWidget {
+  const _EvidenceImageTile({required this.url, required this.onRemove});
+
+  final String url;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = backendRepository.resolveAssetUrl(url);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: resolved == null
+              ? Container(color: Colors.grey.shade200)
+              : Image.network(
+                  resolved,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    color: Colors.grey.shade200,
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+                  ),
+                ),
+        ),
+        Positioned(
+          top: 2,
+          right: 2,
+          child: InkWell(
+            onTap: onRemove,
+            child: const CircleAvatar(
+              radius: 10,
+              backgroundColor: Colors.black54,
+              child: Icon(Icons.close, size: 12, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -96,6 +96,16 @@ function modeLabel(session: AdminSupportSessionView) {
   return session.assistantMode === 'human' ? '用户转人工' : 'AI 接待';
 }
 
+function senderLabel(type: string) {
+  const map: Record<string, string> = {
+    user: '用户',
+    merchant: '商家客服',
+    platform: '平台客服',
+    system: '系统消息',
+  };
+  return map[type] || type;
+}
+
 function timeText(value: string | undefined) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
 }
@@ -158,7 +168,7 @@ function timeText(value: string | undefined) {
             :class="msg.senderType"
           >
             <p>{{ msg.content }}</p>
-            <small>{{ msg.senderType }} · {{ timeText(msg.createdAt) }}</small>
+            <small>{{ senderLabel(msg.senderType) }} · {{ timeText(msg.createdAt) }}</small>
           </div>
           <div v-if="messages.length === 0" class="empty-card">暂无消息</div>
         </div>

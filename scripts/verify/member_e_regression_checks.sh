@@ -96,6 +96,10 @@ if ! grep -q "ComplaintsPage" "$ROOT/apps/merchant_web/src/App.vue"; then
   fail "merchant web should route to its own complaint ticket page"
 fi
 
+if ! grep -q ".bubble.platform" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
+  fail "merchant support messages should style platform intervention messages"
+fi
+
 if grep -q "hostname}:5174" "$ROOT/apps/merchant_web/src/pages/SessionsPage.vue"; then
   fail "merchant complaint entry should not open the admin web port"
 fi
@@ -164,6 +168,10 @@ if ! grep -q "backendRepository.resolveAssetUrl" "$ROOT/apps/user_app/lib/featur
   fail "merchant review cards should render attached review images"
 fi
 
+if ! grep -q "helpfulCount" "$ROOT/apps/user_app/lib/features/merchant/presentation/takeaway_merchant_sections.dart"; then
+  fail "merchant review cards should show helpful counts"
+fi
+
 if ! grep -q "reviewSummary" "$ROOT/apps/user_app/lib/features/home/data/backend_app_repository.dart"; then
   fail "merchant detail rating should use the review summary average"
 fi
@@ -180,6 +188,22 @@ if ! grep -q "_uploading ? null : _submit" "$ROOT/apps/user_app/lib/features/rev
   fail "review report dialog should block submit while evidence is uploading"
 fi
 
+if ! grep -q "_ReportEvidenceImageGrid" "$ROOT/apps/user_app/lib/features/review/presentation/review_detail_page.dart"; then
+  fail "review report dialog should preview uploaded evidence images"
+fi
+
+if ! grep -q "_submitting || _uploading ? null : _submit" "$ROOT/apps/user_app/lib/features/review/presentation/review_publish_page.dart"; then
+  fail "review publish submit should be disabled while images are uploading"
+fi
+
+if ! grep -q "_EvidenceImageGrid" "$ROOT/apps/user_app/lib/features/complaint/presentation/complaint_submit_page.dart"; then
+  fail "complaint submit should preview uploaded evidence images"
+fi
+
+if ! grep -q "_EvidenceImageGrid" "$ROOT/apps/user_app/lib/features/complaint/presentation/complaint_detail_page.dart"; then
+  fail "complaint detail should render evidence image previews"
+fi
+
 if ! grep -q "ratingText" "$ROOT/apps/merchant_web/src/pages/ReviewPage.vue"; then
   fail "merchant review page should render non-fixed full rating text"
 fi
@@ -190,6 +214,18 @@ fi
 
 if ! grep -q "reportEvidenceUrls" "$ROOT/apps/admin_web/src/pages/ReviewsPage.vue"; then
   fail "admin review page should show report evidence images"
+fi
+
+if ! grep -q "resolveAssetUrl" "$ROOT/apps/admin_web/src/pages/ComplaintsPage.vue"; then
+  fail "admin complaint evidence images should resolve uploaded asset urls"
+fi
+
+if ! grep -q "action === 'close') return active.value.status === 'resolved'" "$ROOT/apps/admin_web/src/pages/ComplaintsPage.vue"; then
+  fail "admin complaint close button should only enable for resolved tickets"
+fi
+
+if ! grep -q "senderLabel" "$ROOT/apps/admin_web/src/pages/PlatformSupportPage.vue"; then
+  fail "admin platform support messages should show Chinese sender labels"
 fi
 
 if ! grep -q "findActiveReport" "$ROOT/services/backend/src/main/java/com/aituan/interaction/InteractionRepository.java"; then

@@ -71,6 +71,9 @@ class InteractionService {
     if (request.rating() == null) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "评分不能为空");
     }
+    if (request.rating() < 1 || request.rating() > 5) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "评分必须在 1 到 5 之间");
+    }
     InteractionRepository.OrderReviewRow order = interactionRepository.findOrderForReview(userId, orderId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!DisplayOrderStatus.USED.code().equals(order.displayStatus())) {

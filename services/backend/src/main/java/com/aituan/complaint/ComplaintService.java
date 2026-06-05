@@ -111,7 +111,7 @@ class ComplaintService {
 
   @Transactional
   ComplaintView close(long id, ComplaintActionRequest request) {
-    return advance(id, "close", request, null, "closed", "complaint_close", "关闭工单");
+    return advance(id, "close", request, "resolved", "closed", "complaint_close", "关闭工单");
   }
 
   // ============ 商家端 ============
