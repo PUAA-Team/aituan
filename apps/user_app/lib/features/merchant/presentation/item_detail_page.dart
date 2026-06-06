@@ -217,27 +217,32 @@ class _InfoCard extends StatelessWidget {
   final List<CategoryData> categories;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        PriceText(item.price, size: 26),
-        const SizedBox(height: 8),
-        Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(item.subtitle, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final tag in item.tags) BrandTag(tag, emphasis: true),
-            for (final category in categories) BrandTag(category.name),
-          ],
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final labels = <String>{};
+    final tagWidgets = [
+      for (final tag in item.tags)
+        if (tag.trim().isNotEmpty && labels.add(tag.trim()))
+          BrandTag(tag.trim(), emphasis: true),
+      for (final category in categories)
+        if (category.name.trim().isNotEmpty && labels.add(category.name.trim()))
+          BrandTag(category.name.trim()),
+    ];
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PriceText(item.price, size: 26),
+          const SizedBox(height: 8),
+          Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(item.subtitle, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 10),
+          Wrap(spacing: 6, runSpacing: 6, children: tagWidgets),
+        ],
+      ),
+    );
+  }
 }
 
 class _MerchantCard extends StatelessWidget {
@@ -318,7 +323,7 @@ class _ServiceDetailCard extends StatelessWidget {
     final pairs = parsed.isEmpty ? fallbackAttributes(item.type) : parsed.pairs;
     final title = businessAttributesSectionTitle(item.type);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         AppCard(
           child: Column(

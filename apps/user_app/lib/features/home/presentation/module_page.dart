@@ -184,16 +184,22 @@ class _HotRow extends StatelessWidget {
   final ValueChanged<ItemModel> onTap;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      for (var i = 0; i < items.length; i++)
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i == items.length - 1 ? 0 : 8),
-            child: _HotCard(item: items[i], onTap: () => onTap(items[i])),
-          ),
-        ),
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final cardWidth = (constraints.maxWidth - 16) / 3;
+      return Row(
+        children: [
+          for (var i = 0; i < items.length; i++)
+            Padding(
+              padding: EdgeInsets.only(right: i == items.length - 1 ? 0 : 8),
+              child: SizedBox(
+                width: cardWidth,
+                child: _HotCard(item: items[i], onTap: () => onTap(items[i])),
+              ),
+            ),
+        ],
+      );
+    },
   );
 }
 
