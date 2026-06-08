@@ -492,7 +492,7 @@ class AdminRepository {
 
   List<DeliveryTaskRow> listDeliveryTasks(String stage, int offset, int limit) {
     StringBuilder sql = new StringBuilder("""
-        select dt.id, dt.order_id, o.order_no, o.store_name, dt.current_stage, dt.current_stage_text,
+        select dt.id, dt.order_id, o.order_no, o.user_id, o.payable_amount, o.store_name, dt.current_stage, dt.current_stage_text,
                dt.auto_advance_enabled, dt.paused_at, dt.abnormal_reason, dt.next_tick_at, dt.completed_at, dt.updated_at
         from delivery_task dt
         join order_main o on o.id = dt.order_id
@@ -519,7 +519,7 @@ class AdminRepository {
   Optional<DeliveryTaskRow> findDeliveryTask(long taskId) {
     List<DeliveryTaskRow> rows = jdbcTemplate.query(
         """
-        select dt.id, dt.order_id, o.order_no, o.store_name, dt.current_stage, dt.current_stage_text,
+        select dt.id, dt.order_id, o.order_no, o.user_id, o.payable_amount, o.store_name, dt.current_stage, dt.current_stage_text,
                dt.auto_advance_enabled, dt.paused_at, dt.abnormal_reason, dt.next_tick_at, dt.completed_at, dt.updated_at
         from delivery_task dt
         join order_main o on o.id = dt.order_id
@@ -531,37 +531,44 @@ class AdminRepository {
     return rows.stream().findFirst();
   }
 
-  void updateDeliveryStage(DeliveryTaskRow task, String nextStage, String nextText, String displayStatus, boolean completed, LocalDateTime nextTickAt, Long operatorId, String remark) {
+  int updateDeliveryStage(DeliveryTaskRow task, String nextStage, String nextText, String displayStatus, boolean completed, LocalDateTime nextTickAt, Long operatorId, String remark) {
+    int updated;
     if (completed) {
-      jdbcTemplate.update(
+      updated = jdbcTemplate.update(
           """
           update delivery_task
           set current_stage = ?, current_stage_text = ?, completed_at = current_timestamp, next_tick_at = null,
               last_advanced_by = ?, last_advanced_at = current_timestamp, updated_at = current_timestamp
-          where id = ? and is_deleted = 0
+          where id = ? and is_deleted = 0 and current_stage = ?
           """,
           nextStage,
           nextText,
           operatorId,
-          task.taskId());
+          task.taskId(),
+          task.currentStage());
     } else {
-      jdbcTemplate.update(
+      updated = jdbcTemplate.update(
           """
           update delivery_task
           set current_stage = ?, current_stage_text = ?, next_tick_at = ?,
               last_advanced_by = ?, last_advanced_at = current_timestamp, updated_at = current_timestamp
-          where id = ? and is_deleted = 0
+          where id = ? and is_deleted = 0 and current_stage = ?
           """,
           nextStage,
           nextText,
           nextTickAt == null ? null : Timestamp.valueOf(nextTickAt),
           operatorId,
-          task.taskId());
+          task.taskId(),
+          task.currentStage());
+    }
+    if (updated == 0) {
+      return 0;
     }
     jdbcTemplate.update("update delivery_track_node set reached_at = current_timestamp, updated_at = current_timestamp where delivery_task_id = ? and node_code = ?", task.taskId(), nextStage);
     jdbcTemplate.update("update order_main set display_status = ?, fulfillment_status = ?, completed_at = case when ? = 1 then current_timestamp else completed_at end, updated_at = current_timestamp where id = ?", displayStatus, nextStage, completed ? 1 : 0, task.orderId());
     jdbcTemplate.update("insert into order_state_log(order_id, from_status, to_status, action_type, operator_type, operator_id, remark) values (?, ?, ?, 'admin_delivery_advance', 'admin', ?, ?)", task.orderId(), task.currentStage(), nextStage, operatorId, remark);
     jdbcTemplate.update("insert into sys_audit_log(actor_type, actor_id, action_type, target_type, target_id, detail) values ('admin', ?, 'delivery_task_advance', 'delivery_task', ?, ?)", operatorId, task.taskId(), remark == null ? nextText : remark);
+    return updated;
   }
 
   void pauseDeliveryTask(long taskId, Long operatorId) {
@@ -757,7 +764,7 @@ class AdminRepository {
     Timestamp nextTickAt = rs.getTimestamp("next_tick_at");
     Timestamp completedAt = rs.getTimestamp("completed_at");
     Timestamp updatedAt = rs.getTimestamp("updated_at");
-    return new DeliveryTaskRow(rs.getLong("id"), rs.getLong("order_id"), rs.getString("order_no"), rs.getString("store_name"), rs.getString("current_stage"), rs.getString("current_stage_text"), rs.getBoolean("auto_advance_enabled"), pausedAt == null ? null : pausedAt.toLocalDateTime(), rs.getString("abnormal_reason"), nextTickAt == null ? null : nextTickAt.toLocalDateTime(), completedAt == null ? null : completedAt.toLocalDateTime(), updatedAt == null ? null : updatedAt.toLocalDateTime());
+    return new DeliveryTaskRow(rs.getLong("id"), rs.getLong("order_id"), rs.getLong("user_id"), rs.getBigDecimal("payable_amount"), rs.getString("order_no"), rs.getString("store_name"), rs.getString("current_stage"), rs.getString("current_stage_text"), rs.getBoolean("auto_advance_enabled"), pausedAt == null ? null : pausedAt.toLocalDateTime(), rs.getString("abnormal_reason"), nextTickAt == null ? null : nextTickAt.toLocalDateTime(), completedAt == null ? null : completedAt.toLocalDateTime(), updatedAt == null ? null : updatedAt.toLocalDateTime());
   }
 
   private ConfigRow mapConfig(ResultSet rs, int rowNum) throws SQLException {
@@ -816,7 +823,7 @@ class AdminRepository {
 
   record UserRow(Long accountId, Long userId, String nickname, String avatarUrl, String phone, String email, String status, long addressCount, long orderCount, LocalDateTime createdAt) {}
 
-  record DeliveryTaskRow(Long taskId, Long orderId, String orderNo, String storeName, String currentStage, String currentStageText, boolean autoAdvanceEnabled, LocalDateTime pausedAt, String abnormalReason, LocalDateTime nextTickAt, LocalDateTime completedAt, LocalDateTime updatedAt) {}
+  record DeliveryTaskRow(Long taskId, Long orderId, Long userId, BigDecimal payableAmount, String orderNo, String storeName, String currentStage, String currentStageText, boolean autoAdvanceEnabled, LocalDateTime pausedAt, String abnormalReason, LocalDateTime nextTickAt, LocalDateTime completedAt, LocalDateTime updatedAt) {}
 
   record ConfigRow(String configKey, String configValue, String remark, LocalDateTime updatedAt) {}
 

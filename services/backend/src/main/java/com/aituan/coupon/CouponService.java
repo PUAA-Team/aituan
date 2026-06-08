@@ -5,8 +5,11 @@ import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUserContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +25,10 @@ public class CouponService {
   // ===== 用户端 =====
 
   // status: usable / used / expired
+  @Transactional
   List<UserCouponView> myCoupons(String status) {
     long userId = CurrentUserContext.required().userId();
+    refreshWeeklyMemberCoupons(userId);
     couponRepository.expireOverdue(userId);
     String dbStatus = switch (status == null ? "usable" : status) {
       case "used" -> "used";
@@ -50,6 +55,9 @@ public class CouponService {
     long userId = CurrentUserContext.required().userId();
     CouponRepository.CouponTemplateRow t = couponRepository.findTemplateForUpdate(templateId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if ("member_weekly".equals(t.businessScope())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "会员周券会自动发放，无需手动领取");
+    }
     if (!"enabled".equals(t.status())) {
       throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "优惠券已下架");
     }
@@ -81,7 +89,26 @@ public class CouponService {
     }).toList();
   }
 
-  // ===== 供成员C交易模块跨包调用 =====
+  // ===== 供其他业务模块跨包调用 =====
+
+  @Transactional
+  public void refreshWeeklyMemberCoupons(long userId) {
+    couponRepository.expireOverdue(userId);
+    String levelCode = couponRepository.findCurrentLevelCode(userId).orElse(null);
+    if (levelCode == null) {
+      return;
+    }
+    LocalDate weekStart = currentWeekStart();
+    long batchId = getOrCreateWeeklyBatch(userId, weekStart, levelCode);
+    for (CouponRepository.WeeklyCouponRuleRow rule : couponRepository.listWeeklyRules(levelCode)) {
+      for (int seq = 1; seq <= rule.issueQuantity(); seq++) {
+        if (!couponRepository.insertWeeklyIssue(batchId, rule.id(), seq)) {
+          continue;
+        }
+        issueWeeklyCoupon(userId, batchId, rule, seq);
+      }
+    }
+  }
 
   // 试算某券对订单金额的抵扣
   public CouponCalcResult calcDiscount(Long userId, Long userCouponId, BigDecimal orderAmount) {
@@ -160,6 +187,37 @@ public class CouponService {
   }
 
   // ===== 内部计算与转换 =====
+
+  private long getOrCreateWeeklyBatch(long userId, LocalDate weekStart, String levelCode) {
+    Optional<Long> existing = couponRepository.findWeeklyBatch(userId, weekStart);
+    if (existing.isPresent()) {
+      return existing.get();
+    }
+    try {
+      return couponRepository.insertWeeklyBatch(userId, weekStart, levelCode);
+    } catch (DuplicateKeyException ignored) {
+      return couponRepository.findWeeklyBatch(userId, weekStart).orElseThrow();
+    }
+  }
+
+  private void issueWeeklyCoupon(long userId, long batchId, CouponRepository.WeeklyCouponRuleRow rule, int seq) {
+    CouponRepository.CouponTemplateRow template = couponRepository.findTemplateForUpdate(rule.templateId()).orElse(null);
+    if (template == null || !"enabled".equals(template.status())) {
+      couponRepository.deleteWeeklyIssue(batchId, rule.id(), seq);
+      return;
+    }
+    if (couponRepository.incrementIssuedIfAvailable(template.id()) == 0) {
+      couponRepository.deleteWeeklyIssue(batchId, rule.id(), seq);
+      return;
+    }
+    Long userCouponId = couponRepository.insertUserCoupon(userId, template, LocalDateTime.now().plusDays(7));
+    couponRepository.attachWeeklyIssueCoupon(batchId, rule.id(), seq, userCouponId);
+  }
+
+  private LocalDate currentWeekStart() {
+    LocalDate today = LocalDate.now();
+    return today.minusDays(today.getDayOfWeek().getValue() - 1L);
+  }
 
   private BigDecimal computeDiscount(String type, BigDecimal faceValue, BigDecimal threshold, BigDecimal orderAmount) {
     if (orderAmount == null || faceValue == null) {

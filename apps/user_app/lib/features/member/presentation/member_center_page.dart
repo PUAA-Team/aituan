@@ -47,6 +47,9 @@ class _MemberCenterPageState extends State<MemberCenterPage> {
             else
               for (final benefit in _info!.benefits)
                 MemberBenefitTile(benefit: benefit),
+            const SectionHeader(title: '成长规则'),
+            const SizedBox(height: 8),
+            const _RuleCard(),
           ],
         ],
       ),
@@ -175,6 +178,49 @@ class _GrowthCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RuleCard extends StatelessWidget {
+  const _RuleCard();
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        _RuleLine('消费成长值', '订单完成后按实付金额累计，1 元获得 1 成长值'),
+        Divider(),
+        _RuleLine('评价成长值', '首次发表订单评价获得 3 成长值'),
+        Divider(),
+        _RuleLine('等级门槛', '白银0、黄金300、白金1000、钻石3000、红钻10000、黑钻30000'),
+        Divider(),
+        _RuleLine('每周会员券', '每周按当前等级自动刷新，有效期 7 天'),
+      ],
+    ),
+  );
+}
+
+class _RuleLine extends StatelessWidget {
+  const _RuleLine(this.title, this.desc);
+
+  final String title;
+  final String desc;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 86,
+          child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(desc, style: Theme.of(context).textTheme.bodySmall)),
+      ],
+    ),
+  );
 }
 
 class _ErrorCard extends StatelessWidget {

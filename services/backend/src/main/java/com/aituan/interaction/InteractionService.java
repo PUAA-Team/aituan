@@ -7,6 +7,7 @@ import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.member.MemberService;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,10 +21,12 @@ class InteractionService {
 
   private final InteractionRepository interactionRepository;
   private final JdbcTemplate jdbcTemplate;
+  private final MemberService memberService;
 
-  InteractionService(InteractionRepository interactionRepository, JdbcTemplate jdbcTemplate) {
+  InteractionService(InteractionRepository interactionRepository, JdbcTemplate jdbcTemplate, MemberService memberService) {
     this.interactionRepository = interactionRepository;
     this.jdbcTemplate = jdbcTemplate;
+    this.memberService = memberService;
   }
 
   // ============ 用户端 ============
@@ -80,6 +83,7 @@ class InteractionService {
           String imageUrls = joinList(request.imageUrls());
           Long reviewId = interactionRepository.insertReview(userId, order, request, labels, imageUrls);
           interactionRepository.markOrderReviewed(orderId);
+          memberService.addReviewGrowth(userId, reviewId);
           return interactionRepository.findReviewById(reviewId)
               .map(row -> toUserReviewView(row, userId))
               .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));

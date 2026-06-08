@@ -169,7 +169,7 @@ class AuthRepository {
     jdbcTemplate.update(
         """
         insert into user_profile(account_id, nickname, avatar_url, register_source, member_level_name, growth_value, status)
-        values (?, ?, '', 'app', '普通会员', 0, 'normal')
+        values (?, ?, '', 'app', '白银会员', 0, 'normal')
         """,
         accountId,
         nickname);

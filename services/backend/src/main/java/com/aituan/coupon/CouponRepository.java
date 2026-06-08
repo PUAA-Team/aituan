@@ -3,12 +3,15 @@ package com.aituan.coupon;
 import static com.aituan.common.jdbc.JdbcGeneratedKeys.insertAndReturnId;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -36,11 +39,12 @@ class CouponRepository {
     return jdbcTemplate.query(templateSelect() + " where is_deleted = 0 order by id desc", this::mapTemplate);
   }
 
-  // 可领取：启用、未结束、仍有库存
+  // 可领取：启用、未结束、仍有库存；会员周券只自动发放，不出现在手动领取列表。
   List<CouponTemplateRow> listClaimableTemplates() {
     return jdbcTemplate.query(
         templateSelect() + """
          where status = 'enabled' and is_deleted = 0
+           and business_scope <> 'member_weekly'
            and (valid_kind = 'relative' or valid_end is null or valid_end >= current_timestamp)
            and (total_qty = 0 or issued_qty < total_qty)
          order by id asc
@@ -87,8 +91,9 @@ class CouponRepository {
     return count == null ? 0 : count;
   }
 
-  void insertUserCoupon(long userId, CouponTemplateRow t, LocalDateTime expireAt) {
-    jdbcTemplate.update(
+  Long insertUserCoupon(long userId, CouponTemplateRow t, LocalDateTime expireAt) {
+    return insertAndReturnId(
+        jdbcTemplate,
         """
         insert into user_coupon(template_id, user_id, expire_at, type_snapshot, face_value_snapshot, threshold_snapshot)
         values (?, ?, ?, ?, ?, ?)
@@ -105,6 +110,98 @@ class CouponRepository {
         where id = ? and is_deleted = 0 and (total_qty = 0 or issued_qty < total_qty)
         """,
         templateId);
+  }
+
+  Optional<String> findCurrentLevelCode(long userId) {
+    List<String> rows = jdbcTemplate.query(
+        """
+        select ml.level_code
+        from user_profile p
+        join member_level ml on ml.min_growth_value <= p.growth_value and ml.status = 'enabled' and ml.is_deleted = 0
+        where p.id = ? and p.is_deleted = 0
+        order by ml.min_growth_value desc, ml.id desc
+        limit 1
+        """,
+        (rs, rowNum) -> rs.getString("level_code"),
+        userId);
+    return rows.stream().findFirst();
+  }
+
+  List<WeeklyCouponRuleRow> listWeeklyRules(String levelCode) {
+    return jdbcTemplate.query(
+        """
+        select id, level_code, template_id, issue_quantity, sort_order, status
+        from member_weekly_coupon_rule
+        where level_code = ? and status = 'enabled' and is_deleted = 0
+        order by sort_order asc, id asc
+        """,
+        this::mapWeeklyRule,
+        levelCode);
+  }
+
+  Optional<Long> findWeeklyBatch(long userId, LocalDate weekStart) {
+    List<Long> rows = jdbcTemplate.query(
+        """
+        select id from member_weekly_coupon_batch
+        where user_id = ? and week_start_date = ? and is_deleted = 0
+        limit 1
+        """,
+        (rs, rowNum) -> rs.getLong("id"),
+        userId,
+        Date.valueOf(weekStart));
+    return rows.stream().findFirst();
+  }
+
+  Long insertWeeklyBatch(long userId, LocalDate weekStart, String levelCode) {
+    return insertAndReturnId(
+        jdbcTemplate,
+        """
+        insert into member_weekly_coupon_batch(user_id, week_start_date, level_code)
+        values (?, ?, ?)
+        """,
+        userId,
+        Date.valueOf(weekStart),
+        levelCode);
+  }
+
+  boolean insertWeeklyIssue(long batchId, long ruleId, int seqNo) {
+    try {
+      jdbcTemplate.update(
+          """
+          insert into member_weekly_coupon_issue(batch_id, rule_id, seq_no)
+          values (?, ?, ?)
+          """,
+          batchId,
+          ruleId,
+          seqNo);
+      return true;
+    } catch (DuplicateKeyException ignored) {
+      return false;
+    }
+  }
+
+  void attachWeeklyIssueCoupon(long batchId, long ruleId, int seqNo, long userCouponId) {
+    jdbcTemplate.update(
+        """
+        update member_weekly_coupon_issue
+        set user_coupon_id = ?
+        where batch_id = ? and rule_id = ? and seq_no = ? and is_deleted = 0
+        """,
+        userCouponId,
+        batchId,
+        ruleId,
+        seqNo);
+  }
+
+  void deleteWeeklyIssue(long batchId, long ruleId, int seqNo) {
+    jdbcTemplate.update(
+        """
+        delete from member_weekly_coupon_issue
+        where batch_id = ? and rule_id = ? and seq_no = ? and user_coupon_id is null
+        """,
+        batchId,
+        ruleId,
+        seqNo);
   }
 
   List<UserCouponRow> listUserCoupons(long userId, String status) {
@@ -187,6 +284,16 @@ class CouponRepository {
         rs.getInt("per_user_limit"), rs.getString("status"));
   }
 
+  private WeeklyCouponRuleRow mapWeeklyRule(ResultSet rs, int rowNum) throws SQLException {
+    return new WeeklyCouponRuleRow(
+        rs.getLong("id"),
+        rs.getString("level_code"),
+        rs.getLong("template_id"),
+        rs.getInt("issue_quantity"),
+        rs.getInt("sort_order"),
+        rs.getString("status"));
+  }
+
   private UserCouponRow mapUserCoupon(ResultSet rs, int rowNum) throws SQLException {
     return new UserCouponRow(
         rs.getLong("id"), rs.getLong("template_id"), rs.getLong("user_id"), rs.getString("status"),
@@ -202,6 +309,8 @@ class CouponRepository {
   record CouponTemplateRow(Long id, String name, String type, BigDecimal faceValue, BigDecimal thresholdAmount,
                            String businessScope, String validKind, LocalDateTime validStart, LocalDateTime validEnd,
                            Integer validDays, int totalQty, int issuedQty, int perUserLimit, String status) {}
+
+  record WeeklyCouponRuleRow(Long id, String levelCode, Long templateId, int issueQuantity, int sortOrder, String status) {}
 
   record UserCouponRow(Long id, Long templateId, Long userId, String status, LocalDateTime claimedAt,
                        LocalDateTime expireAt, LocalDateTime usedAt, Long usedOrderId, String typeSnapshot,

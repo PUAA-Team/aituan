@@ -48,14 +48,12 @@ class _MessagePageState extends State<MessagePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           children: [
-            Text('消息', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 4),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    '订单状态、评价回复、客服会话、投诉进度都会在这里展示',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    '消息',
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
                 TextButton(
@@ -66,8 +64,6 @@ class _MessagePageState extends State<MessagePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _QuickActions(onReturned: _load),
             const SizedBox(height: 12),
             _GroupTabsBar(
               groups: _groups,
@@ -162,39 +158,6 @@ class _MessagePageState extends State<MessagePage> {
       if (mounted) await _load();
     }
   }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onReturned});
-
-  final Future<void> Function() onReturned;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: () async {
-            await Navigator.pushNamed(context, Routes.supportSessions);
-            await onReturned();
-          },
-          icon: const Icon(Icons.support_agent),
-          label: const Text('我的咨询'),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: () async {
-            await Navigator.pushNamed(context, Routes.complaintList);
-            await onReturned();
-          },
-          icon: const Icon(Icons.report_outlined),
-          label: const Text('投诉进度'),
-        ),
-      ),
-    ],
-  );
 }
 
 class _GroupTab {
