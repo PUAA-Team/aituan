@@ -112,6 +112,8 @@
 
 `./docs/stage6-memberE/E修改.md`
 
+`./docs/stage6-memberE/AI助手交付说明.md`
+
 ### 8. Stage 6 分工 A 实施文档（会员 / 优惠券 / 账号资产）
 
 `./docs/stage6/分工A-账号与用户资产会员消息实施计划.md`
