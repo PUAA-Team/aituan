@@ -92,7 +92,7 @@ class SupportService {
     if (shouldTransferToHuman(content) && "platform".equals(row.serviceScope())) {
       transferToHuman(row);
     } else {
-      autoReplyIfMatched(row, content);
+      autoReplyIfMatched(row, content, current);
     }
     return supportRepository.findMessageById(messageId)
         .map(this::toMessageView)
@@ -335,7 +335,7 @@ class SupportService {
         row.enabled(), row.createdAt(), row.updatedAt());
   }
 
-  private void autoReplyIfMatched(SupportRepository.SessionRow row, String content) {
+  private void autoReplyIfMatched(SupportRepository.SessionRow row, String content, CurrentUser currentUser) {
     String normalized = content == null ? "" : content.trim();
     if (normalized.isEmpty()) return;
     String reply = null;
@@ -345,7 +345,7 @@ class SupportService {
       if (!"ai".equals(row.assistantMode())) return;
       senderType = "platform";
       senderId = 0L;
-      reply = aiSupportService.reply(normalized);
+      reply = aiSupportService.reply(currentUser, row, normalized);
     } else {
       for (SupportRepository.AutoReplyRuleRow rule : supportRepository.listEnabledAutoReplyRules(row.merchantId())) {
         if (matchesRule(normalized, rule.keywords())) {

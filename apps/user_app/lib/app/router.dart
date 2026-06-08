@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/route_constants.dart';
 import '../features/address/presentation/address_edit_page.dart';
 import '../features/address/presentation/address_list_page.dart';
+import '../features/assistant/presentation/assistant_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/splash_page.dart';
 import '../features/checkout/presentation/checkout_page.dart';
@@ -64,6 +65,7 @@ class AppRouter {
     Routes.reviewPublish,
     Routes.myReviews,
     Routes.reviewDetail,
+    Routes.aiAssistant,
     Routes.supportSessions,
     Routes.supportChat,
     Routes.complaintList,
@@ -144,6 +146,7 @@ class AppRouter {
         ReviewDetailPage(reviewId: _intArg(settings.arguments)),
         settings,
       ),
+      Routes.aiAssistant => _page(const AssistantPage(), settings),
       Routes.supportSessions => _page(
         SupportSessionsPage(
           launchArgs: settings.arguments is SupportLaunchArgs

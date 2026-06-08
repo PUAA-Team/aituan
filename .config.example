@@ -2,6 +2,15 @@
 # 公开部署必须设置强随机 JWT secret。
 aituan.security.jwt-secret=change-me-to-a-long-random-secret
 
+# AI 助手：复制到 .config 后填写真实 key；不要提交真实密钥。
+aituan.ai.enabled=false
+aituan.ai.api-url=http://cliapi.2b.gs
+aituan.ai.api-key=
+aituan.ai.model=pp/gpt-5.5
+aituan.ai.timeout-seconds=20
+aituan.ai.max-tokens=800
+aituan.ai.temperature=0.25
+
 # 邮箱验证码：服务器环境建议开启 SMTP，并关闭 debug 明文返回验证码。
 aituan.mail.enabled=false
 aituan.mail.debug-return-code=false

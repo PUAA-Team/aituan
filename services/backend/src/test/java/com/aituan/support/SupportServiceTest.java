@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 class SupportServiceTest {
 
   @Autowired private SupportService supportService;
+  @Autowired private AiSupportService aiSupportService;
 
   @AfterEach
   void cleanup() {
@@ -210,11 +211,9 @@ class SupportServiceTest {
 
   @Test
   void platformAssistantUsesDifferentKeywordReplies() {
-    AiSupportService ai = new AiSupportService();
-
-    assertThat(ai.reply("配送太慢了，多久能到")).contains("配送").contains("转人工");
-    assertThat(ai.reply("我要退款，订单想取消")).contains("退款").contains("转人工");
-    assertThat(ai.reply("我要投诉商家服务态度")).contains("投诉").contains("投诉入口");
-    assertThat(ai.reply("能开发票吗")).contains("发票").contains("抬头");
+    assertThat(aiSupportService.localKeywordReply("配送太慢了，多久能到")).contains("配送").contains("转人工");
+    assertThat(aiSupportService.localKeywordReply("我要退款，订单想取消")).contains("退款").contains("转人工");
+    assertThat(aiSupportService.localKeywordReply("我要投诉商家服务态度")).contains("投诉").contains("投诉入口");
+    assertThat(aiSupportService.localKeywordReply("能开发票吗")).contains("发票").contains("抬头");
   }
 }

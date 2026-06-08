@@ -112,6 +112,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const Divider(),
                   _ToolRow(
+                    icon: Icons.auto_awesome,
+                    title: '爱团助手',
+                    onTap: () => _openAndRefresh(Routes.aiAssistant),
+                  ),
+                  const Divider(),
+                  _ToolRow(
                     icon: Icons.support_agent,
                     title: '客服咨询',
                     onTap: () => _openAndRefresh(Routes.supportSessions),

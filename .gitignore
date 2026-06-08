@@ -22,6 +22,7 @@ apps/user_app/build/
 # Local runtime/build handoff directories
 .aituan-local/
 .config
+.config.properties
 
 # Server deployment local files
 /deploy/.env
