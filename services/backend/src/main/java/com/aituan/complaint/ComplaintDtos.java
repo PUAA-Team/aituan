@@ -24,6 +24,7 @@ record ComplaintView(
     String orderNo,
     Long storeId,
     String storeName,
+    Long merchantId,
     String category,
     String title,
     String detail,

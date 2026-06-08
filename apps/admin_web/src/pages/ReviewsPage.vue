@@ -52,9 +52,9 @@ async function audit(action: 'pass' | 'hide' | 'restore') {
   try {
     submitting.value = true;
     const updated = await auditGovernanceReview(active.value.id, action, auditRemark.value);
-    active.value = updated;
     emit('notice', `已${actionLabel(action)}`);
     await load();
+    if (active.value) active.value = updated;
   } catch (error) {
     emit('notice', error instanceof Error ? error.message : String(error));
   } finally {
@@ -73,6 +73,11 @@ function statusBadge(status: string) {
 
 function timeText(value: string | undefined) {
   return value ? value.replace('T', ' ').slice(0, 16) : '-';
+}
+
+function ratingText(rating: number | undefined) {
+  const value = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return value > 0 ? '★'.repeat(value) : '暂无评分';
 }
 </script>
 
@@ -106,7 +111,7 @@ function timeText(value: string | undefined) {
             :class="{ active: active && active.id === row.id }"
             @click="openReview(row)"
           >
-            <td>{{ '★'.repeat(row.rating) }}</td>
+            <td>{{ ratingText(row.rating) }}</td>
             <td>{{ row.storeName }}<span>{{ row.orderTitle }}</span></td>
             <td>{{ row.userMaskedNickname || '匿名' }}</td>
             <td>{{ row.content }}<span v-if="(row.reportedCount || 0) > 0">举报 {{ row.reportedCount }} 次</span></td>
@@ -125,7 +130,7 @@ function timeText(value: string | undefined) {
       <div v-if="!active" class="empty-card">在左侧选择评价后执行审核</div>
       <div v-else class="detail">
         <div class="detail-head">
-          <span class="rating">{{ '★'.repeat(active.rating) }}</span>
+          <span class="rating">{{ ratingText(active.rating) }}</span>
           <strong>{{ active.userMaskedNickname || '匿名' }}</strong>
           <small>{{ timeText(active.createdAt) }}</small>
         </div>

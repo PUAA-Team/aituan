@@ -228,7 +228,7 @@ class _ReviewPublishPageState extends State<ReviewPublishPage> {
       ),
       bottomNavigationBar: AppBottomActionBar(
         primaryText: _submitting ? '提交中…' : '提交评价',
-        onPrimary: _submitting ? null : _submit,
+        onPrimary: _submitting || _uploading ? null : _submit,
       ),
     );
   }

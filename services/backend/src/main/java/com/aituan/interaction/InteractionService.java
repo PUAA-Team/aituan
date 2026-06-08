@@ -71,6 +71,12 @@ class InteractionService {
   @Transactional
   ReviewView submitReview(long orderId, ReviewCreateRequest request) {
     long userId = requireUser().userId();
+    if (request.rating() == null) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "评分不能为空");
+    }
+    if (request.rating() < 1 || request.rating() > 5) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "评分必须在 1 到 5 之间");
+    }
     InteractionRepository.OrderReviewRow order = interactionRepository.findOrderForReview(userId, orderId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!DisplayOrderStatus.USED.code().equals(order.displayStatus())) {
@@ -114,13 +120,20 @@ class InteractionService {
     CurrentUser current = requireUser();
     InteractionRepository.ReviewRow row = interactionRepository.findReviewById(reviewId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!REVIEW_STATUS_PUBLISHED.equals(row.status())) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
     String reason = request.reason() == null ? null : request.reason().trim();
     if (reason == null || reason.isEmpty()) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "举报原因不能为空");
     }
+    var existing = interactionRepository.findActiveReport(reviewId, current.userId());
+    if (existing.isPresent()) {
+      return new ReviewReportView(existing.get().id(), existing.get().status());
+    }
     Long reportId = interactionRepository.insertReport(
         reviewId, current.userId(), reason, request.detail(), joinList(request.evidenceUrls()));
-    interactionRepository.incrementReportedCount(reviewId);
+    interactionRepository.refreshReportedCount(reviewId);
     interactionRepository.insertSysAuditLog(
         "user", current.accountId(), "review_report", "review", reviewId,
         "举报评价 " + reviewId + "：" + reason);
@@ -203,6 +216,7 @@ class InteractionService {
     interactionRepository.insertReviewAuditLog(reviewId, action, fromStatus, toStatus, admin.accountId(), request.remark());
     if ("pass".equals(action) || "hide".equals(action)) {
       interactionRepository.markReportsHandled(reviewId, admin.accountId());
+      interactionRepository.refreshReportedCount(reviewId);
     }
     interactionRepository.insertSysAuditLog(
         "admin", admin.accountId(), "review_audit_" + action, "review", reviewId,

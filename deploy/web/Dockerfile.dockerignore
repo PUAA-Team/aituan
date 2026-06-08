@@ -1,0 +1,16 @@
+**
+!deploy/
+!deploy/web/
+!deploy/web/Dockerfile
+!deploy/nginx/
+!deploy/nginx/conf.d/
+!deploy/nginx/conf.d/default.conf
+!deploy/artifacts/
+!deploy/artifacts/landing/
+!deploy/artifacts/landing/**
+!deploy/artifacts/user-web/
+!deploy/artifacts/user-web/**
+!deploy/artifacts/merchant-web/
+!deploy/artifacts/merchant-web/**
+!deploy/artifacts/admin-web/
+!deploy/artifacts/admin-web/**

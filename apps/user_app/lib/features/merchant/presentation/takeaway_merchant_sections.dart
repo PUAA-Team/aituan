@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../home/data/backend_app_repository.dart';
 import '../../review/data/review_repository.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
@@ -126,10 +128,14 @@ class _TakeawayReviewPanelState extends State<TakeawayReviewPanel> {
 }
 
 String _ratingLine(MerchantModel merchant, List<ReviewSummary> reviews) {
-  final rating = merchant.rating <= 0 ? '暂无评分' : '${merchant.rating.toStringAsFixed(1)}分';
+  final rating = merchant.rating <= 0
+      ? '暂无评分'
+      : '${merchant.rating.toStringAsFixed(1)}分';
   if (reviews.isEmpty) return '$rating · 暂无评价';
   final labels = reviews.expand((review) => review.labels).take(3).join(' · ');
-  return labels.isEmpty ? '$rating · ${reviews.length}条评价' : '$rating · $labels';
+  return labels.isEmpty
+      ? '$rating · ${reviews.length}条评价'
+      : '$rating · $labels';
 }
 
 class _ReviewCard extends StatelessWidget {
@@ -139,54 +145,130 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                review.userMaskedNickname ?? '爱团用户',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+    child: InkWell(
+      onTap: () => Navigator.pushNamed(
+        context,
+        Routes.reviewDetail,
+        arguments: review.id,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  review.userMaskedNickname ?? '爱团用户',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
-            ),
-            Text(
-              '${review.rating}星',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.w700,
+              Text(
+                '${review.rating}星',
+                style: const TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            review.content,
+            style: const TextStyle(color: AppColors.textSub),
+          ),
+          if (review.imageUrls.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _ReviewImageGrid(urls: review.imageUrls),
+          ],
+          if (review.labels.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final label in review.labels)
+                  Chip(
+                    label: Text(label),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 6),
-        Text(review.content, style: const TextStyle(color: AppColors.textSub)),
-        if (review.labels.isNotEmpty) ...[
+          if (review.replyContent != null &&
+              review.replyContent!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.soft,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('商家回复：${review.replyContent!}'),
+            ),
+          ],
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+          Row(
             children: [
-              for (final label in review.labels)
-                Chip(label: Text(label), visualDensity: VisualDensity.compact),
+              const Icon(Icons.thumb_up_alt_outlined, size: 16, color: AppColors.textSub),
+              const SizedBox(width: 4),
+              Text(
+                '${review.helpfulCount} 人觉得有用',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSub,
+                ),
+              ),
             ],
           ),
         ],
-        if (review.replyContent != null && review.replyContent!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.soft,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text('商家回复：${review.replyContent!}'),
-          ),
-        ],
-      ],
+      ),
     ),
   );
+}
+
+class _ReviewImageGrid extends StatelessWidget {
+  const _ReviewImageGrid({required this.urls});
+
+  final List<String> urls;
+
+  @override
+  Widget build(BuildContext context) => GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 3,
+    crossAxisSpacing: 6,
+    mainAxisSpacing: 6,
+    children: [
+      for (final url in urls.take(6))
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: _ReviewImage(url: url),
+        ),
+    ],
+  );
+}
+
+class _ReviewImage extends StatelessWidget {
+  const _ReviewImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = backendRepository.resolveAssetUrl(url);
+    if (resolved == null) {
+      return Container(color: Colors.grey.shade200);
+    }
+    return Image.network(
+      resolved,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+      ),
+    );
+  }
 }
 
 class TakeawayMerchantInfoPanel extends StatelessWidget {

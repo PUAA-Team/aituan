@@ -72,9 +72,11 @@ class SupportServiceTest {
   @Test
   void userMessageTriggersKeywordAutoReply() {
     TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(1L, "商家客服咨询", null));
     SupportMessageView sent = supportService.userSendMessage(
-        1L, new SupportMessageCreateRequest("配送还要多久，能催一下吗"));
-    SupportSessionDetailView detail = supportService.userSessionDetail(1L);
+        session.id(), new SupportMessageCreateRequest("配送还要多久，能催一下吗"));
+    SupportSessionDetailView detail = supportService.userSessionDetail(session.id());
 
     assertThat(sent.content()).contains("配送");
     assertThat(detail.messages())
@@ -83,6 +85,51 @@ class SupportServiceTest {
           assertThat(message.messageKind()).isEqualTo("auto_reply");
           assertThat(message.content()).contains("催单");
         });
+  }
+
+  @Test
+  void merchantCanCreateUpdateAndUseOwnAutoReplyRule() {
+    TestAuthSupport.loginAsMerchant(2L);
+
+    SupportAutoReplyRuleView created = supportService.createMerchantAutoReplyRule(
+        new SupportAutoReplyRuleUpsertRequest("停车,车位", "门店附近有停车位，请按导航到店。", true));
+    assertThat(created.keywords()).isEqualTo("停车,车位");
+    assertThat(created.replyContent()).contains("停车位");
+    assertThat(created.enabled()).isTrue();
+
+    SupportAutoReplyRuleView updated = supportService.updateMerchantAutoReplyRule(
+        created.id(),
+        new SupportAutoReplyRuleUpsertRequest("排队,等位", "当前可能需要等位，请到店后取号。", true));
+    assertThat(updated.keywords()).isEqualTo("排队,等位");
+
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(1L, "商家客服咨询", null));
+    supportService.userSendMessage(session.id(), new SupportMessageCreateRequest("请问现在需要排队吗"));
+    SupportSessionDetailView detail = supportService.userSessionDetail(session.id());
+
+    assertThat(detail.messages())
+        .anySatisfy(message -> {
+          assertThat(message.senderType()).isEqualTo("merchant");
+          assertThat(message.messageKind()).isEqualTo("auto_reply");
+          assertThat(message.content()).contains("取号");
+        });
+  }
+
+  @Test
+  void merchantDisabledAutoReplyRuleDoesNotReply() {
+    TestAuthSupport.loginAsMerchant(2L);
+    supportService.createMerchantAutoReplyRule(
+        new SupportAutoReplyRuleUpsertRequest("停车", "有停车位", false));
+
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(1L, "商家客服咨询", null));
+    supportService.userSendMessage(session.id(), new SupportMessageCreateRequest("停车方便吗"));
+    SupportSessionDetailView detail = supportService.userSessionDetail(session.id());
+
+    assertThat(detail.messages())
+        .noneSatisfy(message -> assertThat(message.content()).isEqualTo("有停车位"));
   }
 
   @Test
@@ -138,6 +185,27 @@ class SupportServiceTest {
         session.id(), new SupportMessageCreateRequest("平台人工已接入，请补充订单号"));
     assertThat(reply.senderType()).isEqualTo("platform");
     assertThat(reply.messageKind()).isEqualTo("text");
+  }
+
+  @Test
+  void adminReplyToAiPlatformSessionSwitchesToHumanAndStopsAutoReplies() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(null, null, null));
+
+    TestAuthSupport.loginAsAdmin(3L);
+    supportService.adminSendPlatformMessage(
+        session.id(), new SupportMessageCreateRequest("平台人工已接入，请补充订单号"));
+
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionDetailView afterAdminReply = supportService.userSessionDetail(session.id());
+    assertThat(afterAdminReply.session().assistantMode()).isEqualTo("human");
+
+    supportService.userSendMessage(session.id(), new SupportMessageCreateRequest("我要退款，订单想取消"));
+    SupportSessionDetailView afterUserMessage = supportService.userSessionDetail(session.id());
+
+    assertThat(afterUserMessage.messages())
+        .noneSatisfy(message -> assertThat(message.messageKind()).isEqualTo("auto_reply"));
   }
 
   @Test

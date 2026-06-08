@@ -80,6 +80,12 @@ async function send() {
   }
 }
 
+function submitOnEnter(event: KeyboardEvent) {
+  if (event.shiftKey || event.isComposing) return;
+  event.preventDefault();
+  void send();
+}
+
 function openComplaintEntry() {
   const query = new URLSearchParams({ page: 'complaints' });
   if (active.value?.relatedOrderNo) {
@@ -94,6 +100,16 @@ function openComplaintEntry() {
 function modeLabel(session: AdminSupportSessionView) {
   if (session.platformInterventionStatus === 'active') return '商家申请介入';
   return session.assistantMode === 'human' ? '用户转人工' : 'AI 接待';
+}
+
+function senderLabel(type: string) {
+  const map: Record<string, string> = {
+    user: '用户',
+    merchant: '商家客服',
+    platform: '平台客服',
+    system: '系统消息',
+  };
+  return map[type] || type;
 }
 
 function timeText(value: string | undefined) {
@@ -158,7 +174,7 @@ function timeText(value: string | undefined) {
             :class="msg.senderType"
           >
             <p>{{ msg.content }}</p>
-            <small>{{ msg.senderType }} · {{ timeText(msg.createdAt) }}</small>
+            <small>{{ senderLabel(msg.senderType) }} · {{ timeText(msg.createdAt) }}</small>
           </div>
           <div v-if="messages.length === 0" class="empty-card">暂无消息</div>
         </div>
@@ -168,6 +184,7 @@ function timeText(value: string | undefined) {
             rows="3"
             :disabled="active.status !== 'open'"
             :placeholder="active.status === 'open' ? '输入平台人工回复…' : '会话已关闭'"
+            @keydown.enter="submitOnEnter"
           ></textarea>
           <button class="primary-btn" :disabled="sending || active.status !== 'open'">
             {{ sending ? '发送中' : '发送' }}

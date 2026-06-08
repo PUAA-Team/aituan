@@ -56,6 +56,20 @@ class ComplaintServiceTest {
   }
 
   @Test
+  void closeBeforeResolvedShouldBeRejected() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    assertThatThrownBy(() -> complaintService.close(1L, new ComplaintActionRequest("未受理直接关闭")))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
+    assertThatThrownBy(() -> complaintService.close(2L, new ComplaintActionRequest("处理中直接关闭")))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.ORDER_STATE_INVALID));
+  }
+
+  @Test
   void userCanSupplementOpenComplaint() {
     TestAuthSupport.loginAsUser(1L, 1L);
     ComplaintDetailView detail = complaintService.supplement(
@@ -66,5 +80,58 @@ class ComplaintServiceTest {
           assertThat(log.action()).isEqualTo("supplement");
           assertThat(log.remark()).contains("继续跟进");
         });
+  }
+
+  @Test
+  void adminTicketsCanFilterByOrderNoAndStoreNameFromSupportEntry() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    var byOrderNo = complaintService.adminTickets(
+        null, null, "AT202605179011", null, 1, 20);
+    assertThat(byOrderNo.list())
+        .singleElement()
+        .satisfies(ticket -> {
+          assertThat(ticket.ticketNo()).isEqualTo("CP202605170001");
+          assertThat(ticket.orderNo()).isEqualTo("AT202605179011");
+        });
+
+    var byStoreName = complaintService.adminTickets(
+        null, null, null, "光影剧场", 1, 20);
+    assertThat(byStoreName.list())
+        .singleElement()
+        .satisfies(ticket -> {
+          assertThat(ticket.ticketNo()).isEqualTo("CP202605170002");
+          assertThat(ticket.storeName()).isEqualTo("光影剧场");
+        });
+  }
+
+  @Test
+  void merchantCanListOnlyOwnComplaintTickets() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    ComplaintView submitted = complaintService.submit(new ComplaintCreateRequest(
+        9011L,
+        "service",
+        "商家端投诉列表测试",
+        "用户反馈希望商家能在自己的工单页看到",
+        java.util.List.of()));
+
+    TestAuthSupport.loginAsMerchant(2L);
+    var page = complaintService.merchantTickets(null, null, null, 1, 20);
+
+    assertThat(page.list()).anySatisfy(ticket -> {
+      assertThat(ticket.id()).isEqualTo(submitted.id());
+      assertThat(ticket.storeName()).isEqualTo("塔斯汀中国汉堡");
+    });
+    assertThat(page.list()).allSatisfy(ticket -> assertThat(ticket.merchantId()).isEqualTo(1L));
+  }
+
+  @Test
+  void merchantCannotOpenOtherMerchantComplaintTicket() {
+    TestAuthSupport.loginAsMerchant(30L);
+
+    assertThatThrownBy(() -> complaintService.merchantTicketDetail(1L))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.NOT_FOUND));
   }
 }

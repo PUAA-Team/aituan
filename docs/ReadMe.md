@@ -62,7 +62,11 @@
 
 `./docs/stage4/联调问题修复清单.md`
 
-### 5. Stage 5 分工实施文档
+### 5. 服务器部署与运维文档
+
+`./docs/服务器DockerCompose部署完整说明.md`
+
+### 6. Stage 5 分工实施文档
 
 `./docs/stage5/分工C外卖配送实施计划.md`
 
@@ -90,7 +94,7 @@
 
 `./docs/stage5/Stage5-D非外卖差异化与券码预约交付说明.md`
 
-### 6. Stage 6 成员 E 实施文档（评价 / 客服 / 投诉 / 驾驶舱 / 审计）
+### 7. Stage 6 成员 E 实施文档（评价 / 客服 / 投诉 / 驾驶舱 / 审计）
 
 `./docs/stage6-memberE/README.md`
 
@@ -108,7 +112,7 @@
 
 `./docs/stage6-memberE/E修改.md`
 
-### 7. Stage 6 分工 A 实施文档（会员 / 优惠券 / 账号资产）
+### 8. Stage 6 分工 A 实施文档（会员 / 优惠券 / 账号资产）
 
 `./docs/stage6/分工A-账号与用户资产会员消息实施计划.md`
 
@@ -130,7 +134,7 @@
 
 `./docs/stage6/退款流程与图标修复交付说明.md`
 
-### 8. Stage 7 界面重构与会员资产闭环
+### 9. Stage 7 界面重构、会员资产闭环与流水线部署
 
 `./docs/stage7/stage7.md`
 
@@ -140,7 +144,13 @@
 
 `./docs/stage7/第一部分交付说明.md`
 
-### 9. 后续计划与长期待办
+`./docs/stage7/流水线部署与CICD可行性方案.md`
+
+`./docs/stage7/GitHub权限SSH与服务器首次部署准备.md`
+
+`./docs/stage7/CI-CD完整配置教程-aituan域名版.md`
+
+### 10. 后续计划与长期待办
 
 `./docs/后续阶段五人模块分工计划.md`
 

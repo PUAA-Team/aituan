@@ -175,10 +175,33 @@ class InteractionRepository {
         Long.class, reviewId, reporterUserId);
   }
 
-  void incrementReportedCount(long reviewId) {
+  Optional<ReportRow> findActiveReport(long reviewId, long reporterUserId) {
+    List<ReportRow> rows = jdbcTemplate.query(
+        """
+        select id, review_id, reporter_user_id, reason, detail, evidence_urls, status
+        from review_report
+        where review_id = ? and reporter_user_id = ? and status = 'submitted' and is_deleted = 0
+        order by id desc limit 1
+        """,
+        (rs, n) -> new ReportRow(
+            rs.getLong("id"), rs.getLong("review_id"), rs.getLong("reporter_user_id"),
+            rs.getString("reason"), rs.getString("detail"), rs.getString("evidence_urls"),
+            rs.getString("status")),
+        reviewId, reporterUserId);
+    return rows.stream().findFirst();
+  }
+
+  int countActiveReports(long reviewId) {
+    Long count = jdbcTemplate.queryForObject(
+        "select count(1) from review_report where review_id = ? and status = 'submitted' and is_deleted = 0",
+        Long.class, reviewId);
+    return count == null ? 0 : count.intValue();
+  }
+
+  void refreshReportedCount(long reviewId) {
     jdbcTemplate.update(
-        "update review_record set reported_count = reported_count + 1, updated_at = current_timestamp where id = ?",
-        reviewId);
+        "update review_record set reported_count = ?, updated_at = current_timestamp where id = ?",
+        countActiveReports(reviewId), reviewId);
   }
 
   void markReportsHandled(long reviewId, long handlerAccountId) {
@@ -214,7 +237,7 @@ class InteractionRepository {
     args.add(merchantId);
     if (statusFilter != null) {
       if ("reported".equals(statusFilter)) {
-        sql.append(" and r.reported_count > 0 ");
+        sql.append(" and ").append(activeReportExistsSql());
       } else {
         sql.append(" and r.status = ? ");
         args.add(statusFilter);
@@ -236,7 +259,7 @@ class InteractionRepository {
     args.add(merchantId);
     if (statusFilter != null) {
       if ("reported".equals(statusFilter)) {
-        sql.append(" and r.reported_count > 0 ");
+        sql.append(" and ").append(activeReportExistsSql());
       } else {
         sql.append(" and r.status = ? ");
         args.add(statusFilter);
@@ -304,7 +327,7 @@ class InteractionRepository {
       args.add(statusFilter);
     }
     if (Boolean.TRUE.equals(reported)) {
-      sql.append(" and r.reported_count > 0 ");
+      sql.append(" and ").append(activeReportExistsSql());
     }
     Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
     return count == null ? 0 : count;
@@ -319,7 +342,7 @@ class InteractionRepository {
       args.add(statusFilter);
     }
     if (Boolean.TRUE.equals(reported)) {
-      sql.append(" and r.reported_count > 0 ");
+      sql.append(" and ").append(activeReportExistsSql());
     }
     sql.append(" order by r.reported_count desc, r.created_at desc, r.id desc limit ? offset ?");
     args.add(limit);
@@ -349,6 +372,15 @@ class InteractionRepository {
         values (?, ?, ?, ?, ?, ?)
         """,
         actorType, actorId, actionType, targetType, targetId, detail);
+  }
+
+  private String activeReportExistsSql() {
+    return """
+        exists (
+          select 1 from review_report rp
+          where rp.review_id = r.id and rp.status = 'submitted' and rp.is_deleted = 0
+        )
+        """;
   }
 
   // ============ 行映射 ============
@@ -387,4 +419,7 @@ class InteractionRepository {
                    String userNickname, Long userId) {}
 
   record ReplyRow(Long id, Long reviewId, Long merchantId, String content, LocalDateTime repliedAt) {}
+
+  record ReportRow(Long id, Long reviewId, Long reporterUserId, String reason, String detail,
+                   String evidenceUrls, String status) {}
 }

@@ -56,4 +56,28 @@ class SupportMerchantController {
   ApiResponse<List<String>> templates() {
     return ApiResponse.ok(supportService.merchantTemplates());
   }
+
+  @GetMapping("/auto-reply-rules")
+  ApiResponse<List<SupportAutoReplyRuleView>> autoReplyRules() {
+    return ApiResponse.ok(supportService.merchantAutoReplyRules());
+  }
+
+  @PostMapping("/auto-reply-rules")
+  ApiResponse<SupportAutoReplyRuleView> createAutoReplyRule(
+      @Valid @RequestBody SupportAutoReplyRuleUpsertRequest request) {
+    return ApiResponse.ok(supportService.createMerchantAutoReplyRule(request));
+  }
+
+  @PostMapping("/auto-reply-rules/{ruleId}")
+  ApiResponse<SupportAutoReplyRuleView> updateAutoReplyRule(
+      @PathVariable long ruleId,
+      @Valid @RequestBody SupportAutoReplyRuleUpsertRequest request) {
+    return ApiResponse.ok(supportService.updateMerchantAutoReplyRule(ruleId, request));
+  }
+
+  @PostMapping("/auto-reply-rules/{ruleId}/delete")
+  ApiResponse<Void> deleteAutoReplyRule(@PathVariable long ruleId) {
+    supportService.deleteMerchantAutoReplyRule(ruleId);
+    return ApiResponse.ok(null);
+  }
 }

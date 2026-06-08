@@ -65,10 +65,11 @@ const navGroups = computed<NavGroup[]>(() => [
   },
   {
     title: '互动售后',
-    detail: '评价与用户咨询',
+    detail: '评价、咨询与投诉工单',
     items: [
       { key: 'reviews', label: '评价管理', desc: '查看、回复、关注被举报评价', icon: '评' },
       { key: 'sessions', label: '客服会话', desc: '用户咨询、快捷回复模板', icon: '客' },
+      { key: 'complaints', label: '投诉工单', desc: '查看用户投诉与平台处理记录', icon: '诉' },
     ],
   },
 ]);
