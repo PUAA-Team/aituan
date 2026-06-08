@@ -7,7 +7,7 @@ $ReleaseDir = 'D:\aituan_release\backend'
 $BuildDir = 'D:\aituan_build\backend'
 $RuntimeDir = 'D:\aituan_runtime\backend'
 $MavenRepo = 'D:\aituan_cache\m2'
-$JavaHome = 'D:\tools\jdk-17.0.18+8'
+$JavaHome = 'C:\Program Files\Java\jdk-21'
 $JarPath = Join-Path $ReleaseDir 'aituan-backend.jar'
 $LogPath = Join-Path $RuntimeDir 'backend.log'
 

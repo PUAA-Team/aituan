@@ -9,7 +9,9 @@ import com.aituan.message.MessageRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -41,28 +43,39 @@ class DiscoveryService {
         .toList();
     PageResponse<ItemCardView> recommendations = recommendations(1, 12, latitude, longitude);
     long unread = CurrentUserContext.optional()
+        .filter(currentUser -> currentUser.isUser() && currentUser.userId() != null)
         .map(currentUser -> messageRepository.countUnreadMessages(currentUser.userId()))
         .orElseGet(() -> discoveryRepository.countUnreadMessages(1L));
     return new HomeView(modules, recommendations, unread);
   }
 
   PageResponse<ItemCardView> recommendations(int page, int pageSize) {
-    return recommendations(page, pageSize, null, null);
+    return recommendations(page, pageSize, "personalized", null, null);
   }
 
   PageResponse<ItemCardView> recommendations(int page, int pageSize, Double latitude, Double longitude) {
+    return recommendations(page, pageSize, "personalized", latitude, longitude);
+  }
+
+  PageResponse<ItemCardView> recommendations(int page, int pageSize, String sort, Double latitude, Double longitude) {
     int safePageSize = Math.min(Math.max(pageSize, 1), 50);
     long total = discoveryRepository.countRecommendations();
     LocationContext location = locationContext(latitude, longitude);
+    UserPreference preference = userPreference();
+    RecommendationSort recommendationSort = RecommendationSort.from(sort);
     List<DiscoveryRepository.ItemRow> sorted = sortItems(
         discoveryRepository.listRecommendations(0, (int) Math.min(total, Integer.MAX_VALUE)),
-        location);
+        location,
+        preference,
+        recommendationSort);
     List<DiscoveryRepository.ItemRow> spaced = spaceItemsByStore(sorted, 4);
     int fromIndex = Math.max(0, (page - 1) * safePageSize);
     int toIndex = Math.min(spaced.size(), fromIndex + safePageSize);
     List<ItemCardView> pageItems = fromIndex >= spaced.size()
         ? List.of()
-        : spaced.subList(fromIndex, toIndex).stream().map(this::toItemCard).toList();
+        : spaced.subList(fromIndex, toIndex).stream()
+            .map(row -> toItemCard(row, itemReason(row, preference, location, recommendationSort)))
+            .toList();
     return PageResponse.of(pageItems, page, safePageSize, total);
   }
 
@@ -82,8 +95,19 @@ class DiscoveryService {
   }
 
   PageResponse<StoreCardView> search(String keyword, int page, int pageSize, Double latitude, Double longitude) {
+    return search(keyword, page, pageSize, "default", null, latitude, longitude);
+  }
+
+  PageResponse<StoreCardView> search(String keyword, int page, int pageSize, String sort, String businessType, Double latitude, Double longitude) {
+    int safePageSize = Math.min(Math.max(pageSize, 1), 50);
     LocationContext location = locationContext(latitude, longitude);
-    List<DiscoveryRepository.StoreRow> stores = sortStores(discoveryRepository.searchStores(keyword, 50), location);
+    SearchSort searchSort = SearchSort.from(sort);
+    String normalizedBusinessType = normalizeBusinessType(businessType);
+    List<DiscoveryRepository.StoreRow> stores = sortStores(
+        discoveryRepository.searchStores(keyword, normalizedBusinessType, 100),
+        location,
+        searchSort,
+        keyword);
     List<StoreCardView> mapped = stores.stream().map(store -> {
       List<DiscoveryRepository.ItemRow> matchedRows = new java.util.ArrayList<>(discoveryRepository.searchItems(store.id(), keyword, 6));
       if (matchedRows.size() < 6) {
@@ -91,13 +115,15 @@ class DiscoveryService {
         List<Long> preferredCategories = matchedRows.stream().map(DiscoveryRepository.ItemRow::categoryId).distinct().toList();
         matchedRows.addAll(discoveryRepository.listStoreItemsForFill(store.id(), excluded, preferredCategories, 6 - matchedRows.size()));
       }
-      List<ItemCardView> matchedItems = matchedRows.stream().limit(6).map(this::toItemCard).toList();
-      return toStoreCard(store, matchedItems, location, true);
+      List<ItemCardView> matchedItems = matchedRows.stream().limit(6)
+          .map(row -> toItemCard(row, itemSearchReason(row, keyword)))
+          .toList();
+      return toStoreCard(store, matchedItems, location, true, storeReason(store, location, searchSort, keyword));
     }).toList();
-    int fromIndex = Math.max(0, (page - 1) * pageSize);
-    int toIndex = Math.min(mapped.size(), fromIndex + pageSize);
+    int fromIndex = Math.max(0, (page - 1) * safePageSize);
+    int toIndex = Math.min(mapped.size(), fromIndex + safePageSize);
     List<StoreCardView> pageItems = fromIndex >= mapped.size() ? List.of() : mapped.subList(fromIndex, toIndex);
-    return PageResponse.of(pageItems, page, pageSize, mapped.size());
+    return PageResponse.of(pageItems, page, safePageSize, mapped.size());
   }
 
   StoreDetailView storeDetail(long storeId, Double latitude, Double longitude) {
@@ -161,22 +187,27 @@ class DiscoveryService {
   }
 
   private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row) {
-    return toStoreCard(row, List.of(), null, false);
+    return toStoreCard(row, List.of(), null, false, "");
   }
 
   private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, LocationContext location) {
-    return toStoreCard(row, List.of(), location, false);
+    return toStoreCard(row, List.of(), location, false, "");
   }
 
   private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, List<ItemCardView> matchedItems, LocationContext location) {
-    return toStoreCard(row, matchedItems, location, false);
+    return toStoreCard(row, matchedItems, location, false, "");
   }
 
   private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, LocationContext location, boolean localOnly) {
-    return toStoreCard(row, List.of(), location, localOnly);
+    return toStoreCard(row, List.of(), location, localOnly, storeReason(row, location, SearchSort.DEFAULT, ""));
   }
 
-  private StoreCardView toStoreCard(DiscoveryRepository.StoreRow row, List<ItemCardView> matchedItems, LocationContext location, boolean localOnly) {
+  private StoreCardView toStoreCard(
+      DiscoveryRepository.StoreRow row,
+      List<ItemCardView> matchedItems,
+      LocationContext location,
+      boolean localOnly,
+      String recommendReason) {
     MapDistanceService.DistanceEstimate estimate = estimate(row, location, localOnly);
     return new StoreCardView(
         row.id(),
@@ -192,6 +223,7 @@ class DiscoveryService {
         row.address(),
         splitTags(row.tagText()),
         row.coverUrl(),
+        recommendReason,
         estimate == null ? "" : estimate.estimatedTimeText(),
         row.longitude(),
         row.latitude(),
@@ -199,6 +231,10 @@ class DiscoveryService {
   }
 
   private ItemCardView toItemCard(DiscoveryRepository.ItemRow row) {
+    return toItemCard(row, "");
+  }
+
+  private ItemCardView toItemCard(DiscoveryRepository.ItemRow row, String recommendReason) {
     return new ItemCardView(
         row.id(),
         row.title(),
@@ -210,6 +246,7 @@ class DiscoveryService {
         row.originalPrice(),
         row.coverUrl(),
         splitTags(row.tagText()),
+        recommendReason,
         row.stock(),
         row.skuStatus(),
         row.stock() <= 0 || !"on_sale".equals(row.skuStatus()),
@@ -252,16 +289,61 @@ class DiscoveryService {
   }
 
   private List<DiscoveryRepository.StoreRow> sortStores(List<DiscoveryRepository.StoreRow> stores, LocationContext location) {
-    if (location == null) {
-      return stores;
+    return sortStores(stores, location, SearchSort.DEFAULT, "");
+  }
+
+  private List<DiscoveryRepository.StoreRow> sortStores(
+      List<DiscoveryRepository.StoreRow> stores,
+      LocationContext location,
+      SearchSort sort,
+      String keyword) {
+    Comparator<DiscoveryRepository.StoreRow> base = Comparator
+        .comparingInt((DiscoveryRepository.StoreRow row) -> keywordScore(row, keyword))
+        .thenComparing(DiscoveryRepository.StoreRow::monthlySales, Comparator.reverseOrder())
+        .thenComparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
+        .thenComparing(DiscoveryRepository.StoreRow::id);
+    Comparator<DiscoveryRepository.StoreRow> comparator = switch (sort) {
+      case DISTANCE -> location == null
+          ? base
+          : Comparator.comparingDouble((DiscoveryRepository.StoreRow row) -> distanceForSort(row, location))
+              .thenComparing(base);
+      case RATING -> Comparator
+          .comparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
+          .thenComparing(DiscoveryRepository.StoreRow::monthlySales, Comparator.reverseOrder())
+          .thenComparing(DiscoveryRepository.StoreRow::id);
+      case SALES -> Comparator
+          .comparing(DiscoveryRepository.StoreRow::monthlySales, Comparator.reverseOrder())
+          .thenComparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
+          .thenComparing(DiscoveryRepository.StoreRow::id);
+      case PRICE_ASC -> Comparator
+          .comparing(DiscoveryRepository.StoreRow::avgPrice, Comparator.nullsLast(Comparator.naturalOrder()))
+          .thenComparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
+          .thenComparing(DiscoveryRepository.StoreRow::id);
+      case DEFAULT -> location == null
+          ? base
+          : base.thenComparingDouble(row -> distanceForSort(row, location));
+    };
+    return stores.stream().sorted(comparator).toList();
+  }
+
+  private int keywordScore(DiscoveryRepository.StoreRow row, String keyword) {
+    String normalized = normalizeText(keyword);
+    if (normalized.isEmpty()) {
+      return 4;
     }
-    return stores.stream()
-        .sorted(Comparator
-            .comparingDouble((DiscoveryRepository.StoreRow row) -> distanceForSort(row, location))
-            .thenComparing(DiscoveryRepository.StoreRow::rating, Comparator.nullsLast(Comparator.reverseOrder()))
-            .thenComparing(DiscoveryRepository.StoreRow::monthlySales, Comparator.reverseOrder())
-            .thenComparing(DiscoveryRepository.StoreRow::id))
-        .toList();
+    if (normalizeText(row.name()).contains(normalized)) {
+      return 0;
+    }
+    if (normalizeText(row.tagText()).contains(normalized)) {
+      return 1;
+    }
+    if (normalizeText(row.summary()).contains(normalized)) {
+      return 2;
+    }
+    if (normalizeText(row.address()).contains(normalized)) {
+      return 3;
+    }
+    return 4;
   }
 
   private double itemDistanceForSort(DiscoveryRepository.ItemRow row, LocationContext location) {
@@ -275,19 +357,155 @@ class DiscoveryService {
         row.storeLongitude().doubleValue());
   }
 
-  private List<DiscoveryRepository.ItemRow> sortItems(List<DiscoveryRepository.ItemRow> items, LocationContext location) {
-    Comparator<DiscoveryRepository.ItemRow> comparator = Comparator
+  private List<DiscoveryRepository.ItemRow> sortItems(
+      List<DiscoveryRepository.ItemRow> items,
+      LocationContext location,
+      UserPreference preference,
+      RecommendationSort sort) {
+    Comparator<DiscoveryRepository.ItemRow> hot = Comparator
         .comparing(DiscoveryRepository.ItemRow::salesCount, Comparator.reverseOrder())
         .thenComparing(DiscoveryRepository.ItemRow::storeMonthlySales, Comparator.reverseOrder())
         .thenComparing(DiscoveryRepository.ItemRow::storeRating, Comparator.nullsLast(Comparator.reverseOrder()))
         .thenComparing(DiscoveryRepository.ItemRow::sortOrder)
         .thenComparing(DiscoveryRepository.ItemRow::id);
-    if (location != null) {
-      comparator = Comparator
-          .comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location))
-          .thenComparing(comparator);
-    }
+    Comparator<DiscoveryRepository.ItemRow> comparator = switch (sort) {
+      case PERSONALIZED -> Comparator
+          .comparingInt((DiscoveryRepository.ItemRow row) -> preference.score(row)).reversed()
+          .thenComparing(location == null
+              ? hot
+              : Comparator.comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location)).thenComparing(hot));
+      case DISTANCE -> location == null
+          ? hot
+          : Comparator.comparingDouble((DiscoveryRepository.ItemRow row) -> itemDistanceForSort(row, location)).thenComparing(hot);
+      case RATING -> Comparator
+          .comparing(DiscoveryRepository.ItemRow::storeRating, Comparator.nullsLast(Comparator.reverseOrder()))
+          .thenComparing(DiscoveryRepository.ItemRow::storeMonthlySales, Comparator.reverseOrder())
+          .thenComparing(DiscoveryRepository.ItemRow::salesCount, Comparator.reverseOrder())
+          .thenComparing(DiscoveryRepository.ItemRow::id);
+      case SALES -> hot;
+    };
     return items.stream().sorted(comparator).toList();
+  }
+
+  private UserPreference userPreference() {
+    return CurrentUserContext.optional()
+        .filter(currentUser -> currentUser.isUser() && currentUser.userId() != null)
+        .map(currentUser -> UserPreference.from(discoveryRepository.userPreferenceSignals(currentUser.userId())))
+        .orElseGet(UserPreference::empty);
+  }
+
+  private String itemReason(
+      DiscoveryRepository.ItemRow row,
+      UserPreference preference,
+      LocationContext location,
+      RecommendationSort sort) {
+    if (sort == RecommendationSort.PERSONALIZED) {
+      String reason = preference.reason(row);
+      if (!reason.isBlank()) {
+        return reason;
+      }
+    }
+    return switch (sort) {
+      case DISTANCE -> location == null ? fallbackItemReason(row) : "离你更近";
+      case RATING -> ratingReason(row.storeRating());
+      case SALES -> salesReason(row.salesCount());
+      case PERSONALIZED -> fallbackItemReason(row);
+    };
+  }
+
+  private String itemSearchReason(DiscoveryRepository.ItemRow row, String keyword) {
+    String normalized = normalizeText(keyword);
+    if (!normalized.isEmpty()) {
+      if (normalizeText(row.title()).contains(normalized)) {
+        return "商品名匹配";
+      }
+      if (normalizeText(row.tagText()).contains(normalized)) {
+        return "标签匹配";
+      }
+      if (normalizeText(row.subtitle()).contains(normalized)) {
+        return "描述匹配";
+      }
+    }
+    return salesReason(row.salesCount());
+  }
+
+  private String storeReason(DiscoveryRepository.StoreRow row, LocationContext location, SearchSort sort, String keyword) {
+    return switch (sort) {
+      case DISTANCE -> location == null ? fallbackStoreReason(row) : "距离最近优先";
+      case RATING -> ratingReason(row.rating());
+      case SALES -> "月售 " + row.monthlySales();
+      case PRICE_ASC -> row.avgPrice() == null ? fallbackStoreReason(row) : "人均 ￥" + row.avgPrice().stripTrailingZeros().toPlainString();
+      case DEFAULT -> defaultSearchReason(row, location, keyword);
+    };
+  }
+
+  private String defaultSearchReason(DiscoveryRepository.StoreRow row, LocationContext location, String keyword) {
+    int score = keywordScore(row, keyword);
+    if (score == 0) {
+      return "店名匹配";
+    }
+    if (score == 1) {
+      return "标签匹配";
+    }
+    if (score == 2) {
+      return "描述匹配";
+    }
+    if (location != null) {
+      return "附近热门";
+    }
+    return fallbackStoreReason(row);
+  }
+
+  private String fallbackItemReason(DiscoveryRepository.ItemRow row) {
+    if (row.salesCount() > 0) {
+      return salesReason(row.salesCount());
+    }
+    if (row.storeRating() != null && row.storeRating().doubleValue() >= 4.5) {
+      return ratingReason(row.storeRating());
+    }
+    return businessLabel(row.businessType()) + "精选";
+  }
+
+  private String fallbackStoreReason(DiscoveryRepository.StoreRow row) {
+    if (row.monthlySales() > 0) {
+      return "月售 " + row.monthlySales();
+    }
+    if (row.rating() != null && row.rating().doubleValue() >= 4.5) {
+      return ratingReason(row.rating());
+    }
+    return businessLabel(row.businessType()) + "精选";
+  }
+
+  private String salesReason(int salesCount) {
+    return salesCount > 0 ? "热卖 " + salesCount + " 单" : "热门推荐";
+  }
+
+  private String ratingReason(BigDecimal rating) {
+    return rating == null ? "高分好店" : "评分 " + rating.stripTrailingZeros().toPlainString();
+  }
+
+  private String normalizeBusinessType(String businessType) {
+    String normalized = businessType == null ? "" : businessType.trim();
+    if (normalized.isEmpty()) {
+      return null;
+    }
+    try {
+      return BusinessType.fromCode(normalized).code();
+    } catch (IllegalArgumentException ex) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "业务类型不正确");
+    }
+  }
+
+  private String normalizeText(String value) {
+    return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private String businessLabel(String businessType) {
+    try {
+      return BusinessType.fromCode(businessType).label();
+    } catch (IllegalArgumentException ex) {
+      return "爱团";
+    }
   }
 
   private List<DiscoveryRepository.ItemRow> spaceItemsByStore(List<DiscoveryRepository.ItemRow> items, int windowSize) {
@@ -352,6 +570,108 @@ class DiscoveryService {
       case "massage" -> "足";
       default -> "爱";
     };
+  }
+
+  private enum RecommendationSort {
+    PERSONALIZED,
+    SALES,
+    RATING,
+    DISTANCE;
+
+    static RecommendationSort from(String value) {
+      if (value == null || value.isBlank()) {
+        return PERSONALIZED;
+      }
+      return switch (value.trim().toLowerCase(Locale.ROOT)) {
+        case "sales" -> SALES;
+        case "rating" -> RATING;
+        case "distance" -> DISTANCE;
+        default -> PERSONALIZED;
+      };
+    }
+  }
+
+  private enum SearchSort {
+    DEFAULT,
+    DISTANCE,
+    RATING,
+    SALES,
+    PRICE_ASC;
+
+    static SearchSort from(String value) {
+      if (value == null || value.isBlank()) {
+        return DEFAULT;
+      }
+      return switch (value.trim().toLowerCase(Locale.ROOT)) {
+        case "distance" -> DISTANCE;
+        case "rating" -> RATING;
+        case "sales" -> SALES;
+        case "price_asc" -> PRICE_ASC;
+        default -> DEFAULT;
+      };
+    }
+  }
+
+  private record UserPreference(
+      Map<String, Integer> businessTypeWeights,
+      Map<Long, Integer> categoryWeights,
+      Map<Long, Integer> storeWeights,
+      Map<Long, Integer> itemWeights) {
+
+    static UserPreference empty() {
+      return new UserPreference(Map.of(), Map.of(), Map.of(), Map.of());
+    }
+
+    static UserPreference from(List<DiscoveryRepository.PreferenceSignalRow> signals) {
+      Map<String, Integer> businessTypeWeights = new HashMap<>();
+      Map<Long, Integer> categoryWeights = new HashMap<>();
+      Map<Long, Integer> storeWeights = new HashMap<>();
+      Map<Long, Integer> itemWeights = new HashMap<>();
+      for (DiscoveryRepository.PreferenceSignalRow signal : signals) {
+        add(businessTypeWeights, signal.businessType(), signal.weight());
+        add(categoryWeights, signal.categoryId(), signal.weight());
+        add(storeWeights, signal.storeId(), signal.weight());
+        add(itemWeights, signal.itemId(), signal.weight());
+      }
+      return new UserPreference(businessTypeWeights, categoryWeights, storeWeights, itemWeights);
+    }
+
+    int score(DiscoveryRepository.ItemRow row) {
+      return businessTypeWeights.getOrDefault(row.businessType(), 0)
+          + categoryWeights.getOrDefault(row.categoryId(), 0)
+          + storeWeights.getOrDefault(row.storeId(), 0)
+          + itemWeights.getOrDefault(row.id(), 0);
+    }
+
+    String reason(DiscoveryRepository.ItemRow row) {
+      if (itemWeights.containsKey(row.id())) {
+        return "收藏后常看";
+      }
+      if (storeWeights.containsKey(row.storeId())) {
+        return "常逛这家店";
+      }
+      if (categoryWeights.containsKey(row.categoryId())) {
+        return "常买同类";
+      }
+      if (businessTypeWeights.containsKey(row.businessType())) {
+        return "偏好" + label(row.businessType());
+      }
+      return "";
+    }
+
+    private static <T> void add(Map<T, Integer> map, T key, int weight) {
+      if (key != null) {
+        map.merge(key, weight, Integer::sum);
+      }
+    }
+
+    private static String label(String businessType) {
+      try {
+        return BusinessType.fromCode(businessType).label();
+      } catch (IllegalArgumentException ex) {
+        return "同类内容";
+      }
+    }
   }
 
   private record LocationContext(double latitude, double longitude) {}

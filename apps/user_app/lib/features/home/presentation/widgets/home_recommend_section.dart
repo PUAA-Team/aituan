@@ -74,7 +74,9 @@ class RecommendCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  item.subtitle,
+                  item.recommendReason.isEmpty
+                      ? item.subtitle
+                      : item.recommendReason,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall,

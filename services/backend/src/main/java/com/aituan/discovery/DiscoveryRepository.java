@@ -286,45 +286,87 @@ class DiscoveryRepository {
     return jdbcTemplate.query(sql.toString(), this::mapItem, params.toArray());
   }
 
-  List<StoreRow> searchStores(String keyword, int limit) {
+  List<StoreRow> searchStores(String keyword, String businessType, int limit) {
     String normalized = keyword == null ? "" : keyword.trim();
+    String normalizedType = businessType == null ? "" : businessType.trim();
+    String typeFilter = normalizedType.isEmpty() ? "" : " and s.business_type = ?";
+    List<Object> params = new ArrayList<>();
+    StringBuilder sql = new StringBuilder();
     if (normalized.isEmpty()) {
-      return jdbcTemplate.query(
-          """
+      sql.append("""
           select s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
                  s.longitude, s.latitude, s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
           from merchant_store s
           where s.is_deleted = 0 and s.status = 'open'
-          order by s.monthly_sales desc, s.rating desc, s.id
-          limit ?
-          """,
-          this::mapStore,
-          limit);
+          """);
+      if (!normalizedType.isEmpty()) {
+        sql.append(typeFilter);
+        params.add(normalizedType);
+      }
+      sql.append(" order by s.monthly_sales desc, s.rating desc, s.id limit ?");
+      params.add(limit);
+      return jdbcTemplate.query(sql.toString(), this::mapStore, params.toArray());
     }
     String like = "%" + normalized + "%";
-    return jdbcTemplate.query(
-        """
+    sql.append("""
         select distinct s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
                s.longitude, s.latitude, s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
         from merchant_store s
         left join catalog_item i on i.store_id = s.id and i.is_deleted = 0 and i.status = 'on_sale'
         where s.is_deleted = 0 and s.status = 'open'
+        """);
+    if (!normalizedType.isEmpty()) {
+      sql.append(typeFilter);
+      params.add(normalizedType);
+    }
+    sql.append("""
           and (
             s.store_name like ? or s.summary like ? or s.tag_text like ? or s.address like ?
             or i.item_name like ? or i.subtitle like ? or i.tag_text like ?
           )
         order by s.monthly_sales desc, s.rating desc, s.id
         limit ?
+        """);
+    params.add(like);
+    params.add(like);
+    params.add(like);
+    params.add(like);
+    params.add(like);
+    params.add(like);
+    params.add(like);
+    params.add(limit);
+    return jdbcTemplate.query(sql.toString(), this::mapStore, params.toArray());
+  }
+
+  List<PreferenceSignalRow> userPreferenceSignals(long userId) {
+    return jdbcTemplate.query(
+        """
+        select i.business_type, i.category_id, i.store_id, i.id as item_id, 8 as weight, 'favorite_item' as source
+        from user_favorite f
+        join catalog_item i on i.id = f.target_id and i.is_deleted = 0 and i.status = 'on_sale'
+        where f.user_id = ? and f.favorite_type = 'item' and f.is_deleted = 0
+        union all
+        select s.business_type, null as category_id, s.id as store_id, null as item_id, 6 as weight, 'favorite_store' as source
+        from user_favorite f
+        join merchant_store s on s.id = f.target_id and s.is_deleted = 0 and s.status = 'open'
+        where f.user_id = ? and f.favorite_type = 'store' and f.is_deleted = 0
+        union all
+        select oi.business_type, oi.category_id, om.store_id, oi.item_id, least(sum(oi.quantity) * 3, 30) as weight, 'order_item' as source
+        from order_main om
+        join order_item oi on oi.order_id = om.id and oi.is_deleted = 0
+        where om.user_id = ? and om.is_deleted = 0
+        group by oi.business_type, oi.category_id, om.store_id, oi.item_id
         """,
-        this::mapStore,
-        like,
-        like,
-        like,
-        like,
-        like,
-        like,
-        like,
-        limit);
+        (rs, rowNum) -> new PreferenceSignalRow(
+            rs.getString("business_type"),
+            nullableLong(rs, "category_id"),
+            nullableLong(rs, "store_id"),
+            nullableLong(rs, "item_id"),
+            rs.getInt("weight"),
+            rs.getString("source")),
+        userId,
+        userId,
+        userId);
   }
 
   ReviewSummaryRow reviewSummary(long storeId) {
@@ -427,6 +469,11 @@ class DiscoveryRepository {
     return new CategoryRow(rs.getLong("id"), rs.getString("category_name"), rs.getInt("sort_order"));
   }
 
+  private Long nullableLong(ResultSet rs, String column) throws SQLException {
+    long value = rs.getLong(column);
+    return rs.wasNull() ? null : value;
+  }
+
   private ItemRow mapItem(ResultSet rs, int rowNum) throws SQLException {
     return new ItemRow(
         rs.getLong("id"),
@@ -504,6 +551,14 @@ class DiscoveryRepository {
       String refundPolicy,
       String notice,
       int validityDays) {}
+
+  record PreferenceSignalRow(
+      String businessType,
+      Long categoryId,
+      Long storeId,
+      Long itemId,
+      int weight,
+      String source) {}
 
   record ReviewSummaryRow(BigDecimal rating, long count, List<String> highlights) {}
 

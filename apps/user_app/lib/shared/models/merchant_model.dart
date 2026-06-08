@@ -13,6 +13,7 @@ class MerchantModel {
     required this.tags,
     required this.items,
     this.coverUrl,
+    this.recommendReason = '',
     this.estimatedTimeText = '',
     this.longitude,
     this.latitude,
@@ -33,6 +34,7 @@ class MerchantModel {
   final List<String> tags;
   final List<ItemModel> items;
   final String? coverUrl;
+  final String recommendReason;
   final String estimatedTimeText;
   final double? longitude;
   final double? latitude;

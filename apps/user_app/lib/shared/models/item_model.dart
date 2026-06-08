@@ -13,6 +13,7 @@ class ItemModel {
     required this.storeId,
     this.storeName = '',
     this.coverUrl,
+    this.recommendReason = '',
     this.stock = 999,
     this.saleStatus = 'on_sale',
     this.businessAttributes = '',
@@ -33,6 +34,7 @@ class ItemModel {
   final String storeId;
   final String storeName;
   final String? coverUrl;
+  final String recommendReason;
   final int stock;
   final String saleStatus;
   // Stage5-D 非外卖差异化字段（key:value;key:value 串）
@@ -56,6 +58,7 @@ class ItemModel {
     storeId: _text(json['storeId']),
     storeName: _text(json['storeName']),
     coverUrl: _nullableText(json['coverUrl']),
+    recommendReason: _text(json['recommendReason']),
     stock: _int(json['stock'], fallback: 999),
     saleStatus: _text(json['saleStatus'], fallback: 'on_sale'),
     businessAttributes: _text(json['businessAttributes']),

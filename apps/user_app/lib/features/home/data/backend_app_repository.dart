@@ -91,10 +91,11 @@ class BackendAppRepository {
   Future<ItemPageData> fetchRecommendations({
     int page = 1,
     int pageSize = 12,
+    String sort = 'personalized',
   }) async {
     final json = await _get(
       _withLocation(
-        '/api/app/discovery/recommendations?page=$page&pageSize=$pageSize',
+        '/api/app/discovery/recommendations?page=$page&pageSize=$pageSize&sort=${Uri.encodeQueryComponent(sort)}',
       ),
     );
     return ItemPageData.fromApi(_map(json['data']));
@@ -113,14 +114,22 @@ class BackendAppRepository {
     );
   }
 
-  Future<List<MerchantModel>> searchStores(String keyword) async {
+  Future<MerchantPageData> searchStores(
+    String keyword, {
+    int page = 1,
+    int pageSize = 12,
+    String sort = 'default',
+    BusinessType? businessType,
+  }) async {
+    final businessTypeQuery = businessType == null
+        ? ''
+        : '&businessType=${Uri.encodeQueryComponent(businessTypeApiCode(businessType))}';
     final json = await _get(
       _withLocation(
-        '/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=1&pageSize=12',
+        '/api/app/discovery/stores/search?keyword=${Uri.encodeQueryComponent(keyword)}&page=$page&pageSize=$pageSize&sort=${Uri.encodeQueryComponent(sort)}$businessTypeQuery',
       ),
     );
-    final page = _map(json['data']);
-    return _merchants(page['list']);
+    return MerchantPageData.fromApi(_map(json['data']));
   }
 
   Future<MerchantModel> fetchStore(int storeId) async =>
@@ -353,10 +362,7 @@ class BackendAppRepository {
   }
 
   /// 通用文件上传，返回可公开访问的 URL。评价/投诉等模块复用。
-  Future<String> uploadCommonFile(
-    XFile file, {
-    required String bizType,
-  }) async {
+  Future<String> uploadCommonFile(XFile file, {required String bizType}) async {
     final upload = await _uploadFile(file);
     final json = await _client.postMultipart(
       '/api/common/files/upload',
@@ -568,6 +574,31 @@ class ModuleData {
   final BusinessType businessType;
   final List<MerchantModel> merchants;
   final List<ItemModel> featuredItems;
+}
+
+class MerchantPageData {
+  const MerchantPageData({
+    required this.list,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+    required this.hasNext,
+  });
+
+  final List<MerchantModel> list;
+  final int page;
+  final int pageSize;
+  final int total;
+  final bool hasNext;
+
+  factory MerchantPageData.fromApi(Map<String, dynamic> json) =>
+      MerchantPageData(
+        list: _merchants(json['list']),
+        page: _int(json['page']),
+        pageSize: _int(json['pageSize']),
+        total: _int(json['total']),
+        hasNext: _bool(json['hasNext']),
+      );
 }
 
 class ItemDetailData {
@@ -1183,6 +1214,7 @@ MerchantModel _merchantFromStoreCard(
   tags: _strings(json['tags']),
   items: items,
   coverUrl: _nullableString(json['coverUrl']),
+  recommendReason: _string(json['recommendReason']),
   estimatedTimeText: _string(json['estimatedTimeText']),
   longitude: _nullableDouble(json['longitude']),
   latitude: _nullableDouble(json['latitude']),

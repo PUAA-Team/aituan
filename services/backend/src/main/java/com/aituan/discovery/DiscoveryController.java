@@ -32,9 +32,10 @@ class DiscoveryController {
   ApiResponse<PageResponse<ItemCardView>> recommendations(
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "12") @Min(1) int pageSize,
+      @RequestParam(defaultValue = "personalized") String sort,
       @RequestParam(required = false) Double latitude,
       @RequestParam(required = false) Double longitude) {
-    return ApiResponse.ok(discoveryService.recommendations(page, pageSize, latitude, longitude));
+    return ApiResponse.ok(discoveryService.recommendations(page, pageSize, sort, latitude, longitude));
   }
 
   @GetMapping("/modules/{moduleCode}")
@@ -50,9 +51,11 @@ class DiscoveryController {
       @RequestParam String keyword,
       @RequestParam(defaultValue = "1") @Min(1) int page,
       @RequestParam(defaultValue = "12") @Min(1) int pageSize,
+      @RequestParam(defaultValue = "default") String sort,
+      @RequestParam(required = false) String businessType,
       @RequestParam(required = false) Double latitude,
       @RequestParam(required = false) Double longitude) {
-    return ApiResponse.ok(discoveryService.search(keyword, page, pageSize, latitude, longitude));
+    return ApiResponse.ok(discoveryService.search(keyword, page, pageSize, sort, businessType, latitude, longitude));
   }
 
   @GetMapping("/stores/{storeId}")
