@@ -214,4 +214,10 @@ jobs:
              mkdir -p /opt/aituan/data/downloads; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans; \
-             curl -fsS http://127.0.0.1/actuator/health"
+             for i in \$(seq 1 24); do \
+               if curl -fsS http://127.0.0.1/actuator/health; then exit 0; fi; \
+               echo \"waiting for backend health... attempt \$i/24\"; \
+               sleep 5; \
+             done; \
+             docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 backend; \
+             exit 1"
