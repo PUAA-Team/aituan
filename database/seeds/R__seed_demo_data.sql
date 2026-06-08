@@ -43,8 +43,8 @@ INSERT INTO iam_account_role (id, account_id, role_id) VALUES
 ON DUPLICATE KEY UPDATE role_id = VALUES(role_id);
 
 INSERT INTO user_profile (id, account_id, nickname, avatar_url, register_source, member_level_name, growth_value, status) VALUES
-  (1, 1, '爱团用户', 'https://picsum.photos/seed/aituan-avatar/240/240', 'demo', '普通会员', 128, 'normal')
-ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), avatar_url = VALUES(avatar_url), growth_value = VALUES(growth_value);
+  (1, 1, '爱团用户', 'https://picsum.photos/seed/aituan-avatar/240/240', 'demo', '白银会员', 128, 'normal')
+ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), avatar_url = VALUES(avatar_url), member_level_name = VALUES(member_level_name), growth_value = VALUES(growth_value);
 
 INSERT INTO user_address (id, user_id, contact_name, contact_phone, province, city, district, detail_address, tag_name, is_default, delivery_note) VALUES
   (1, 1, '李同学', '18800001111', '北京市', '北京市', '海淀区', '城市广场 A 座 1208', '公司', 1, '送到前台'),
@@ -478,12 +478,15 @@ INSERT INTO sys_config (id, config_key, config_value, remark) VALUES
   (3, 'upload_storage_type', 'local', '当前图片上传使用本地文件夹，后续可替换对象存储实现')
 ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), remark = VALUES(remark);
 
--- Stage6-A：会员等级、优惠券与消息跳转演示数据
+-- Stage6-A/Stage7：会员等级、优惠券与消息跳转演示数据
 INSERT INTO member_level (id, level_code, level_name, min_growth_value, benefits, color, sort_order, status) VALUES
-  (1, 'NORMAL', '普通会员', 0, '[{"title":"基础服务","desc":"享受平台基础下单与售后服务"}]', '#8C8C8C', 1, 'enabled'),
-  (2, 'SILVER', '银卡会员', 300, '[{"title":"专享券","desc":"每月可领银卡专享优惠券"},{"title":"优先客服","desc":"客服优先响应"}]', '#9AA4B2', 2, 'enabled'),
-  (3, 'GOLD', '金卡会员', 800, '[{"title":"金卡折扣","desc":"部分商家专享折扣"},{"title":"生日礼","desc":"生日月双倍成长值"}]', '#E0A106', 3, 'enabled'),
-  (4, 'PLATINUM', '铂金会员', 2000, '[{"title":"铂金权益","desc":"专属活动与高额优惠券"},{"title":"专属客服","desc":"一对一专属客服"}]', '#3A3A3A', 4, 'enabled')
+  (1, 'NORMAL', '普通会员', 0, '[{"title":"旧等级","desc":"Stage7 已停用普通会员，统一使用白银会员起步"}]', '#8C8C8C', 0, 'disabled'),
+  (2, 'SILVER', '白银会员', 0, '[{"title":"白银基础权益","desc":"每周自动刷新 1 张会员优惠券"},{"title":"成长规则","desc":"订单完成后按实付金额累计成长值，首次评价得 3 成长值"}]', '#8C8C8C', 1, 'enabled'),
+  (3, 'GOLD', '黄金会员', 300, '[{"title":"黄金周券","desc":"每周自动刷新 2 张会员优惠券"},{"title":"优先客服","desc":"客服会话优先响应"}]', '#D79A00', 2, 'enabled'),
+  (4, 'PLATINUM', '白金会员', 1000, '[{"title":"白金周券","desc":"每周自动刷新 2 张更高面额优惠券"},{"title":"专属活动","desc":"优先参与平台活动"}]', '#7B8794', 3, 'enabled'),
+  (5, 'DIAMOND', '钻石会员', 3000, '[{"title":"钻石周券","desc":"每周自动刷新 3 张高额优惠券"},{"title":"售后优先","desc":"投诉与售后优先处理"}]', '#3B82F6', 4, 'enabled'),
+  (6, 'RED_DIAMOND', '红钻会员', 10000, '[{"title":"红钻周券","desc":"每周自动刷新 4 张高额优惠券"},{"title":"平台礼遇","desc":"享受重点活动专属权益"}]', '#D71918', 5, 'enabled'),
+  (7, 'BLACK_DIAMOND', '黑钻会员', 30000, '[{"title":"黑钻周券","desc":"每周自动刷新 5 张最高等级优惠券"},{"title":"顶级服务","desc":"享受平台最高等级服务响应"}]', '#111827', 6, 'enabled')
 ON DUPLICATE KEY UPDATE level_name = VALUES(level_name), min_growth_value = VALUES(min_growth_value), benefits = VALUES(benefits), color = VALUES(color), sort_order = VALUES(sort_order), status = VALUES(status);
 
 INSERT INTO coupon_template (id, name, type, face_value, threshold_amount, business_scope, valid_kind, valid_start, valid_end, valid_days, total_qty, issued_qty, per_user_limit, status) VALUES

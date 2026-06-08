@@ -34,13 +34,7 @@ class _UnsupportedWebPage extends StatelessWidget {
     final isDesktop = size.width >= 840;
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [_paper, _cream, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        decoration: const BoxDecoration(color: _paper),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -292,12 +286,8 @@ class _PreviewPanel extends StatelessWidget {
       Container(
         height: compact ? 280 : 460,
         decoration: BoxDecoration(
+          color: _cream,
           borderRadius: BorderRadius.circular(compact ? 32 : 44),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFEEE6), Color(0xFFFFFBF5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
           border: Border.all(color: _line),
         ),
       ),

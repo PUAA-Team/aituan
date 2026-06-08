@@ -8,6 +8,7 @@ import com.aituan.common.file.FileAssetView;
 import com.aituan.common.file.FileStorageService;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.member.MemberService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,11 +25,14 @@ class AdminService {
   private final AdminRepository adminRepository;
   private final FileStorageService fileStorageService;
   private final PasswordEncoder passwordEncoder;
+  private final MemberService memberService;
 
-  AdminService(AdminRepository adminRepository, FileStorageService fileStorageService, PasswordEncoder passwordEncoder) {
+  AdminService(AdminRepository adminRepository, FileStorageService fileStorageService, PasswordEncoder passwordEncoder,
+      MemberService memberService) {
     this.adminRepository = adminRepository;
     this.fileStorageService = fileStorageService;
     this.passwordEncoder = passwordEncoder;
+    this.memberService = memberService;
   }
 
   AdminDashboardView dashboard() {
@@ -225,7 +229,13 @@ class AdminService {
       return toDeliveryTaskView(task);
     }
     LocalDateTime nextTickAt = next.completed() ? null : LocalDateTime.now().plusMinutes(DELIVERY_TICK_MINUTES);
-    adminRepository.updateDeliveryStage(task, next.stage(), next.text(), next.displayStatus(), next.completed(), nextTickAt, current.accountId(), request == null ? null : request.remark());
+    int updated = adminRepository.updateDeliveryStage(task, next.stage(), next.text(), next.displayStatus(), next.completed(), nextTickAt, current.accountId(), request == null ? null : request.remark());
+    if (updated == 0) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
+    }
+    if (next.completed() && "used".equals(next.displayStatus())) {
+      memberService.addOrderCompletionGrowth(task.userId(), task.orderId(), task.payableAmount());
+    }
     return deliveryTask(taskId);
   }
 

@@ -7,6 +7,7 @@ import com.aituan.common.file.FileAssetView;
 import com.aituan.common.file.FileStorageService;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.coupon.CouponService;
 import com.aituan.discovery.MapDistanceService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,20 +22,25 @@ class AccountService {
   private final FileStorageService fileStorageService;
   private final MapDistanceService mapDistanceService;
   private final PasswordEncoder passwordEncoder;
+  private final CouponService couponService;
 
   AccountService(
       AccountRepository accountRepository,
       FileStorageService fileStorageService,
       MapDistanceService mapDistanceService,
-      PasswordEncoder passwordEncoder) {
+      PasswordEncoder passwordEncoder,
+      CouponService couponService) {
     this.accountRepository = accountRepository;
     this.fileStorageService = fileStorageService;
     this.mapDistanceService = mapDistanceService;
     this.passwordEncoder = passwordEncoder;
+    this.couponService = couponService;
   }
 
+  @Transactional
   AccountProfileView profile() {
     CurrentUser currentUser = CurrentUserContext.required();
+    couponService.refreshWeeklyMemberCoupons(currentUser.userId());
     AccountRepository.AccountProfileRow row = accountRepository.findProfile(currentUser.accountId())
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     return new AccountProfileView(

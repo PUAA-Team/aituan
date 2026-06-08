@@ -7,6 +7,7 @@ import com.aituan.common.enums.PaymentStatus;
 import com.aituan.coupon.CouponCalcResult;
 import com.aituan.coupon.CouponService;
 import com.aituan.common.exception.BusinessException;
+import com.aituan.member.MemberService;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
@@ -35,11 +36,14 @@ class TradeService {
   private final TradeRepository tradeRepository;
   private final MapDistanceService mapDistanceService;
   private final CouponService couponService;
+  private final MemberService memberService;
 
-  TradeService(TradeRepository tradeRepository, MapDistanceService mapDistanceService, CouponService couponService) {
+  TradeService(TradeRepository tradeRepository, MapDistanceService mapDistanceService, CouponService couponService,
+      MemberService memberService) {
     this.tradeRepository = tradeRepository;
     this.mapDistanceService = mapDistanceService;
     this.couponService = couponService;
+    this.memberService = memberService;
   }
 
   List<PaymentMethodView> paymentMethods() {
@@ -463,6 +467,7 @@ class TradeService {
     TradeRepository.OrderRow order = requireOrderForStaff(voucher.orderId());
     ensureNotRefunded(order);
     tradeRepository.setOrderUsed(voucher.orderId(), operatorId);
+    memberService.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
     return buildOrderDetail(requireOrderById(voucher.orderId()));
   }
 
@@ -601,6 +606,9 @@ class TradeService {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
     }
     tradeRepository.updateTakeawayFulfillment(order.id(), nextStage.displayStatus(), nextStage.stage(), nextStage.completed());
+    if (DisplayOrderStatus.USED.code().equals(nextStage.displayStatus()) && nextStage.completed()) {
+      memberService.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
+    }
     if (DisplayOrderStatus.CANCELLED.code().equals(nextStage.displayStatus())) {
       couponService.releaseByOrder(order.id());
     }
@@ -652,6 +660,7 @@ class TradeService {
     if (restoreStock) {
       restoreOrderStock(order.id());
     }
+    memberService.refundOrderGrowth(order.userId(), order.id());
     writeOrderLogs(order, "refunded", actionType, initiatorType, initiatorId, reason);
     return buildOrderDetail(requireOrderById(order.id()));
   }

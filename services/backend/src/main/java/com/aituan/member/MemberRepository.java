@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -26,6 +27,82 @@ class MemberRepository {
     return rows.stream().findFirst().orElse(null);
   }
 
+  int changeGrowth(long userId, int delta) {
+    jdbcTemplate.update(
+        """
+        update user_profile
+        set growth_value = case when growth_value + ? < 0 then 0 else growth_value + ? end,
+            updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        delta,
+        delta,
+        userId);
+    return Optional.ofNullable(findGrowthValue(userId)).orElse(0);
+  }
+
+  boolean insertGrowthLog(long userId, Long orderId, String sourceType, long sourceId, int delta, String reason) {
+    try {
+      jdbcTemplate.update(
+          """
+          insert into member_growth_log(user_id, order_id, source_type, source_id, delta, reason)
+          values (?, ?, ?, ?, ?, ?)
+          """,
+          userId,
+          orderId,
+          sourceType,
+          sourceId,
+          delta,
+          reason);
+      return true;
+    } catch (DuplicateKeyException ignored) {
+      return false;
+    }
+  }
+
+  boolean hasOrderGrowthLog(long orderId) {
+    Long count = jdbcTemplate.queryForObject(
+        """
+        select count(1)
+        from member_growth_log
+        where order_id = ?
+          and source_type in ('order_complete', 'legacy_order_pay')
+          and delta > 0
+          and is_deleted = 0
+        """,
+        Long.class,
+        orderId);
+    return count != null && count > 0;
+  }
+
+  Optional<Integer> findOrderGrowthDelta(long orderId) {
+    List<Integer> rows = jdbcTemplate.query(
+        """
+        select delta
+        from member_growth_log
+        where order_id = ?
+          and source_type in ('order_complete', 'legacy_order_pay')
+          and delta > 0
+          and is_deleted = 0
+        order by case when source_type = 'order_complete' then 0 else 1 end
+        limit 1
+        """,
+        (rs, n) -> rs.getInt("delta"),
+        orderId);
+    return rows.stream().findFirst();
+  }
+
+  void updateMemberLevelName(long userId, String levelName) {
+    jdbcTemplate.update(
+        """
+        update user_profile
+        set member_level_name = ?, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """,
+        levelName,
+        userId);
+  }
+
   // 启用等级，按成长值升序
   List<MemberLevelRow> listEnabledLevels() {
     return jdbcTemplate.query(
@@ -33,7 +110,7 @@ class MemberRepository {
         select id, level_code, level_name, min_growth_value, benefits, icon_url, color, sort_order, status
         from member_level
         where status = 'enabled' and is_deleted = 0
-        order by min_growth_value asc, id asc
+        order by min_growth_value asc, sort_order asc, id asc
         """,
         this::mapLevel);
   }

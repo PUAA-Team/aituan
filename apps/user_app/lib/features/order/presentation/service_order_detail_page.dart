@@ -274,11 +274,11 @@ class _ServiceOrderDetailPageState extends State<ServiceOrderDetailPage> {
     _ => '查看商家',
   };
 
-  String _secondaryText(OrderDetailData detail) {
+  String? _secondaryText(OrderDetailData detail) {
     if (_acting && detail.refundableByUser) return '处理中';
     if (detail.refundableByUser) return '申请退款';
     return switch (detail.status) {
-      OrderStatus.unpaid || OrderStatus.used || OrderStatus.refunded => '查看商家',
+      OrderStatus.unpaid || OrderStatus.used || OrderStatus.refunded => null,
       _ => '刷新状态',
     };
   }

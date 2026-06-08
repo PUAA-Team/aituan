@@ -33,29 +33,13 @@ class AppBottomActionBar extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.line)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (leading != null) ...[
-            leading!,
-            const SizedBox(width: 12),
-          ] else if (price != null || note != null) ...[
+          if (leading != null || price != null || note != null)
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (note != null)
-                    Text(
-                      note!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSub,
-                      ),
-                    ),
-                  if (price != null) PriceText(price!, size: 22),
-                ],
-              ),
-            ),
-          ] else
+              child: _LeadingSlot(leading: leading, price: price, note: note),
+            )
+          else
             const Spacer(),
           if (secondaryText != null) ...[
             OutlinedButton(onPressed: onSecondary, child: Text(secondaryText!)),
@@ -66,4 +50,36 @@ class AppBottomActionBar extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _LeadingSlot extends StatelessWidget {
+  const _LeadingSlot({this.leading, this.price, this.note});
+
+  final Widget? leading;
+  final double? price;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    if (leading != null) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        heightFactor: 1,
+        child: leading!,
+      );
+    }
+    if (price == null && note == null) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (note != null)
+          Text(
+            note!,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+          ),
+        if (price != null) PriceText(price!, size: 22),
+      ],
+    );
+  }
 }

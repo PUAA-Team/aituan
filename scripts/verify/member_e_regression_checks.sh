@@ -120,8 +120,8 @@ if ! grep -q "assistant_mode" "$ROOT/database/migrations/V011__support_platform_
   fail "support handoff migration should include assistant mode"
 fi
 
-if ! grep -q "Routes.supportSessions" "$ROOT/apps/user_app/lib/features/message/presentation/message_page.dart"; then
-  fail "message page should link to support sessions"
+if grep -q "我的咨询\|投诉进度" "$ROOT/apps/user_app/lib/features/message/presentation/message_page.dart"; then
+  fail "stage7 message page header should not expose quick action buttons"
 fi
 
 printf 'member E regression checks passed\n'
