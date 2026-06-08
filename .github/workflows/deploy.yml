@@ -22,7 +22,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  SERVER_ORIGIN: ${{ vars.SERVER_ORIGIN || 'http://182.92.238.178' }}
+  SERVER_ORIGIN: ${{ vars.SERVER_ORIGIN }}
   SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR || '/opt/aituan/app' }}
 
 jobs:
@@ -36,6 +36,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate deployment variables
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SERVER_ORIGIN}" ]]; then
+            echo "::error::Set GitHub Actions variable SERVER_ORIGIN, for example http://your-domain. Do not include /api."
+            exit 1
+          fi
+          if [[ ! "${SERVER_ORIGIN}" =~ ^https?:// ]]; then
+            echo "::error::SERVER_ORIGIN must start with http:// or https:// and must not include /api."
+            exit 1
+          fi
+          if [[ "${SERVER_ORIGIN}" == */api || "${SERVER_ORIGIN}" == */api/ ]]; then
+            echo "::error::SERVER_ORIGIN must be the site origin only, not an /api URL."
+            exit 1
+          fi
 
       - name: Compute image metadata
         id: meta
@@ -214,4 +231,10 @@ jobs:
              mkdir -p /opt/aituan/data/downloads; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans; \
-             curl -fsS http://127.0.0.1/actuator/health"
+             for i in \$(seq 1 24); do \
+               if curl -fsS http://127.0.0.1/actuator/health; then exit 0; fi; \
+               echo \"waiting for backend health... attempt \$i/24\"; \
+               sleep 5; \
+             done; \
+             docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 backend; \
+             exit 1"
