@@ -150,6 +150,8 @@
 
 `./docs/stage7/CI-CD完整配置教程-aituan域名版.md`
 
+`./docs/stage7/测试体系完善说明.md`
+
 ### 10. 后续计划与长期待办
 
 `./docs/后续阶段五人模块分工计划.md`

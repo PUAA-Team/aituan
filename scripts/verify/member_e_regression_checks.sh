@@ -248,7 +248,7 @@ if ! grep -q "refreshReportedCount" "$ROOT/services/backend/src/main/java/com/ai
   fail "review audit/report flow should refresh reported counts"
 fi
 
-if ! grep -q "assistant_mode" "$ROOT/database/migrations/V011__support_platform_handoff.sql"; then
+if ! grep -q "assistant_mode" "$ROOT/database/migrations/V014__support_platform_handoff.sql"; then
   fail "support handoff migration should include assistant mode"
 fi
 

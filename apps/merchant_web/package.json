@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
@@ -14,7 +16,10 @@
     "vue": "latest"
   },
   "devDependencies": {
+    "@vue/test-utils": "2.4.11",
+    "happy-dom": "20.10.2",
     "typescript": "latest",
+    "vitest": "4.1.8",
     "vue-tsc": "latest"
   }
 }
