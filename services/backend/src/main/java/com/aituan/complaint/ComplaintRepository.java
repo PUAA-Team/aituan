@@ -68,24 +68,75 @@ class ComplaintRepository {
 
   // ============ 后台端 ============
 
-  long countAdminTickets(String statusFilter, String categoryFilter) {
-    StringBuilder sql = new StringBuilder("select count(1) from complaint_ticket where is_deleted = 0");
+  long countAdminTickets(String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from complaint_ticket t
+        left join order_main o on o.id = t.order_id and o.is_deleted = 0
+        left join merchant_store ms on ms.id = t.store_id and ms.is_deleted = 0
+        where t.is_deleted = 0
+        """);
     List<Object> args = new ArrayList<>();
-    if (statusFilter != null) { sql.append(" and status = ?"); args.add(statusFilter); }
-    if (categoryFilter != null) { sql.append(" and category = ?"); args.add(categoryFilter); }
+    appendAdminFilters(sql, args, statusFilter, categoryFilter, orderNoFilter, storeNameFilter);
     Long c = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
     return c == null ? 0 : c;
   }
 
-  List<TicketRow> listAdminTickets(String statusFilter, String categoryFilter, int offset, int limit) {
+  List<TicketRow> listAdminTickets(
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter, int offset, int limit) {
     StringBuilder sql = new StringBuilder(TICKET_SELECT).append(" where t.is_deleted = 0");
     List<Object> args = new ArrayList<>();
-    if (statusFilter != null) { sql.append(" and t.status = ?"); args.add(statusFilter); }
-    if (categoryFilter != null) { sql.append(" and t.category = ?"); args.add(categoryFilter); }
+    appendAdminFilters(sql, args, statusFilter, categoryFilter, orderNoFilter, storeNameFilter);
     sql.append(" order by t.created_at desc, t.id desc limit ? offset ?");
     args.add(limit);
     args.add(offset);
     return jdbcTemplate.query(sql.toString(), this::mapTicket, args.toArray());
+  }
+
+  // ============ 商家端 ============
+
+  long countMerchantTickets(long merchantId, String statusFilter, String orderNoFilter, String storeNameFilter) {
+    StringBuilder sql = new StringBuilder("""
+        select count(1)
+        from complaint_ticket t
+        left join order_main o on o.id = t.order_id and o.is_deleted = 0
+        left join merchant_store ms on ms.id = t.store_id and ms.is_deleted = 0
+        where t.merchant_id = ? and t.is_deleted = 0
+        """);
+    List<Object> args = new ArrayList<>();
+    args.add(merchantId);
+    appendMerchantFilters(sql, args, statusFilter, orderNoFilter, storeNameFilter);
+    Long c = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
+    return c == null ? 0 : c;
+  }
+
+  List<TicketRow> listMerchantTickets(
+      long merchantId, String statusFilter, String orderNoFilter, String storeNameFilter, int offset, int limit) {
+    StringBuilder sql = new StringBuilder(TICKET_SELECT).append(" where t.merchant_id = ? and t.is_deleted = 0");
+    List<Object> args = new ArrayList<>();
+    args.add(merchantId);
+    appendMerchantFilters(sql, args, statusFilter, orderNoFilter, storeNameFilter);
+    sql.append(" order by t.created_at desc, t.id desc limit ? offset ?");
+    args.add(limit);
+    args.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapTicket, args.toArray());
+  }
+
+  private void appendAdminFilters(
+      StringBuilder sql, List<Object> args,
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter) {
+    if (statusFilter != null) { sql.append(" and t.status = ?"); args.add(statusFilter); }
+    if (categoryFilter != null) { sql.append(" and t.category = ?"); args.add(categoryFilter); }
+    if (orderNoFilter != null) { sql.append(" and o.order_no = ?"); args.add(orderNoFilter); }
+    if (storeNameFilter != null) { sql.append(" and ms.store_name like ?"); args.add("%" + storeNameFilter + "%"); }
+  }
+
+  private void appendMerchantFilters(
+      StringBuilder sql, List<Object> args,
+      String statusFilter, String orderNoFilter, String storeNameFilter) {
+    if (statusFilter != null) { sql.append(" and t.status = ?"); args.add(statusFilter); }
+    if (orderNoFilter != null) { sql.append(" and o.order_no = ?"); args.add(orderNoFilter); }
+    if (storeNameFilter != null) { sql.append(" and ms.store_name like ?"); args.add("%" + storeNameFilter + "%"); }
   }
 
   // ============ 写入 ============
@@ -152,6 +203,13 @@ class ComplaintRepository {
     return rows.stream().findFirst();
   }
 
+  Optional<Long> findMerchantIdByAccount(long accountId) {
+    List<Long> rows = jdbcTemplate.queryForList(
+        "select id from merchant_profile where account_id = ? and is_deleted = 0 limit 1",
+        Long.class, accountId);
+    return rows.stream().findFirst();
+  }
+
   void insertSysAuditLog(String actorType, long actorId, String actionType, String targetType, long targetId, String detail) {
     jdbcTemplate.update(
         "insert into sys_audit_log(actor_type, actor_id, action_type, target_type, target_id, detail) values (?, ?, ?, ?, ?, ?)",
@@ -176,7 +234,7 @@ class ComplaintRepository {
     return new TicketRow(
         rs.getLong("id"), rs.getString("ticket_no"), rs.getLong("user_id"),
         orderId, rs.getString("order_no"),
-        storeId, rs.getString("store_name"),
+        storeId, rs.getString("store_name"), rs.getObject("merchant_id", Long.class),
         rs.getString("category"), rs.getString("title"), rs.getString("detail"),
         rs.getString("evidence_urls"), rs.getString("status"),
         acceptedBy, acceptedAt == null ? null : acceptedAt.toLocalDateTime(),
@@ -198,7 +256,7 @@ class ComplaintRepository {
 
   record TicketRow(Long id, String ticketNo, Long userId,
                    Long orderId, String orderNo,
-                   Long storeId, String storeName,
+                   Long storeId, String storeName, Long merchantId,
                    String category, String title, String detail,
                    String evidenceUrls, String status,
                    Long acceptedBy, LocalDateTime acceptedAt,

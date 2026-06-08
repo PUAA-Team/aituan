@@ -76,6 +76,7 @@ class SupportMessage {
   final String createdAt;
 
   bool get isUser => senderType == 'user';
+  bool get isMerchant => senderType == 'merchant';
   bool get isPlatform => senderType == 'platform';
 
   factory SupportMessage.fromApi(Map<String, dynamic> json) => SupportMessage(

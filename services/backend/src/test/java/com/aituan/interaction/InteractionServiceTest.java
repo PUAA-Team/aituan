@@ -1,9 +1,13 @@
 package com.aituan.interaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.aituan.TestAuthSupport;
+import com.aituan.common.exception.BusinessException;
+import com.aituan.common.exception.ErrorCode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +21,29 @@ class InteractionServiceTest {
 
   @Autowired private InteractionService interactionService;
   @Autowired private JdbcTemplate jdbcTemplate;
+
+  @BeforeEach
+  void resetReviewFixtures() {
+    jdbcTemplate.update("delete from review_report where id > 3");
+    jdbcTemplate.update("delete from review_record where id >= 9900");
+    jdbcTemplate.update("delete from order_main where id >= 9900");
+    jdbcTemplate.update(
+        """
+        update review_report
+        set status = 'submitted', handled_by = null, handled_at = null, is_deleted = 0
+        where id = 1
+        """);
+    jdbcTemplate.update(
+        """
+        update review_report
+        set status = 'handled', handled_by = 3, handled_at = current_timestamp, is_deleted = 0
+        where id in (2, 3)
+        """);
+    jdbcTemplate.update(
+        "update review_record set reported_count = 1, status = 'published' where id = 9009");
+    jdbcTemplate.update(
+        "update review_record set reported_count = 2, status = 'hidden' where id = 9017");
+  }
 
   @AfterEach
   void cleanup() {
@@ -48,6 +75,8 @@ class InteractionServiceTest {
   @Test
   void reportReviewStoresEvidenceImages() {
     TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update("update review_report set status = 'handled' where id = 1");
+    jdbcTemplate.update("update review_record set reported_count = 0 where id = 9009");
 
     ReviewReportView report = interactionService.reportReview(
         9009L,
@@ -61,6 +90,174 @@ class InteractionServiceTest {
         String.class,
         report.reportId());
     assertThat(evidence).contains("/api/common/files/report/demo.png");
+  }
+
+  @Test
+  void hiddenReviewCannotBeReported() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    assertThatThrownBy(() -> interactionService.reportReview(
+        9017L,
+        new ReviewReportRequest("内容不实", "隐藏评价不能继续举报", java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.NOT_FOUND));
+  }
+
+  @Test
+  void duplicateActiveReportIsIdempotentAndDoesNotIncrementCount() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    ReviewReportView report = interactionService.reportReview(
+        9009L,
+        new ReviewReportRequest("内容不实", "重复提交同一举报", java.util.List.of()));
+
+    assertThat(report.reportId()).isEqualTo(1L);
+    Integer activeReports = jdbcTemplate.queryForObject(
+        """
+        select count(1)
+        from review_report
+        where review_id = ? and reporter_user_id = ? and status = 'submitted' and is_deleted = 0
+        """,
+        Integer.class,
+        9009L,
+        1L);
+    Integer reportedCount = jdbcTemplate.queryForObject(
+        "select reported_count from review_record where id = ?",
+        Integer.class,
+        9009L);
+    assertThat(activeReports).isEqualTo(1);
+    assertThat(reportedCount).isEqualTo(1);
+  }
+
+  @Test
+  void adminReportedFilterUsesOnlyActiveReports() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    var page = interactionService.adminReviews(null, true, 1, 20);
+
+    assertThat(page.list()).anySatisfy(review -> assertThat(review.id()).isEqualTo(9009L));
+    assertThat(page.list()).noneSatisfy(review -> assertThat(review.id()).isEqualTo(9017L));
+  }
+
+  @Test
+  void adminAuditHandlesReportsAndRemovesReviewFromReportedFilter() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    ReviewView audited = interactionService.adminAudit(
+        9009L, new AdminReviewAuditRequest("pass", "举报不成立"));
+
+    Integer activeReports = jdbcTemplate.queryForObject(
+        "select count(1) from review_report where review_id = ? and status = 'submitted' and is_deleted = 0",
+        Integer.class,
+        9009L);
+    Integer reportedCount = jdbcTemplate.queryForObject(
+        "select reported_count from review_record where id = ?",
+        Integer.class,
+        9009L);
+    var reportedPage = interactionService.adminReviews(null, true, 1, 20);
+
+    assertThat(audited.reportReasons()).isNull();
+    assertThat(activeReports).isZero();
+    assertThat(reportedCount).isZero();
+    assertThat(reportedPage.list()).noneSatisfy(review -> assertThat(review.id()).isEqualTo(9009L));
+  }
+
+  @Test
+  void submitReviewRejectsMissingRatingAsBusinessError() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9901L, "AT202606049901", 1L, 1L, "塔斯汀中国汉堡", "takeaway", "空评分测试订单",
+        "used", "paid", "completed",
+        18.80, 4.00, 0.00, 22.80);
+
+    assertThatThrownBy(() -> interactionService.submitReview(
+        9901L,
+        new ReviewCreateRequest(null, "内容正常但评分缺失", java.util.List.of(), java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.BAD_REQUEST));
+  }
+
+  @Test
+  void submitReviewRejectsRatingOutsideAllowedRangeAsBusinessError() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9903L, "AT202606049903", 1L, 1L, "塔斯汀中国汉堡", "takeaway", "低评分测试订单",
+        "used", "paid", "completed",
+        18.80, 4.00, 0.00, 22.80);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9904L, "AT202606049904", 1L, 1L, "塔斯汀中国汉堡", "takeaway", "高评分测试订单",
+        "used", "paid", "completed",
+        18.80, 4.00, 0.00, 22.80);
+
+    assertThatThrownBy(() -> interactionService.submitReview(
+        9903L,
+        new ReviewCreateRequest(0, "评分低于范围", java.util.List.of(), java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.BAD_REQUEST));
+    assertThatThrownBy(() -> interactionService.submitReview(
+        9904L,
+        new ReviewCreateRequest(6, "评分高于范围", java.util.List.of(), java.util.List.of())))
+        .isInstanceOf(BusinessException.class)
+        .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
+            .isEqualTo(ErrorCode.BAD_REQUEST));
+  }
+
+  @Test
+  void submittedReviewAppearsInMyStoreAndDetailViewsWithImages() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    jdbcTemplate.update(
+        """
+        insert into order_main(id, order_no, user_id, store_id, store_name, order_type, title,
+                               display_status, payment_status, fulfillment_status,
+                               amount, delivery_fee, discount_amount, payable_amount)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        9902L, "AT202606049902", 1L, 11L, "牛排先生", "group_buy", "新评价显示测试订单",
+        "used", "paid", "completed",
+        68.00, 0.00, 0.00, 68.00);
+
+    ReviewView submitted = interactionService.submitReview(
+        9902L,
+        new ReviewCreateRequest(
+            4,
+            "后续发布的评价应展示出来",
+            java.util.List.of("核销快"),
+            java.util.List.of("/api/common/files/review/new-review.png")));
+
+    var mine = interactionService.myReviews(null, 1, 20);
+    var store = interactionService.storeReviews(11L, 1, 20);
+    ReviewView detail = interactionService.reviewDetail(submitted.id());
+
+    assertThat(mine.list()).anySatisfy(review -> {
+      assertThat(review.id()).isEqualTo(submitted.id());
+      assertThat(review.imageUrls()).contains("/api/common/files/review/new-review.png");
+    });
+    assertThat(store.list()).anySatisfy(review -> {
+      assertThat(review.id()).isEqualTo(submitted.id());
+      assertThat(review.imageUrls()).contains("/api/common/files/review/new-review.png");
+    });
+    assertThat(detail.imageUrls()).contains("/api/common/files/review/new-review.png");
   }
 
   @Test

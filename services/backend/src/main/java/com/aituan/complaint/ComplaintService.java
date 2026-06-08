@@ -86,12 +86,15 @@ class ComplaintService {
 
   // ============ 后台端 ============
 
-  PageResponse<ComplaintView> adminTickets(String statusFilter, String categoryFilter, int page, int pageSize) {
+  PageResponse<ComplaintView> adminTickets(
+      String statusFilter, String categoryFilter, String orderNoFilter, String storeNameFilter, int page, int pageSize) {
     requireAdmin();
     String s = normalizeStatus(statusFilter);
     String c = categoryFilter == null ? null : normalizeCategory(categoryFilter);
-    long total = complaintRepository.countAdminTickets(s, c);
-    List<ComplaintView> list = complaintRepository.listAdminTickets(s, c, (page - 1) * pageSize, pageSize)
+    String orderNo = normalizeOptional(orderNoFilter);
+    String storeName = normalizeOptional(storeNameFilter);
+    long total = complaintRepository.countAdminTickets(s, c, orderNo, storeName);
+    List<ComplaintView> list = complaintRepository.listAdminTickets(s, c, orderNo, storeName, (page - 1) * pageSize, pageSize)
         .stream().map(row -> toView(row, true)).toList();
     return PageResponse.of(list, page, pageSize, total);
   }
@@ -108,7 +111,31 @@ class ComplaintService {
 
   @Transactional
   ComplaintView close(long id, ComplaintActionRequest request) {
-    return advance(id, "close", request, null, "closed", "complaint_close", "关闭工单");
+    return advance(id, "close", request, "resolved", "closed", "complaint_close", "关闭工单");
+  }
+
+  // ============ 商家端 ============
+
+  PageResponse<ComplaintView> merchantTickets(
+      String statusFilter, String orderNoFilter, String storeNameFilter, int page, int pageSize) {
+    long merchantId = currentMerchantId();
+    String s = normalizeStatus(statusFilter);
+    String orderNo = normalizeOptional(orderNoFilter);
+    String storeName = normalizeOptional(storeNameFilter);
+    long total = complaintRepository.countMerchantTickets(merchantId, s, orderNo, storeName);
+    List<ComplaintView> list = complaintRepository.listMerchantTickets(
+            merchantId, s, orderNo, storeName, (page - 1) * pageSize, pageSize)
+        .stream().map(row -> toView(row, true)).toList();
+    return PageResponse.of(list, page, pageSize, total);
+  }
+
+  ComplaintDetailView merchantTicketDetail(long id) {
+    long merchantId = currentMerchantId();
+    ComplaintRepository.TicketRow row = complaintRepository.findById(id)
+        .filter(r -> r.merchantId() != null && r.merchantId() == merchantId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    List<ComplaintLogView> logs = complaintRepository.listLogs(id).stream().map(this::toLogView).toList();
+    return new ComplaintDetailView(toView(row, true), logs);
   }
 
   private ComplaintView advance(long id, String action, ComplaintActionRequest request,
@@ -142,7 +169,7 @@ class ComplaintService {
   private ComplaintView toView(ComplaintRepository.TicketRow row, boolean adminScope) {
     return new ComplaintView(
         row.id(), row.ticketNo(), row.orderId(), row.orderNo(),
-        row.storeId(), row.storeName(),
+        row.storeId(), row.storeName(), row.merchantId(),
         row.category(), row.title(), row.detail(),
         splitList(row.evidenceUrls()),
         row.status(),
@@ -170,6 +197,18 @@ class ComplaintService {
     return c;
   }
 
+  private CurrentUser requireMerchant() {
+    CurrentUser c = CurrentUserContext.required();
+    if (c.accountType() != AccountType.MERCHANT) throw new BusinessException(ErrorCode.FORBIDDEN);
+    return c;
+  }
+
+  private long currentMerchantId() {
+    long accountId = requireMerchant().accountId();
+    return complaintRepository.findMerchantIdByAccount(accountId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "商家资料不存在"));
+  }
+
   // ============ 字符串工具 ============
 
   private String normalizeStatus(String value) {
@@ -189,6 +228,11 @@ class ComplaintService {
     if (value == null || value.trim().isEmpty()) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, label + "不能为空");
     }
+    return value.trim();
+  }
+
+  private String normalizeOptional(String value) {
+    if (value == null || value.isBlank()) return null;
     return value.trim();
   }
 

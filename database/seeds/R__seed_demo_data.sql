@@ -97,6 +97,12 @@ INSERT INTO merchant_takeaway_setting (id, store_id, accept_mode, updated_by) VA
   (3, 10, 'manual', 29)
 ON DUPLICATE KEY UPDATE accept_mode = VALUES(accept_mode), updated_by = VALUES(updated_by), is_deleted = 0;
 
+INSERT INTO merchant_support_auto_reply_rule (id, merchant_id, keywords, reply_content, enabled) VALUES
+  (1, 1, '配送,多久,时间,催,慢', '您好，系统已收到您的催单/时效问题，商家会尽快确认处理。', 1),
+  (2, 1, '退款,退单,取消', '您好，退款/取消问题建议先说明订单情况，商家会结合订单状态回复。', 1),
+  (3, 1, '发票,票据', '您好，发票或票据问题已记录，请补充抬头和联系方式。', 1)
+ON DUPLICATE KEY UPDATE keywords = VALUES(keywords), reply_content = VALUES(reply_content), enabled = VALUES(enabled), is_deleted = 0;
+
 INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_name, business_type, category_level, sort_order, status) VALUES
   (1, NULL, NULL, 'takeaway', '外卖', 'takeaway', 'module', 1, 'normal'),
   (2, NULL, NULL, 'group', '团购', 'group_buy', 'module', 2, 'normal'),

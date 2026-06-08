@@ -15,6 +15,11 @@ record SupportMessageCreateRequest(
 
 record SupportSessionCloseRequest(String reason) {}
 
+record SupportAutoReplyRuleUpsertRequest(
+    @NotBlank String keywords,
+    @NotBlank String replyContent,
+    Boolean enabled) {}
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record SupportSessionView(
     Long id,
@@ -52,3 +57,13 @@ record SupportMessageView(
 record SupportSessionDetailView(
     SupportSessionView session,
     List<SupportMessageView> messages) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record SupportAutoReplyRuleView(
+    Long id,
+    Long merchantId,
+    String keywords,
+    String replyContent,
+    boolean enabled,
+    LocalDateTime createdAt,
+    LocalDateTime updatedAt) {}
