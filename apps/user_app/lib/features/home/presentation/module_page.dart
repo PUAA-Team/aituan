@@ -154,6 +154,7 @@ class _ModulePageState extends State<ModulePage> {
       tags: merchant.tags,
       items: decorated,
       coverUrl: merchant.coverUrl,
+      recommendReason: merchant.recommendReason,
       estimatedTimeText: merchant.estimatedTimeText,
       longitude: merchant.longitude,
       latitude: merchant.latitude,
