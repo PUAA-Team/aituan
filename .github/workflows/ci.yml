@@ -1,0 +1,105 @@
+name: aituan-ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_API_BASE_URL: http://127.0.0.1
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run Maven tests
+        run: mvn -B -f services/backend/pom.xml test
+
+  web:
+    name: Web build (${{ matrix.app.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - name: merchant
+            path: apps/merchant_web
+            base: /merchant/
+            out: deploy/artifacts/merchant-web
+          - name: admin
+            path: apps/admin_web
+            base: /admin/
+            out: deploy/artifacts/admin-web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            apps/merchant_web/package-lock.json
+            apps/admin_web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix ${{ matrix.app.path }}
+
+      - name: Build ${{ matrix.app.name }} web
+        env:
+          VITE_API_BASE_URL: ${{ env.CI_API_BASE_URL }}
+        run: npm run build --prefix ${{ matrix.app.path }} -- --base=${{ matrix.app.base }} --outDir "$GITHUB_WORKSPACE/${{ matrix.app.out }}" --emptyOutDir
+
+  flutter:
+    name: Flutter analyze, tests, and web build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+
+      - name: Fetch Flutter dependencies
+        working-directory: apps/user_app
+        run: flutter pub get
+
+      - name: Analyze Flutter app
+        working-directory: apps/user_app
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/user_app
+        run: flutter test
+
+      - name: Build Flutter web
+        working-directory: apps/user_app
+        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.CI_API_BASE_URL }} --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
