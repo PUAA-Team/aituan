@@ -11,9 +11,9 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
-    "@vitejs/plugin-vue": "latest",
-    "vite": "latest",
-    "vue": "latest"
+    "@vitejs/plugin-vue": "6.0.2",
+    "vite": "7.2.7",
+    "vue": "3.5.34"
   },
   "devDependencies": {
     "@vue/test-utils": "2.4.11",
