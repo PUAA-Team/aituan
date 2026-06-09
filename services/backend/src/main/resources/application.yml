@@ -59,7 +59,7 @@ aituan:
       permission: ${AITUAN_UPLOAD_LSKYPRO_PERMISSION:1}
   mail:
     enabled: ${AITUAN_MAIL_ENABLED:false}
-    debug-return-code: ${AITUAN_MAIL_DEBUG_RETURN_CODE:true}
+    debug-return-code: ${AITUAN_MAIL_DEBUG_RETURN_CODE:false}
     from: ${AITUAN_MAIL_FROM:${AITUAN_MAIL_USERNAME:}}
     from-name: ${AITUAN_MAIL_FROM_NAME:爱团}
   map:

@@ -236,17 +236,12 @@ class _LoginPageState extends State<LoginPage> {
     }
     try {
       setState(() => _loading = true);
-      final code = await backendRepository.sendEmailCode(
+      await backendRepository.sendEmailCode(
         _email.text.trim(),
         _mode == AuthMode.register ? 'register' : 'reset_password',
       );
       if (!mounted) return;
-      if (code.isNotEmpty) {
-        _code.text = code;
-        showAppSnackBar(context, '验证码已发送：$code');
-      } else {
-        showAppSnackBar(context, '验证码已发送，请查看邮箱');
-      }
+      showAppSnackBar(context, '验证码已发送，请查看邮箱');
     } catch (error) {
       if (!mounted) return;
       showAppSnackBar(context, error.toString());

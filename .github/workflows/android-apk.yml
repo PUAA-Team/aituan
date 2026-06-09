@@ -106,7 +106,7 @@ jobs:
 
       - name: Build server debug APK
         working-directory: apps/user_app
-        run: flutter build apk --debug --dart-define=API_BASE_URL=${{ steps.resolve.outputs.api_origin }} --dart-define=LOCATION_DEBUG_ERRORS=true
+        run: flutter build apk --debug --dart-define=API_BASE_URL=${{ steps.resolve.outputs.api_origin }}
 
       - name: Prepare APK artifact
         run: |

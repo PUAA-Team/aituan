@@ -67,8 +67,11 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
       - ./artifacts/landing:/usr/share/nginx/html/landing:ro
       - ./artifacts/user-web:/usr/share/nginx/html/web:ro
       - ./artifacts/merchant-web:/usr/share/nginx/html/merchant:ro

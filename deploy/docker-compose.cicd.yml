@@ -66,8 +66,11 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ${AITUAN_DOWNLOADS_DIR:-/opt/aituan/data/downloads}:/usr/share/nginx/html/downloads:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
     networks:
       - aituan
 

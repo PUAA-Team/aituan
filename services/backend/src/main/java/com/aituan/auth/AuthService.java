@@ -27,7 +27,7 @@ class AuthService {
       PasswordEncoder passwordEncoder,
       JwtTokenService jwtTokenService,
       EmailVerificationSender emailVerificationSender,
-      @Value("${aituan.mail.debug-return-code:true}") boolean debugReturnCode) {
+      @Value("${aituan.mail.debug-return-code:false}") boolean debugReturnCode) {
     this.authRepository = authRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtTokenService = jwtTokenService;
