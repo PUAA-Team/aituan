@@ -16,6 +16,11 @@ import {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
+function expectedUrl(path: string) {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  return `${baseUrl}${path}`;
+}
+
 function mockApiResponse(data: unknown, options: { status?: number; code?: number; message?: string } = {}) {
   const status = options.status ?? 200;
   const code = options.code ?? 0;
@@ -48,7 +53,7 @@ describe('admin api', () => {
     expect(getToken()).toBe('admin-token');
     expect(localStorage.getItem('aituan_admin_account')).toBe('demo_admin');
     expect(localStorage.getItem('aituan_merchant_token')).toBeNull();
-    expect(url).toBe('http://localhost:8080/api/open/auth/admin/login/password');
+    expect(url).toBe(expectedUrl('/api/open/auth/admin/login/password'));
     expect(options.method).toBe('POST');
     expect(options.headers.Authorization).toBeUndefined();
     expect(options.headers['Content-Type']).toBe('application/json');
@@ -81,7 +86,7 @@ describe('admin api', () => {
     await uploadStoreCover(7, file);
     const { url, options } = lastRequest();
 
-    expect(url).toBe('http://localhost:8080/api/admin/stores/7/cover');
+    expect(url).toBe(expectedUrl('/api/admin/stores/7/cover'));
     expect(options.headers.Authorization).toBe('Bearer admin-token');
     expect(options.headers['Content-Type']).toBeUndefined();
     expect(options.body).toBeInstanceOf(FormData);
@@ -97,13 +102,13 @@ describe('admin api', () => {
     mockApiResponse({ list: [] });
     await fetchCatalogItems({ storeId: 3, businessType: 'group_buy', status: 'on_sale', keyword: '套餐' });
     expect(lastRequest().url).toBe(
-      'http://localhost:8080/api/admin/catalog/items?page=1&pageSize=80&storeId=3&businessType=group_buy&status=on_sale&keyword=%E5%A5%97%E9%A4%90',
+      expectedUrl('/api/admin/catalog/items?page=1&pageSize=80&storeId=3&businessType=group_buy&status=on_sale&keyword=%E5%A5%97%E9%A4%90'),
     );
 
     mockApiResponse({ list: [] });
     await fetchGovernanceComplaints({ status: 'pending', category: 'service', orderNo: 'AT 1', storeName: '塔斯汀', page: 2, pageSize: 5 });
     expect(lastRequest().url).toBe(
-      'http://localhost:8080/api/admin/governance/complaints?page=2&pageSize=5&status=pending&category=service&orderNo=AT+1&storeName=%E5%A1%94%E6%96%AF%E6%B1%80',
+      expectedUrl('/api/admin/governance/complaints?page=2&pageSize=5&status=pending&category=service&orderNo=AT+1&storeName=%E5%A1%94%E6%96%AF%E6%B1%80'),
     );
 
     mockApiResponse({});
@@ -112,6 +117,6 @@ describe('admin api', () => {
 
     expect(resolveAssetUrl()).toBe('');
     expect(resolveAssetUrl('http://example.com/a.png')).toBe('http://example.com/a.png');
-    expect(resolveAssetUrl('/uploads/a.png')).toBe('http://localhost:8080/uploads/a.png');
+    expect(resolveAssetUrl('/uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
   });
 });

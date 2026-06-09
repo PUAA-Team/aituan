@@ -16,6 +16,11 @@ import {
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
+function expectedUrl(path: string) {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  return `${baseUrl}${path}`;
+}
+
 function mockApiResponse(data: unknown, options: { status?: number; code?: number; message?: string } = {}) {
   const status = options.status ?? 200;
   const code = options.code ?? 0;
@@ -47,7 +52,7 @@ describe('merchant api', () => {
     expect(session.token).toBe('merchant-token');
     expect(getToken()).toBe('merchant-token');
     expect(localStorage.getItem('aituan_merchant_account')).toBe('demo_merchant');
-    expect(url).toBe('http://localhost:8080/api/open/auth/merchant/login/password');
+    expect(url).toBe(expectedUrl('/api/open/auth/merchant/login/password'));
     expect(options.method).toBe('POST');
     expect(options.headers.Authorization).toBeUndefined();
     expect(options.headers['Content-Type']).toBe('application/json');
@@ -61,7 +66,7 @@ describe('merchant api', () => {
     await replyMerchantReview(9, '感谢反馈');
     const jsonRequest = lastRequest();
 
-    expect(jsonRequest.url).toBe('http://localhost:8080/api/merchant/ops/reviews/9/reply');
+    expect(jsonRequest.url).toBe(expectedUrl('/api/merchant/ops/reviews/9/reply'));
     expect(jsonRequest.options.headers.Authorization).toBe('Bearer token-1');
     expect(jsonRequest.options.headers['Content-Type']).toBe('application/json');
     expect(jsonRequest.options.body).toBe(JSON.stringify({ content: '感谢反馈' }));
@@ -81,7 +86,7 @@ describe('merchant api', () => {
     await uploadStoreCover(file);
     const { url, options } = lastRequest();
 
-    expect(url).toBe('http://localhost:8080/api/merchant/stores/current/cover');
+    expect(url).toBe(expectedUrl('/api/merchant/stores/current/cover'));
     expect(options.headers.Authorization).toBe('Bearer token-2');
     expect(options.headers['Content-Type']).toBeUndefined();
     expect(options.body).toBeInstanceOf(FormData);
@@ -101,13 +106,13 @@ describe('merchant api', () => {
     mockApiResponse({ list: [] });
     await fetchMerchantReviews({ status: 'published', replied: false, page: 2, pageSize: 5 });
     expect(lastRequest().url).toBe(
-      'http://localhost:8080/api/merchant/ops/reviews?page=2&pageSize=5&status=published&replied=false',
+      expectedUrl('/api/merchant/ops/reviews?page=2&pageSize=5&status=published&replied=false'),
     );
 
     mockApiResponse({ list: [] });
     await fetchVouchers({ status: 'unused', keyword: '券 A', page: 3, pageSize: 10 });
     expect(lastRequest().url).toBe(
-      'http://localhost:8080/api/merchant/trade/vouchers?page=3&pageSize=10&status=unused&keyword=%E5%88%B8+A',
+      expectedUrl('/api/merchant/trade/vouchers?page=3&pageSize=10&status=unused&keyword=%E5%88%B8+A'),
     );
 
     mockApiResponse({});
@@ -120,7 +125,7 @@ describe('merchant api', () => {
 
     expect(resolveAssetUrl()).toBe('');
     expect(resolveAssetUrl('https://example.com/a.png')).toBe('https://example.com/a.png');
-    expect(resolveAssetUrl('/uploads/a.png')).toBe('http://localhost:8080/uploads/a.png');
-    expect(resolveAssetUrl('uploads/a.png')).toBe('http://localhost:8080/uploads/a.png');
+    expect(resolveAssetUrl('/uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
+    expect(resolveAssetUrl('uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
   });
 });
