@@ -69,10 +69,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             else if (detail != null) ...[
               MockThumb(
                 width: double.infinity,
-                height: 190,
+                height: 260,
                 icon: businessIcon(item.type),
                 label: item.category,
                 imageUrl: item.coverUrl,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 10),
               _InfoCard(item: item, categories: detail.categories),

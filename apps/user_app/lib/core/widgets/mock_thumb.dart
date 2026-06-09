@@ -17,6 +17,7 @@ class MockThumb extends StatelessWidget {
     this.label,
     this.imageUrl,
     this.accentColor = AppColors.brand,
+    this.fit = BoxFit.contain,
   });
 
   final double size;
@@ -27,6 +28,7 @@ class MockThumb extends StatelessWidget {
   final String? label;
   final String? imageUrl;
   final Color accentColor;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +43,17 @@ class MockThumb extends StatelessWidget {
     );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius ?? AppTokens.radiusSmall),
-      child: CachedAppImage(
-        imageUrl: imageUrl,
+      child: Container(
         width: boxWidth,
         height: boxHeight,
-        placeholder: placeholder,
+        color: AppColors.soft,
+        child: CachedAppImage(
+          imageUrl: imageUrl,
+          width: boxWidth,
+          height: boxHeight,
+          fit: fit,
+          placeholder: placeholder,
+        ),
       ),
     );
   }

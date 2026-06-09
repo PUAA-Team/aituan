@@ -115,6 +115,7 @@ INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_n
   (101, 1, 1, 'tst_burger', '汉堡', 'takeaway', 'store_item', 1, 'normal'),
   (102, 1, 1, 'tst_combo', '套餐', 'takeaway', 'store_item', 2, 'normal'),
   (103, 1, 1, 'tst_snack', '小食', 'takeaway', 'store_item', 3, 'normal'),
+  (108, 1, 1, 'tst_drink', '饮品', 'takeaway', 'store_item', 4, 'normal'),
   (104, 1, 2, 'sj_rice', '招牌饭', 'takeaway', 'store_item', 1, 'normal'),
   (105, 1, 2, 'sj_combo', '能量套餐', 'takeaway', 'store_item', 2, 'normal'),
   (201, 2, 3, 'jn_family', '多人餐', 'group_buy', 'store_item', 1, 'normal'),
@@ -137,10 +138,17 @@ INSERT INTO catalog_category (id, parent_id, store_id, category_code, category_n
 ON DUPLICATE KEY UPDATE category_name = VALUES(category_name), sort_order = VALUES(sort_order);
 
 INSERT INTO catalog_item (id, store_id, business_type, category_id, item_name, subtitle, price, original_price, cover_url, rule_text, sales_count, status, item_kind, tag_text, sort_order) VALUES
-  (1001, 1, 'takeaway', 101, '招牌中国汉堡', '现烤胚皮 · 酱香鸡腿排', 18.80, 22.00, 'https://picsum.photos/seed/aituan-item-1001/720/540', '外卖商品不单独进入详情页', 2380, 'on_sale', 'takeaway', '热销,现做', 1),
-  (1002, 1, 'takeaway', 101, '藤椒鸡腿堡', '微麻藤椒风味，搭配脆生菜', 19.90, 24.00, 'https://picsum.photos/seed/aituan-item-1002/720/540', '外卖商品不单独进入详情页', 1860, 'on_sale', 'takeaway', '微辣,高复购', 2),
+  (1002, 1, 'takeaway', 101, '藤椒鸡腿堡', '微麻藤椒风味，搭配脆生菜', 19.90, 24.00, 'https://picsum.photos/seed/aituan-item-1002/720/540', '外卖商品不单独进入详情页', 1860, 'on_sale', 'takeaway', '微辣,高复购', 1),
+  (1006, 1, 'takeaway', 101, '黑椒牛肉堡', '厚切牛肉饼，黑椒酱汁微辣', 23.80, 29.00, '', '外卖商品不单独进入详情页', 980, 'on_sale', 'takeaway', '牛肉,微辣', 2),
+  (1007, 1, 'takeaway', 101, '板烧鸡腿堡', '板烧鸡腿排，肉汁饱满', 20.80, 25.00, '', '外卖商品不单独进入详情页', 1120, 'on_sale', 'takeaway', '鸡腿,人气', 3),
   (1003, 1, 'takeaway', 102, '双人汉堡套餐', '双堡 + 小食 + 饮品', 42.80, 52.00, 'https://picsum.photos/seed/aituan-item-1003/720/540', '外卖商品不单独进入详情页', 1420, 'on_sale', 'takeaway', '双人,套餐', 1),
+  (1008, 1, 'takeaway', 102, '单人招牌套餐', '招牌汉堡 + 香辣鸡翅 + 可乐', 32.80, 39.00, '', '外卖商品不单独进入详情页', 1310, 'on_sale', 'takeaway', '单人,套餐', 2),
+  (1009, 1, 'takeaway', 102, '家庭分享桶', '三款汉堡 + 鸡翅 + 薯条 + 三杯饮品', 88.00, 108.00, '', '外卖商品不单独进入详情页', 620, 'on_sale', 'takeaway', '家庭,多人', 3),
   (1004, 1, 'takeaway', 103, '香辣鸡翅', '外酥里嫩，适合加购', 13.90, 16.00, 'https://picsum.photos/seed/aituan-item-1004/720/540', '外卖商品不单独进入详情页', 980, 'on_sale', 'takeaway', '小食,加购', 1),
+  (1010, 1, 'takeaway', 103, '黄金脆薯', '现炸粗薯条，外脆内绵', 9.90, 12.00, '', '外卖商品不单独进入详情页', 1460, 'on_sale', 'takeaway', '薯条,小食', 2),
+  (1011, 1, 'takeaway', 103, '爆浆鸡米花', '一口爆浆鸡米花，适合分享', 12.80, 15.00, '', '外卖商品不单独进入详情页', 860, 'on_sale', 'takeaway', '鸡米花,小食', 3),
+  (1012, 1, 'takeaway', 108, '冰柠可乐', '大杯冰爽可乐，搭配柠檬片', 6.00, 8.00, '', '外卖商品不单独进入详情页', 1520, 'on_sale', 'takeaway', '饮品,冰爽', 1),
+  (1013, 1, 'takeaway', 108, '鲜橙气泡水', '鲜橙风味气泡饮，清爽解腻', 8.80, 10.00, '', '外卖商品不单独进入详情页', 740, 'on_sale', 'takeaway', '饮品,果味', 2),
   (1101, 2, 'takeaway', 104, '招牌炸鸡饭', '整块炸鸡排 + 米饭 + 小菜', 23.80, 28.00, 'https://picsum.photos/seed/aituan-item-1101/720/540', '外卖商品不单独进入详情页', 1640, 'on_sale', 'takeaway', '热卖,饱腹', 1),
   (1102, 2, 'takeaway', 105, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 35.80, 42.00, 'https://picsum.photos/seed/aituan-item-1102/720/540', '外卖商品不单独进入详情页', 820, 'on_sale', 'takeaway', '套餐,午餐', 1),
   (2001, 3, 'group_buy', 201, '江南小馆 3-4 人餐', '招牌鱼头、东坡肉、时蔬组合', 168.00, 218.00, 'https://picsum.photos/seed/aituan-item-2001/720/540', '到店出示券码核销，节假日通用', 760, 'on_sale', 'service', '团购,多人餐', 1),
@@ -164,13 +172,20 @@ INSERT INTO catalog_item (id, store_id, business_type, category_id, item_name, s
   (4102, 13, 'entertainment', 402, 'VR 双人畅玩票', 'VR 项目双人体验，节假日可用', 128.00, 168.00, 'https://picsum.photos/seed/aituan-item-4102/720/540', '到店核销后排队体验', 510, 'on_sale', 'service', 'VR,朋友聚会', 2),
   (6101, 14, 'beauty', 602, '全身舒缓 SPA', '90 分钟身体护理，预约优先', 298.00, 398.00, 'https://picsum.photos/seed/aituan-item-6101/720/540', '使用前建议电话预约', 260, 'on_sale', 'service', 'SPA,护理', 1),
   (6102, 14, 'beauty', 603, '肩颈放松 45 分钟', '肩颈舒缓和热敷护理', 168.00, 238.00, 'https://picsum.photos/seed/aituan-item-6102/720/540', '使用前建议电话预约', 330, 'on_sale', 'service', '肩颈,放松', 1)
-ON DUPLICATE KEY UPDATE item_name = VALUES(item_name), price = VALUES(price), cover_url = VALUES(cover_url), tag_text = VALUES(tag_text);
+ON DUPLICATE KEY UPDATE store_id = VALUES(store_id), business_type = VALUES(business_type), category_id = VALUES(category_id), item_name = VALUES(item_name), subtitle = VALUES(subtitle), price = VALUES(price), original_price = VALUES(original_price), cover_url = VALUES(cover_url), rule_text = VALUES(rule_text), sales_count = VALUES(sales_count), status = VALUES(status), item_kind = VALUES(item_kind), tag_text = VALUES(tag_text), sort_order = VALUES(sort_order), is_deleted = 0;
 
 INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
-  (1, 1001, '默认', 18.80, 500, 'on_sale'),
   (2, 1002, '默认', 19.90, 500, 'on_sale'),
+  (29, 1006, '默认', 23.80, 500, 'on_sale'),
+  (30, 1007, '默认', 20.80, 500, 'on_sale'),
   (3, 1003, '默认', 42.80, 300, 'on_sale'),
+  (31, 1008, '默认', 32.80, 300, 'on_sale'),
+  (32, 1009, '默认', 88.00, 200, 'on_sale'),
   (4, 1004, '默认', 13.90, 500, 'on_sale'),
+  (33, 1010, '默认', 9.90, 500, 'on_sale'),
+  (34, 1011, '默认', 12.80, 500, 'on_sale'),
+  (35, 1012, '默认', 6.00, 500, 'on_sale'),
+  (36, 1013, '默认', 8.80, 500, 'on_sale'),
   (5, 1101, '默认', 23.80, 500, 'on_sale'),
   (6, 1102, '默认', 35.80, 3, 'on_sale'),
   (7, 2001, '默认', 168.00, 100, 'on_sale'),
@@ -194,10 +209,13 @@ INSERT INTO catalog_sku (id, item_id, sku_name, price, stock, status) VALUES
   (25, 4102, '默认', 128.00, 120, 'on_sale'),
   (26, 6101, '默认', 298.00, 80, 'on_sale'),
   (27, 6102, '默认', 168.00, 80, 'on_sale')
-ON DUPLICATE KEY UPDATE price = VALUES(price), stock = VALUES(stock);
+ON DUPLICATE KEY UPDATE price = VALUES(price), stock = VALUES(stock), status = VALUES(status), is_deleted = 0;
+
+UPDATE catalog_sku SET status = 'off_sale', is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE item_id IN (1001, 1005);
+UPDATE catalog_item SET status = 'off_sale', is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id IN (1001, 1005);
 
 INSERT INTO member_recommend_config (id, scene, business_type, store_id, item_id, sort_order, status) VALUES
-  (1, 'home_recommend', 'takeaway', 1, 1001, 1, 'normal'),
+  (1, 'home_recommend', 'takeaway', 1, 1002, 1, 'normal'),
   (2, 'home_recommend', 'takeaway', 2, 1101, 2, 'normal'),
   (3, 'home_recommend', 'group_buy', 3, 2001, 3, 'normal'),
   (4, 'home_recommend', 'hotel', 4, 3001, 4, 'normal'),
@@ -212,11 +230,11 @@ INSERT INTO member_recommend_config (id, scene, business_type, store_id, item_id
   (13, 'home_recommend', 'entertainment', 13, 4101, 13, 'normal'),
   (14, 'home_recommend', 'beauty', 14, 6101, 14, 'normal'),
   (15, 'home_recommend', 'takeaway', 10, 1203, 15, 'normal')
-ON DUPLICATE KEY UPDATE sort_order = VALUES(sort_order), status = VALUES(status);
+ON DUPLICATE KEY UPDATE scene = VALUES(scene), business_type = VALUES(business_type), store_id = VALUES(store_id), item_id = VALUES(item_id), sort_order = VALUES(sort_order), status = VALUES(status);
 
 INSERT INTO order_main (id, order_no, user_id, store_id, store_name, order_type, title, display_status, payment_status, fulfillment_status, payment_method, amount, delivery_fee, discount_amount, payable_amount, address_snapshot, voucher_summary, paid_at, completed_at, created_at) VALUES
   (1, 'AT202605170001', 1, 3, '江南小馆', 'group_buy', '江南小馆 双人餐', 'unpaid', 'unpaid', 'created', NULL, 98.00, 0.00, 0.00, 98.00, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP),
-  (2, 'AT202605170002', 1, 1, '塔斯汀中国汉堡', 'takeaway', '招牌中国汉堡等2件', 'pending', 'paid', 'delivering', 'mock', 32.70, 4.00, 0.00, 36.70, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
+  (2, 'AT202605170002', 1, 1, '塔斯汀中国汉堡', 'takeaway', '藤椒鸡腿堡等2件', 'pending', 'paid', 'delivering', 'mock', 33.80, 4.00, 0.00, 37.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (3, 'AT202605170003', 1, 3, '江南小馆', 'group_buy', '江南小馆 3-4 人餐', 'unused', 'paid', 'voucher_unused', 'mock', 168.00, 0.00, 0.00, 168.00, NULL, '券码 88001234', CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (4, 'AT202605170004', 1, 9, '雅境足道', 'massage', '经典足疗 60 分钟', 'used', 'paid', 'voucher_used', 'mock', 118.00, 0.00, 0.00, 118.00, NULL, '券码 88005678', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   (9005, 'AT202605179005', 1, 10, '米村拌饭', 'takeaway', '肥牛泡菜拌饭等2件', 'used', 'paid', 'completed', 'mock', 49.60, 4.00, 3.00, 50.60, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -231,12 +249,12 @@ INSERT INTO order_main (id, order_no, user_id, store_id, store_name, order_type,
   (9014, 'AT202605179014', 1, 10, '米村拌饭', 'takeaway', '双人拌饭套餐', 'pending', 'paid', 'ready_for_delivery', 'mock', 68.00, 4.00, 6.00, 66.00, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (9015, 'AT202605179015', 1, 2, '松记炸鸡饭', 'takeaway', '招牌炸鸡饭等2件', 'pending', 'paid', 'delivering', 'mock', 59.60, 3.00, 5.00, 57.60, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
   (9016, 'AT202605179016', 1, 10, '米村拌饭', 'takeaway', '招牌石锅拌饭', 'pending', 'paid', 'delivered', 'mock', 29.80, 4.00, 0.00, 33.80, '北京市朝阳区湖畔花园 3 号楼 1801', NULL, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP),
-  (9017, 'AT202605179017', 1, 1, '塔斯汀中国汉堡', 'takeaway', '招牌中国汉堡', 'used', 'paid', 'completed', 'mock', 18.80, 4.00, 0.00, 22.80, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE display_status = VALUES(display_status), payment_status = VALUES(payment_status), fulfillment_status = VALUES(fulfillment_status);
+  (9017, 'AT202605179017', 1, 1, '塔斯汀中国汉堡', 'takeaway', '藤椒鸡腿堡', 'used', 'paid', 'completed', 'mock', 19.90, 4.00, 0.00, 23.90, '北京市海淀区城市广场 A 座 1208', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE title = VALUES(title), display_status = VALUES(display_status), payment_status = VALUES(payment_status), fulfillment_status = VALUES(fulfillment_status), amount = VALUES(amount), delivery_fee = VALUES(delivery_fee), discount_amount = VALUES(discount_amount), payable_amount = VALUES(payable_amount), updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, business_type, category_id, quantity, unit_price, total_price, cover_url, is_reviewed) VALUES
   (1, 1, 2002, '江南小馆 双人餐', '双人精选菜品，适合工作日晚餐', 'group_buy', 202, 1, 98.00, 98.00, 'https://picsum.photos/seed/aituan-item-2002/720/540', 0),
-  (2, 2, 1001, '招牌中国汉堡', '现烤胚皮 · 酱香鸡腿排', 'takeaway', 101, 1, 18.80, 18.80, 'https://picsum.photos/seed/aituan-item-1001/720/540', 0),
+  (2, 2, 1002, '藤椒鸡腿堡', '微麻藤椒风味，搭配脆生菜', 'takeaway', 101, 1, 19.90, 19.90, 'https://picsum.photos/seed/aituan-item-1002/720/540', 0),
   (3, 2, 1004, '香辣鸡翅', '外酥里嫩，适合加购', 'takeaway', 103, 1, 13.90, 13.90, 'https://picsum.photos/seed/aituan-item-1004/720/540', 0),
   (4, 3, 2001, '江南小馆 3-4 人餐', '招牌鱼头、东坡肉、时蔬组合', 'group_buy', 201, 1, 168.00, 168.00, 'https://picsum.photos/seed/aituan-item-2001/720/540', 0),
   (5, 4, 8001, '经典足疗 60 分钟', '足浴放松，含肩颈舒缓', 'massage', 801, 1, 118.00, 118.00, 'https://picsum.photos/seed/aituan-item-8001/720/540', 1),
@@ -255,11 +273,75 @@ INSERT INTO order_item (id, order_id, item_id, item_name, item_subtitle, busines
   (9017, 9015, 1101, '招牌炸鸡饭', '整块炸鸡排 + 米饭 + 小菜', 'takeaway', 104, 1, 23.80, 23.80, 'https://picsum.photos/seed/aituan-item-1101/720/540', 0),
   (9018, 9015, 1102, '鸡排饭双拼套餐', '鸡排饭 + 小食 + 饮品', 'takeaway', 105, 1, 35.80, 35.80, 'https://picsum.photos/seed/aituan-item-1102/720/540', 0),
   (9019, 9016, 1201, '招牌石锅拌饭', '牛肉、蔬菜和溏心蛋热拌', 'takeaway', 106, 1, 29.80, 29.80, 'https://picsum.photos/seed/aituan-item-1201/720/540', 0),
-  (9020, 9017, 1001, '招牌中国汉堡', '现烤胚皮 · 酱香鸡腿排', 'takeaway', 101, 1, 18.80, 18.80, 'https://picsum.photos/seed/aituan-item-1001/720/540', 1)
-ON DUPLICATE KEY UPDATE total_price = VALUES(total_price), cover_url = VALUES(cover_url), is_reviewed = VALUES(is_reviewed);
+  (9020, 9017, 1002, '藤椒鸡腿堡', '微麻藤椒风味，搭配脆生菜', 'takeaway', 101, 1, 19.90, 19.90, 'https://picsum.photos/seed/aituan-item-1002/720/540', 1)
+ON DUPLICATE KEY UPDATE item_id = VALUES(item_id), item_name = VALUES(item_name), item_subtitle = VALUES(item_subtitle), business_type = VALUES(business_type), category_id = VALUES(category_id), quantity = VALUES(quantity), unit_price = VALUES(unit_price), total_price = VALUES(total_price), cover_url = VALUES(cover_url), is_reviewed = VALUES(is_reviewed), updated_at = CURRENT_TIMESTAMP;
+
+UPDATE merchant_store
+SET cover_url = CASE id
+  WHEN 1 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28286abc091.jpg'
+  WHEN 2 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829e1467ae.jpg'
+  WHEN 3 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a03017d4.jpg'
+  WHEN 4 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282772d2664.jpg'
+  WHEN 5 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28298c123bf.jpg'
+  WHEN 6 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2827dc9977c.jpg'
+  WHEN 7 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282b0aebaef.png'
+  WHEN 8 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28280795639.jpg'
+  WHEN 9 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282b237a939.jpg'
+  WHEN 10 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a9fdba50.jpg'
+  WHEN 11 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a4e778b8.jpg'
+  WHEN 12 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829c30a242.jpg'
+  WHEN 13 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282ae0f0afe.jpg'
+  WHEN 14 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28296a54aa2.jpg'
+END,
+updated_at = CURRENT_TIMESTAMP
+WHERE id IN (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+
+UPDATE catalog_item
+SET cover_url = CASE id
+  WHEN 1002 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828962b219.jpg'
+  WHEN 1006 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828ccc41ba.jpg'
+  WHEN 1007 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28287b1ca03.jpg'
+  WHEN 1003 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828526c3ff.jpg'
+  WHEN 1008 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828442d308.jpg'
+  WHEN 1009 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28285d35e27.jpg'
+  WHEN 1004 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828a7d57d5.jpg'
+  WHEN 1010 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828c0666fa.jpg'
+  WHEN 1011 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282884c75cb.jpg'
+  WHEN 1012 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828353533b.jpg'
+  WHEN 1013 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2828b60fd96.jpg'
+  WHEN 1101 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829ec3d1d8.jpg'
+  WHEN 1102 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829f2b2f35.jpg'
+  WHEN 2001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a0bb4344.jpg'
+  WHEN 2002 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a15e4152.jpg'
+  WHEN 3001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282772cdee8.jpg'
+  WHEN 4001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282999641ea.jpg'
+  WHEN 5001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2827dc999c1.jpg'
+  WHEN 6001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282b03685f4.jpg'
+  WHEN 7001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28281a21bf5.jpg'
+  WHEN 8001 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282b2bdcbc2.jpg'
+  WHEN 8002 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282b33513d2.jpg'
+  WHEN 1201 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282aa9563e8.jpg'
+  WHEN 1202 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282ab4d51d2.jpg'
+  WHEN 1203 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a930ad93.jpg'
+  WHEN 1204 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a855b4f1.jpg'
+  WHEN 2101 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a64e738d.jpg'
+  WHEN 2102 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282a59a57dc.jpg'
+  WHEN 3101 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829cb5ce5e.jpg'
+  WHEN 3102 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829b87049c.jpg'
+  WHEN 4101 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282aea550ee.jpg'
+  WHEN 4102 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a282ad5eda56.jpg'
+  WHEN 6101 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a28295ba4e19.jpg'
+  WHEN 6102 THEN 'https://2bpic.oss-cn-beijing.aliyuncs.com/2026/06/09/6a2829742693b.jpg'
+END,
+updated_at = CURRENT_TIMESTAMP
+WHERE id IN (1002, 1006, 1007, 1003, 1008, 1009, 1004, 1010, 1011, 1012, 1013, 1101, 1102, 2001, 2002, 3001, 4001, 5001, 6001, 7001, 8001, 8002, 1201, 1202, 1203, 1204, 2101, 2102, 3101, 3102, 4101, 4102, 6101, 6102);
+
+UPDATE order_item
+SET cover_url = (SELECT catalog_item.cover_url FROM catalog_item WHERE catalog_item.id = order_item.item_id)
+WHERE item_id IN (1002, 1006, 1007, 1003, 1008, 1009, 1004, 1010, 1011, 1012, 1013, 1101, 1102, 2001, 2002, 3001, 4001, 5001, 6001, 7001, 8001, 8002, 1201, 1202, 1203, 1204, 2101, 2102, 3101, 3102, 4101, 4102, 6101, 6102);
 
 INSERT INTO order_payment_record (id, order_id, payment_no, payment_method, amount, status, provider_trade_no, paid_at) VALUES
-  (1, 2, 'PAY202605170002', 'mock', 36.70, 'paid', 'MOCK202605170002', CURRENT_TIMESTAMP),
+  (1, 2, 'PAY202605170002', 'mock', 37.80, 'paid', 'MOCK202605170002', CURRENT_TIMESTAMP),
   (2, 3, 'PAY202605170003', 'mock', 168.00, 'paid', 'MOCK202605170003', CURRENT_TIMESTAMP),
   (3, 4, 'PAY202605170004', 'mock', 118.00, 'paid', 'MOCK202605170004', CURRENT_TIMESTAMP),
   (9005, 9005, 'PAY202605179005', 'mock', 50.60, 'paid', 'MOCK202605179005', CURRENT_TIMESTAMP),
@@ -272,7 +354,7 @@ INSERT INTO order_payment_record (id, order_id, payment_no, payment_method, amou
   (9014, 9014, 'PAY202605179014', 'mock', 66.00, 'paid', 'MOCK202605179014', CURRENT_TIMESTAMP),
   (9015, 9015, 'PAY202605179015', 'mock', 57.60, 'paid', 'MOCK202605179015', CURRENT_TIMESTAMP),
   (9016, 9016, 'PAY202605179016', 'mock', 33.80, 'paid', 'MOCK202605179016', CURRENT_TIMESTAMP),
-  (9017, 9017, 'PAY202605179017', 'mock', 22.80, 'paid', 'MOCK202605179017', CURRENT_TIMESTAMP)
+  (9017, 9017, 'PAY202605179017', 'mock', 23.90, 'paid', 'MOCK202605179017', CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE status = VALUES(status), amount = VALUES(amount);
 
 INSERT INTO order_voucher (id, order_id, voucher_code, qr_payload, status, effective_to, verified_at, verified_by) VALUES
