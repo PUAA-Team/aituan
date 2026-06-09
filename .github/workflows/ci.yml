@@ -15,6 +15,16 @@ env:
   CI_API_BASE_URL: http://127.0.0.1
 
 jobs:
+  static-regression:
+    name: Static regression checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run member E regression checks
+        run: bash scripts/verify/member_e_regression_checks.sh
+
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
@@ -62,6 +72,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefix ${{ matrix.app.path }}
+
+      - name: Run ${{ matrix.app.name }} web tests
+        env:
+          VITE_API_BASE_URL: ${{ env.CI_API_BASE_URL }}
+        run: npm test --prefix ${{ matrix.app.path }}
 
       - name: Build ${{ matrix.app.name }} web
         env:
