@@ -231,7 +231,7 @@ class AppRouter {
       ? args
       : const CheckoutArgs(
           kind: OrderKind.takeaway,
-          title: '招牌中国汉堡',
+          title: '藤椒鸡腿堡',
           amount: 39.7,
         );
 

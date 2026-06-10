@@ -2,17 +2,6 @@ import '../../../shared/enums/business_type.dart';
 import 'mock_item_factory.dart';
 
 final tustinItems = [
-  mockItem(
-    't1',
-    '招牌中国汉堡',
-    '现做热卖 · 约 35 分钟送达',
-    BusinessType.takeaway,
-    '汉堡',
-    18.8,
-    null,
-    ['外卖', '热销'],
-    'm1',
-  ),
   mockItem('t2', '单人随心配', '汉堡+小食+饮品', BusinessType.takeaway, '套餐', 24.9, 32, [
     '套餐',
   ], 'm1'),
