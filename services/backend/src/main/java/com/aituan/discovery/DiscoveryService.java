@@ -45,7 +45,7 @@ class DiscoveryService {
     long unread = CurrentUserContext.optional()
         .filter(currentUser -> currentUser.isUser() && currentUser.userId() != null)
         .map(currentUser -> messageRepository.countUnreadMessages(currentUser.userId()))
-        .orElseGet(() -> discoveryRepository.countUnreadMessages(1L));
+        .orElse(0L);
     return new HomeView(modules, recommendations, unread);
   }
 

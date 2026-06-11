@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../shared/enums/business_type.dart';
+import '../../../core/widgets/app_toast.dart';
 import '../../../shared/models/message_item.dart';
 import '../../home/data/backend_app_repository.dart';
 
@@ -38,9 +39,7 @@ class _MessagePageState extends State<MessagePage> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _activeGroup == 'all'
-        ? _messages
-        : _messages.where((m) => m.group == _activeGroup).toList();
+    final filtered = _filteredMessages;
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _load,
@@ -87,6 +86,16 @@ class _MessagePageState extends State<MessagePage> {
     );
   }
 
+  List<MessageItem> get _filteredMessages {
+    final messages = _activeGroup == 'all'
+        ? _messages
+        : _messages.where((m) => m.group == _activeGroup).toList();
+    return [
+      ...messages.where((message) => message.unread),
+      ...messages.where((message) => !message.unread),
+    ];
+  }
+
   int _countOf(String groupKey) {
     if (groupKey == 'all') return _messages.length;
     return _messages.where((m) => m.group == groupKey).length;
@@ -98,8 +107,9 @@ class _MessagePageState extends State<MessagePage> {
         _loading = true;
         _error = null;
       });
-      final messages = await backendRepository.fetchMessages();
+      final messages = await backendRepository.fetchAllMessages();
       if (!mounted) return;
+      _syncUnreadCount(messages);
       setState(() {
         _messages = messages;
         _loading = false;
@@ -114,49 +124,120 @@ class _MessagePageState extends State<MessagePage> {
   }
 
   Future<void> _markAllRead() async {
+    if (!_messages.any((message) => message.unread)) return;
     try {
       await backendRepository.markAllMessagesRead();
       if (!mounted) return;
-      setState(() {
-        _messages = [
-          for (final item in _messages) item.copyWith(unread: false),
-        ];
-      });
+      final nextMessages = [
+        for (final item in _messages) item.copyWith(unread: false),
+      ];
+      _syncUnreadCount(nextMessages);
+      setState(() => _messages = nextMessages);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error);
+      showAppSnackBar(context, '标记已读失败：$error');
     }
   }
 
   Future<void> _openMessage(MessageItem item) async {
-    if (item.unread) {
-      try {
-        await backendRepository.markMessageRead(item.id);
-        if (mounted) {
-          setState(() {
-            _messages = [
-              for (final message in _messages)
-                message.id == item.id ? message.copyWith(unread: false) : message,
-            ];
-          });
-        }
-      } catch (_) {}
-    }
+    if (!await _markRead(item)) return;
     if (!mounted) return;
-    final targetType = item.relatedTargetType ?? (item.relatedOrderId == null ? null : 'order');
+    final opened = await _openTarget(item);
+    if (mounted && opened) await _load();
+  }
+
+  Future<bool> _markRead(MessageItem item) async {
+    if (!item.unread) return true;
+    try {
+      await backendRepository.markMessageRead(item.id);
+      if (!mounted) return false;
+      final nextMessages = [
+        for (final message in _messages)
+          message.id == item.id ? message.copyWith(unread: false) : message,
+      ];
+      _syncUnreadCount(nextMessages);
+      setState(() => _messages = nextMessages);
+      return true;
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, '标记已读失败：$error');
+      return false;
+    }
+  }
+
+  Future<bool> _openTarget(MessageItem item) async {
+    final targetType = item.relatedTargetType ?? _fallbackTargetType(item);
     final targetId = item.relatedTargetId ?? item.relatedOrderId;
-    if (targetType == 'order' && targetId != null) {
+    if (targetType == null) {
+      showAppSnackBar(context, '该消息暂无可跳转详情');
+      return false;
+    }
+    switch (targetType) {
+      case 'order':
+        if (targetId == null) {
+          showAppSnackBar(context, '该订单消息缺少订单信息');
+          return false;
+        }
+        return _openOrder(targetId);
+      case 'review':
+        await Navigator.pushNamed(
+          context,
+          targetId == null ? Routes.myReviews : Routes.reviewDetail,
+          arguments: targetId,
+        );
+        return true;
+      case 'complaint':
+        await Navigator.pushNamed(
+          context,
+          targetId == null ? Routes.complaintList : Routes.complaintDetail,
+          arguments: targetId,
+        );
+        return true;
+      case 'support':
+      case 'support_session':
+        await Navigator.pushNamed(
+          context,
+          targetId == null ? Routes.supportSessions : Routes.supportChat,
+          arguments: targetId,
+        );
+        return true;
+      default:
+        showAppSnackBar(context, '该消息暂无可跳转详情');
+        return false;
+    }
+  }
+
+  String? _fallbackTargetType(MessageItem item) {
+    if (item.relatedOrderId != null) return 'order';
+    return switch (item.group) {
+      'review' || 'complaint' || 'support' => item.group,
+      _ => null,
+    };
+  }
+
+  Future<bool> _openOrder(int orderId) async {
+    try {
+      final detail = await backendRepository.fetchOrderDetail('$orderId');
+      if (!mounted) return false;
       await Navigator.pushNamed(
         context,
         Routes.orderDetail,
         arguments: OrderDetailArgs(
-          kind: OrderKind.takeaway,
-          status: OrderStatus.pending,
-          orderId: '$targetId',
+          kind: detail.kind,
+          status: detail.status,
+          orderId: detail.id.isEmpty ? '$orderId' : detail.id,
         ),
       );
-      if (mounted) await _load();
+      return true;
+    } catch (error) {
+      if (mounted) showAppSnackBar(context, '打开订单失败：$error');
+      return false;
     }
+  }
+
+  void _syncUnreadCount(List<MessageItem> messages) {
+    appState.updateProfile(
+      unreadMessageCount: messages.where((message) => message.unread).length,
+    );
   }
 }
 
@@ -210,6 +291,8 @@ class _MessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppCard(
     onTap: onTap,
+    backgroundColor: item.unread ? const Color(0xFFFFF7F5) : null,
+    borderColor: item.unread ? const Color(0xFFFFD6CC) : null,
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -238,7 +321,7 @@ class _MessageCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  if (item.unread)
+                  if (item.unread) ...[
                     Container(
                       margin: const EdgeInsets.only(right: 6),
                       width: 8,
@@ -248,6 +331,22 @@ class _MessageCard extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '未读',
+                        style: TextStyle(color: Colors.red, fontSize: 11),
+                      ),
+                    ),
+                  ],
                   Text(
                     item.time,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(

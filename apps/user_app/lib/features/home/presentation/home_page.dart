@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_state.dart';
 import '../../../app/route_args.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
@@ -163,6 +164,7 @@ class _HomePageState extends State<HomePage> {
         reset: true,
       );
       if (!mounted) return;
+      appState.updateProfile(unreadMessageCount: data.unreadMessageCount);
       setState(() {
         _data = HomeData(
           modules: data.modules,

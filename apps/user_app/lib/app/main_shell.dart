@@ -27,6 +27,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadMessageCount = AppScope.of(context).unreadMessageCount;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -39,26 +40,34 @@ class _MainShellState extends State<MainShell> {
           selectedIndex: _index,
           indicatorColor: AppColors.brandSoft,
           onDestinationSelected: (value) {
-            if (value > 0 && !AppScope.of(context).requireLogin(context)) return;
+            if (value > 0 && !AppScope.of(context).requireLogin(context)) {
+              return;
+            }
             setState(() => _index = value);
           },
-          destinations: const [
-            NavigationDestination(
+          destinations: [
+            const NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
               label: '首页',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
+              icon: _NavIconWithBadge(
+                icon: Icons.chat_bubble_outline,
+                count: unreadMessageCount,
+              ),
+              selectedIcon: _NavIconWithBadge(
+                icon: Icons.chat_bubble,
+                count: unreadMessageCount,
+              ),
               label: '消息',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long),
               label: '订单',
             ),
-            NavigationDestination(
+            const NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: '我的',
@@ -77,7 +86,8 @@ class _MainShellState extends State<MainShell> {
     }
 
     final now = DateTime.now();
-    final shouldExit = _lastBackPressedAt != null &&
+    final shouldExit =
+        _lastBackPressedAt != null &&
         now.difference(_lastBackPressedAt!) < _exitInterval;
     if (shouldExit) {
       SystemNavigator.pop();
@@ -87,8 +97,48 @@ class _MainShellState extends State<MainShell> {
     _lastBackPressedAt = now;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('再按一次退出爱团')),
-      );
+      ..showSnackBar(const SnackBar(content: Text('再按一次退出爱团')));
   }
+}
+
+class _NavIconWithBadge extends StatelessWidget {
+  const _NavIconWithBadge({required this.icon, required this.count});
+
+  final IconData icon;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 28,
+    height: 28,
+    child: Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Center(child: Icon(icon)),
+        if (count > 0)
+          Positioned(
+            right: -4,
+            top: 0,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  height: 1,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }
