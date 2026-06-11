@@ -6,9 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "aituan.ai")
 public class AiProperties {
   private boolean enabled;
-  private String apiUrl = "http://cliapi.2b.gs";
+  private String apiUrl = "";
   private String apiKey = "";
-  private String model = "pp/gpt-5.5";
+  private String model = "";
   private int timeoutSeconds = 20;
   private int maxTokens = 800;
   private double temperature = 0.25;

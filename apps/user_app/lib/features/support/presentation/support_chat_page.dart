@@ -55,18 +55,39 @@ class _SupportChatPageState extends State<SupportChatPage> {
     if (_sending) return;
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    setState(() => _sending = true);
+    final optimisticUserMessage = SupportMessage(
+      id: -DateTime.now().microsecondsSinceEpoch,
+      senderType: 'user',
+      content: text,
+      createdAt: '',
+    );
+    final shouldShowAiThinking =
+        (_session?.isPlatform ?? false) && (_session?.isAiMode ?? false);
+    final thinkingMessage = SupportMessage(
+      id: optimisticUserMessage.id - 1,
+      senderType: 'platform',
+      content: '平台 AI 正在整理订单、投诉和客服信息…',
+      createdAt: '',
+    );
+    _controller.clear();
+    setState(() {
+      _sending = true;
+      _messages = [
+        ..._messages,
+        optimisticUserMessage,
+        if (shouldShowAiThinking) thinkingMessage,
+      ];
+    });
     try {
       final msg = await supportRepository.sendMessage(widget.sessionId, text);
       if (!mounted) return;
-      _controller.clear();
       final (session, messages) = await supportRepository.fetchDetail(
         widget.sessionId,
       );
       if (!mounted) return;
       setState(() {
         _session = session;
-        _messages = messages.isEmpty ? [..._messages, msg] : messages;
+        _messages = messages.isEmpty ? [msg] : messages;
         _sending = false;
       });
     } catch (e) {
