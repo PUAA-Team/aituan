@@ -17,8 +17,9 @@ class AssistantPetOverlay extends StatefulWidget {
 
 class _AssistantPetOverlayState extends State<AssistantPetOverlay>
     with SingleTickerProviderStateMixin {
-  static const _size = 70.0;
-  static const _peek = 28.0;
+  static const _petWidth = 118.0;
+  static const _petHeight = 86.0;
+  static const _peek = 58.0;
   static const _margin = 10.0;
 
   late final AnimationController _breathController;
@@ -63,8 +64,8 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
                       constraints.maxWidth,
                       constraints.maxHeight,
                     );
-                    if (bounds.width < _size + _peek ||
-                        bounds.height < _size * 2) {
+                    if (bounds.width < _petWidth + _peek ||
+                        bounds.height < _petHeight * 2) {
                       return const SizedBox.shrink();
                     }
                     final position = _resolvedPosition(bounds);
@@ -78,10 +79,11 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
                           curve: Curves.easeOutCubic,
                           left: position.dx,
                           top: position.dy,
-                          width: _size,
-                          height: _size,
-                          child: SizedBox.square(
-                            dimension: _size,
+                          width: _petWidth,
+                          height: _petHeight,
+                          child: SizedBox(
+                            width: _petWidth,
+                            height: _petHeight,
                             child: _AssistantPetButton(
                               expanded: _expanded || _dragging,
                               leftEdge: _leftEdge,
@@ -143,18 +145,21 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
   Offset _fullyVisible(Offset position, Size bounds) {
     final x = position.dx < 0
         ? _margin
-        : math.min(position.dx, bounds.width - _size - _margin);
+        : math.min(position.dx, bounds.width - _petWidth - _margin);
     return _clamp(Offset(x, position.dy), bounds, expanded: true);
   }
 
   Offset _clamp(Offset position, Size bounds, {required bool expanded}) {
-    final minX = expanded ? _margin : -(_size - _peek);
+    final minX = expanded ? _margin : -(_petWidth - _peek);
     final maxX = expanded
-        ? bounds.width - _size - _margin
+        ? bounds.width - _petWidth - _margin
         : bounds.width - _peek;
     final minY = MediaQuery.paddingOf(context).top + _margin;
     final maxY =
-        bounds.height - _size - MediaQuery.paddingOf(context).bottom - _margin;
+        bounds.height -
+        _petHeight -
+        MediaQuery.paddingOf(context).bottom -
+        _margin;
     return Offset(
       position.dx.clamp(minX, math.max(minX, maxX)),
       position.dy.clamp(minY, math.max(minY, maxY)),
@@ -164,14 +169,14 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
   void _dockToNearestEdge(Size bounds) {
     final current =
         _position ??
-        Offset(bounds.width - _size - _margin, bounds.height * 0.58);
-    final centerX = current.dx + _size / 2;
+        Offset(bounds.width - _petWidth - _margin, bounds.height * 0.58);
+    final centerX = current.dx + _petWidth / 2;
     setState(() {
       _dragging = false;
       _expanded = false;
       _leftEdge = centerX < bounds.width / 2;
       _position = Offset(
-        _leftEdge ? -(_size - _peek) : bounds.width - _peek,
+        _leftEdge ? -(_petWidth - _peek) : bounds.width - _peek,
         current.dy,
       );
     });
@@ -234,52 +239,13 @@ class _AssistantPetButton extends StatelessWidget {
             child: Semantics(
               button: true,
               label: '小爱同学 AI 助手',
-              child: SizedBox.expand(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFFFFB7C7),
-                      width: 2,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33000000),
-                        blurRadius: 14,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Transform.scale(
-                          scale: 2.45,
-                          alignment: const Alignment(0, -0.72),
-                          child: Image.asset(
-                            'assets/assistant_pet/xiaoai_pet.png',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                          ),
-                        ),
-                        Positioned(
-                          right: 9,
-                          bottom: 8,
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFE53958),
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+              child: Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(0, 0, leftEdge ? -1.0 : 1.0),
+                child: Image.asset(
+                  'assets/assistant_pet/xiaoai_pet_cutout.png',
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
