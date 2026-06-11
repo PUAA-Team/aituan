@@ -31,10 +31,11 @@ public class AiAgentService {
   public AiAssistantResponse userAssistant(CurrentUser currentUser, AiAssistantMessageRequest request) {
     String content = clean(request.content());
     AiAssistantRepository.ConversationRow conversation = resolveConversation(currentUser, request.conversationId(), content);
+    String memoryText = conversationMemory(conversation.id(), currentUser.userId());
     long userMessageId = assistantRepository.insertMessage(
         conversation.id(), currentUser.userId(), "user", content, List.of(), List.of(), List.of(), List.of(), false);
     assistantRepository.touchConversation(conversation.id(), userMessageId, titleFrom(content));
-    AiSkillContext context = new AiSkillContext(currentUser, content, null, null, "user_assistant");
+    AiSkillContext context = new AiSkillContext(currentUser, content, memoryText, conversation.id(), null, null, "user_assistant");
     List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
     List<AiAssistantStep> steps = steps(skillResults, true);
     AgentReply reply = generateReply("用户端助手", content, skillResults, fallbackReply(content, skillResults));
@@ -68,7 +69,7 @@ public class AiAgentService {
 
   public String platformSupportReply(CurrentUser currentUser, Long sessionId, Long relatedOrderId, String content) {
     String cleaned = clean(content);
-    AiSkillContext context = new AiSkillContext(currentUser, cleaned, sessionId, relatedOrderId, "platform_support");
+    AiSkillContext context = new AiSkillContext(currentUser, cleaned, "", null, sessionId, relatedOrderId, "platform_support");
     List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
     String fallback = fallbackReply(cleaned, skillResults);
     return generateReply("平台客服 AI", cleaned, skillResults, fallback).content();
@@ -175,6 +176,25 @@ public class AiAgentService {
     return new AiAssistantHistoryResponse(conversation.conversationNo(), messages);
   }
 
+  private String conversationMemory(long conversationId, long userId) {
+    List<AiAssistantRepository.MessageRow> messages = assistantRepository.listMessages(conversationId, userId, 12);
+    if (messages.isEmpty()) return "";
+    StringBuilder builder = new StringBuilder();
+    int start = Math.max(0, messages.size() - 8);
+    for (int i = start; i < messages.size(); i++) {
+      AiAssistantRepository.MessageRow row = messages.get(i);
+      builder.append(row.role()).append(": ").append(limit(row.content(), 220)).append("\n");
+      if (!row.cards().isEmpty()) {
+        builder.append("cards: ");
+        for (AiAssistantCard card : row.cards()) {
+          builder.append(card.type()).append("(").append(card.title()).append(", ").append(card.payload()).append("); ");
+        }
+        builder.append("\n");
+      }
+    }
+    return builder.toString();
+  }
+
   private List<AiAssistantStep> steps(List<AiSkillResult> skills, boolean replyStep) {
     List<AiAssistantStep> steps = new ArrayList<>();
     steps.add(new AiAssistantStep("识别问题类型", "根据消息内容选择可用业务信息", "done"));
@@ -196,6 +216,10 @@ public class AiAgentService {
       case "complaint_lookup" -> "调用了投诉工单信息";
       case "favorite_lookup" -> "调用了收藏信息";
       case "message_lookup" -> "调用了站内消息";
+      case "address_lookup" -> "调用了地址信息";
+      case "cart_lookup" -> "调用了购物车信息";
+      case "member_lookup" -> "调用了会员信息";
+      case "support_lookup" -> "调用了客服会话信息";
       case "account_summary" -> "调用了账号摘要";
       default -> "调用了" + skillName;
     };
