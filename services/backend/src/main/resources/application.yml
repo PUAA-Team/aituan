@@ -68,3 +68,11 @@ aituan:
       web-api-key: ${AITUAN_MAP_AMAP_WEB_API_KEY:}
       distance-url: ${AITUAN_MAP_AMAP_DISTANCE_URL:https://restapi.amap.com/v3/distance}
       regeo-url: ${AITUAN_MAP_AMAP_REGEO_URL:https://restapi.amap.com/v3/geocode/regeo}
+  ai:
+    enabled: ${AITUAN_AI_ENABLED:false}
+    api-url: ${AITUAN_AI_API_URL:http://cliapi.2b.gs}
+    api-key: ${AITUAN_AI_API_KEY:}
+    model: ${AITUAN_AI_MODEL:pp/gpt-5.5}
+    timeout-seconds: ${AITUAN_AI_TIMEOUT_SECONDS:20}
+    max-tokens: ${AITUAN_AI_MAX_TOKENS:800}
+    temperature: ${AITUAN_AI_TEMPERATURE:0.25}

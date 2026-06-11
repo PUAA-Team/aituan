@@ -20,26 +20,50 @@ public class AiAgentService {
 
   private final AiChatClient aiChatClient;
   private final AiSkillRegistry skillRegistry;
+  private final AiAssistantRepository assistantRepository;
 
-  AiAgentService(AiChatClient aiChatClient, AiSkillRegistry skillRegistry) {
+  AiAgentService(AiChatClient aiChatClient, AiSkillRegistry skillRegistry, AiAssistantRepository assistantRepository) {
     this.aiChatClient = aiChatClient;
     this.skillRegistry = skillRegistry;
+    this.assistantRepository = assistantRepository;
   }
 
   public AiAssistantResponse userAssistant(CurrentUser currentUser, AiAssistantMessageRequest request) {
     String content = clean(request.content());
+    AiAssistantRepository.ConversationRow conversation = resolveConversation(currentUser, request.conversationId(), content);
+    long userMessageId = assistantRepository.insertMessage(
+        conversation.id(), currentUser.userId(), "user", content, List.of(), List.of(), List.of(), List.of(), false);
+    assistantRepository.touchConversation(conversation.id(), userMessageId, titleFrom(content));
     AiSkillContext context = new AiSkillContext(currentUser, content, null, null, "user_assistant");
     List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
+    List<AiAssistantStep> steps = steps(skillResults, true);
     AgentReply reply = generateReply("用户端助手", content, skillResults, fallbackReply(content, skillResults));
+    List<AiAssistantCard> cards = cards(skillResults);
+    List<AiAssistantAction> actions = actions(skillResults);
+    List<String> usedSkills = skillResults.stream().map(AiSkillResult::name).toList();
+    long assistantMessageId = assistantRepository.insertMessage(
+        conversation.id(), currentUser.userId(), "assistant", reply.content(), cards, actions, steps, usedSkills, reply.modelUsed());
+    assistantRepository.touchConversation(conversation.id(), assistantMessageId, titleFrom(content));
     return new AiAssistantResponse(
-        request.conversationId() == null || request.conversationId().isBlank()
-            ? UUID.randomUUID().toString()
-            : request.conversationId(),
+        conversation.conversationNo(),
         reply.content(),
-        cards(skillResults),
-        actions(skillResults),
-        skillResults.stream().map(AiSkillResult::name).toList(),
+        cards,
+        actions,
+        steps,
+        usedSkills,
         reply.modelUsed());
+  }
+
+  public AiAssistantHistoryResponse currentConversation(CurrentUser currentUser) {
+    return assistantRepository.findCurrentConversation(currentUser.userId())
+        .map(row -> history(currentUser, row))
+        .orElseGet(() -> new AiAssistantHistoryResponse(null, List.of()));
+  }
+
+  public AiAssistantHistoryResponse conversation(CurrentUser currentUser, String conversationNo) {
+    return assistantRepository.findConversation(currentUser.userId(), conversationNo)
+        .map(row -> history(currentUser, row))
+        .orElseGet(() -> new AiAssistantHistoryResponse(null, List.of()));
   }
 
   public String platformSupportReply(CurrentUser currentUser, Long sessionId, Long relatedOrderId, String content) {
@@ -123,6 +147,64 @@ public class AiAgentService {
       actions.add(new AiAssistantAction("提交投诉", null, "/complaint/submit", java.util.Map.of()));
     }
     return actions;
+  }
+
+  private AiAssistantRepository.ConversationRow resolveConversation(CurrentUser currentUser, String conversationNo, String content) {
+    if (conversationNo != null && !conversationNo.isBlank()) {
+      return assistantRepository.findConversation(currentUser.userId(), conversationNo.trim())
+          .orElseGet(() -> assistantRepository.createConversation(currentUser.userId(), conversationNo.trim(), titleFrom(content)));
+    }
+    return assistantRepository.findCurrentConversation(currentUser.userId())
+        .orElseGet(() -> assistantRepository.createConversation(
+            currentUser.userId(), UUID.randomUUID().toString(), titleFrom(content)));
+  }
+
+  private AiAssistantHistoryResponse history(CurrentUser currentUser, AiAssistantRepository.ConversationRow conversation) {
+    List<AiAssistantMessageView> messages = assistantRepository.listMessages(conversation.id(), currentUser.userId(), 80)
+        .stream()
+        .map(row -> new AiAssistantMessageView(
+            row.role(),
+            row.content(),
+            row.cards(),
+            row.actions(),
+            row.steps(),
+            row.usedSkills(),
+            row.modelUsed(),
+            row.createdAt() == null ? null : row.createdAt().toString()))
+        .toList();
+    return new AiAssistantHistoryResponse(conversation.conversationNo(), messages);
+  }
+
+  private List<AiAssistantStep> steps(List<AiSkillResult> skills, boolean replyStep) {
+    List<AiAssistantStep> steps = new ArrayList<>();
+    steps.add(new AiAssistantStep("识别问题类型", "根据消息内容选择可用业务信息", "done"));
+    for (AiSkillResult skill : skills) {
+      steps.add(new AiAssistantStep(stepTitle(skill.name()), skill.title(), "done"));
+    }
+    steps.add(new AiAssistantStep(replyStep ? "整理回复建议" : "准备回复", "结合已查询信息生成可执行建议", "done"));
+    return steps;
+  }
+
+  private String stepTitle(String skillName) {
+    return switch (skillName) {
+      case "order_lookup" -> "调用了订单信息";
+      case "coupon_lookup" -> "调用了优惠券信息";
+      case "governance_entry" -> "调用了治理入口信息";
+      case "store_lookup" -> "调用了店铺信息";
+      case "item_lookup" -> "调用了商品服务信息";
+      case "review_lookup" -> "调用了评价信息";
+      case "complaint_lookup" -> "调用了投诉工单信息";
+      case "favorite_lookup" -> "调用了收藏信息";
+      case "message_lookup" -> "调用了站内消息";
+      case "account_summary" -> "调用了账号摘要";
+      default -> "调用了" + skillName;
+    };
+  }
+
+  private String titleFrom(String content) {
+    String cleaned = clean(content).replaceAll("\\s+", " ");
+    if (cleaned.isBlank()) return "新对话";
+    return limit(cleaned, 30);
   }
 
   private String clean(String content) {

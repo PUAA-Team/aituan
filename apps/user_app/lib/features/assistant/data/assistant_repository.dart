@@ -7,6 +7,7 @@ class AssistantResponse {
     required this.reply,
     required this.cards,
     required this.quickActions,
+    required this.steps,
     required this.usedSkills,
     required this.modelUsed,
   });
@@ -15,6 +16,7 @@ class AssistantResponse {
   final String reply;
   final List<AssistantCard> cards;
   final List<AssistantAction> quickActions;
+  final List<AssistantStep> steps;
   final List<String> usedSkills;
   final bool modelUsed;
 
@@ -27,6 +29,66 @@ class AssistantResponse {
             .toList(),
         quickActions: ((json['quickActions'] as List?) ?? const [])
             .map((e) => AssistantAction.fromApi(e as Map<String, dynamic>))
+            .toList(),
+        steps: ((json['steps'] as List?) ?? const [])
+            .map((e) => AssistantStep.fromApi(e as Map<String, dynamic>))
+            .toList(),
+        usedSkills: ((json['usedSkills'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        modelUsed: json['modelUsed'] == true,
+      );
+}
+
+class AssistantHistory {
+  const AssistantHistory({
+    required this.conversationId,
+    required this.messages,
+  });
+
+  final String? conversationId;
+  final List<AssistantMessage> messages;
+
+  factory AssistantHistory.fromApi(Map<String, dynamic> json) =>
+      AssistantHistory(
+        conversationId: json['conversationId'] as String?,
+        messages: ((json['messages'] as List?) ?? const [])
+            .map((e) => AssistantMessage.fromApi(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+class AssistantMessage {
+  const AssistantMessage({
+    required this.role,
+    required this.content,
+    required this.cards,
+    required this.quickActions,
+    required this.steps,
+    required this.usedSkills,
+    required this.modelUsed,
+  });
+
+  final String role;
+  final String content;
+  final List<AssistantCard> cards;
+  final List<AssistantAction> quickActions;
+  final List<AssistantStep> steps;
+  final List<String> usedSkills;
+  final bool modelUsed;
+
+  factory AssistantMessage.fromApi(Map<String, dynamic> json) =>
+      AssistantMessage(
+        role: (json['role'] ?? '') as String,
+        content: (json['content'] ?? '') as String,
+        cards: ((json['cards'] as List?) ?? const [])
+            .map((e) => AssistantCard.fromApi(e as Map<String, dynamic>))
+            .toList(),
+        quickActions: ((json['quickActions'] as List?) ?? const [])
+            .map((e) => AssistantAction.fromApi(e as Map<String, dynamic>))
+            .toList(),
+        steps: ((json['steps'] as List?) ?? const [])
+            .map((e) => AssistantStep.fromApi(e as Map<String, dynamic>))
             .toList(),
         usedSkills: ((json['usedSkills'] as List?) ?? const [])
             .map((e) => e.toString())
@@ -77,6 +139,24 @@ class AssistantAction {
   );
 }
 
+class AssistantStep {
+  const AssistantStep({
+    required this.title,
+    required this.detail,
+    required this.status,
+  });
+
+  final String title;
+  final String? detail;
+  final String? status;
+
+  factory AssistantStep.fromApi(Map<String, dynamic> json) => AssistantStep(
+    title: (json['title'] ?? '') as String,
+    detail: json['detail'] as String?,
+    status: json['status'] as String?,
+  );
+}
+
 final assistantRepository = AssistantRepository();
 
 class AssistantRepository {
@@ -95,5 +175,12 @@ class AssistantRepository {
     }
     final json = await _client.post('/api/app/ai/assistant/message', body);
     return AssistantResponse.fromApi(json['data'] as Map<String, dynamic>);
+  }
+
+  Future<AssistantHistory> fetchCurrentConversation() async {
+    final json = await _client.get(
+      '/api/app/ai/assistant/conversations/current',
+    );
+    return AssistantHistory.fromApi(json['data'] as Map<String, dynamic>);
   }
 }

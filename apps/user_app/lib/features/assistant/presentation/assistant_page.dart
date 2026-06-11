@@ -16,7 +16,7 @@ class AssistantPage extends StatefulWidget {
 class _AssistantPageState extends State<AssistantPage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final List<_ChatEntry> _entries = [
+  List<_ChatEntry> _entries = [
     _ChatEntry.assistant(
       '我是爱团助手，可以帮你查询订单、优惠券、评价投诉入口，并在需要时转到平台客服。',
       actions: const [
@@ -32,6 +32,13 @@ class _AssistantPageState extends State<AssistantPage> {
   ];
   String? _conversationId;
   bool _sending = false;
+  bool _loadingHistory = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
 
   @override
   void dispose() {
@@ -58,16 +65,18 @@ class _AssistantPageState extends State<AssistantPage> {
       body: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              itemCount: _entries.length,
-              itemBuilder: (context, index) => _MessageBubble(
-                entry: _entries[index],
-                onAction: _handleAction,
-                onRoute: _openRoute,
-              ),
-            ),
+            child: _loadingHistory
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    itemCount: _entries.length,
+                    itemBuilder: (context, index) => _MessageBubble(
+                      entry: _entries[index],
+                      onAction: _handleAction,
+                      onRoute: _openRoute,
+                    ),
+                  ),
           ),
           SafeArea(
             top: false,
@@ -82,7 +91,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      enabled: !_sending,
+                      enabled: !_sending && !_loadingHistory,
                       minLines: 1,
                       maxLines: 4,
                       textInputAction: TextInputAction.send,
@@ -105,7 +114,7 @@ class _AssistantPageState extends State<AssistantPage> {
                   const SizedBox(width: 8),
                   IconButton.filled(
                     tooltip: '发送',
-                    onPressed: _sending ? null : _send,
+                    onPressed: (_sending || _loadingHistory) ? null : _send,
                     icon: _sending
                         ? const SizedBox(
                             width: 18,
@@ -121,6 +130,35 @@ class _AssistantPageState extends State<AssistantPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final history = await assistantRepository.fetchCurrentConversation();
+      if (!mounted) return;
+      setState(() {
+        _conversationId = history.conversationId;
+        if (history.messages.isNotEmpty) {
+          _entries = history.messages
+              .map(
+                (message) => _ChatEntry(
+                  role: message.role,
+                  content: message.content,
+                  cards: message.cards,
+                  actions: message.quickActions,
+                  steps: message.steps,
+                  modelUsed: message.modelUsed,
+                ),
+              )
+              .toList();
+        }
+        _loadingHistory = false;
+      });
+      _scrollToBottom();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingHistory = false);
+    }
   }
 
   Future<void> _send([String? preset]) async {
@@ -145,6 +183,7 @@ class _AssistantPageState extends State<AssistantPage> {
             response.reply,
             cards: response.cards,
             actions: response.quickActions,
+            steps: response.steps,
             modelUsed: response.modelUsed,
           ),
         );
@@ -180,8 +219,15 @@ class _AssistantPageState extends State<AssistantPage> {
       '/complaint/submit' => Routes.complaintSubmit,
       '/complaint/list' => Routes.complaintList,
       '/review/my' => Routes.myReviews,
+      '/review/detail' => Routes.myReviews,
       '/support/sessions' => Routes.supportSessions,
       '/order/detail' => Routes.orders,
+      '/stores/detail' => Routes.search,
+      '/items/detail' => Routes.search,
+      '/search' => Routes.search,
+      '/profile' => Routes.profile,
+      '/favorites' => Routes.favorite,
+      '/messages' => Routes.message,
       String value when value.startsWith('/') => value,
       _ => null,
     };
@@ -205,6 +251,7 @@ class _ChatEntry {
     required this.content,
     this.cards = const [],
     this.actions = const [],
+    this.steps = const [],
     this.modelUsed = false,
   });
 
@@ -215,12 +262,14 @@ class _ChatEntry {
     String content, {
     List<AssistantCard> cards = const [],
     List<AssistantAction> actions = const [],
+    List<AssistantStep> steps = const [],
     bool modelUsed = false,
   }) => _ChatEntry(
     role: 'assistant',
     content: content,
     cards: cards,
     actions: actions,
+    steps: steps,
     modelUsed: modelUsed,
   );
 
@@ -228,6 +277,7 @@ class _ChatEntry {
   final String content;
   final List<AssistantCard> cards;
   final List<AssistantAction> actions;
+  final List<AssistantStep> steps;
   final bool modelUsed;
 
   bool get isUser => role == 'user';
@@ -268,6 +318,8 @@ class _MessageBubble extends StatelessWidget {
             style: TextStyle(color: textColor, height: 1.35),
           ),
         ),
+        if (!entry.isUser && entry.steps.isNotEmpty)
+          _AssistantStepsView(steps: entry.steps, modelUsed: entry.modelUsed),
         if (entry.cards.isNotEmpty)
           ...entry.cards.map(
             (card) => _AssistantCardView(
@@ -293,6 +345,67 @@ class _MessageBubble extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _AssistantStepsView extends StatelessWidget {
+  const _AssistantStepsView({required this.steps, required this.modelUsed});
+
+  final List<AssistantStep> steps;
+  final bool modelUsed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.soft,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.hub_outlined,
+                  size: 15,
+                  color: AppColors.textSub,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  modelUsed ? 'AI 已调用业务信息' : '本地助手已调用业务信息',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSub,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: steps
+                  .map(
+                    (step) => Chip(
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      avatar: const Icon(Icons.check_circle, size: 14),
+                      label: Text(step.title),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -362,6 +475,8 @@ class _AssistantCardView extends StatelessWidget {
       'complaint' => Icons.report_outlined,
       'review' => Icons.rate_review_outlined,
       'support' => Icons.support_agent,
+      'store' => Icons.storefront_outlined,
+      'item' => Icons.shopping_bag_outlined,
       _ => Icons.auto_awesome,
     };
   }

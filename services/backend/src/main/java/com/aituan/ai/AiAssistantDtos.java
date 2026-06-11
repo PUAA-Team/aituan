@@ -13,8 +13,31 @@ record AiAssistantResponse(
     String reply,
     List<AiAssistantCard> cards,
     List<AiAssistantAction> quickActions,
+    List<AiAssistantStep> steps,
     List<String> usedSkills,
     boolean modelUsed) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record AiAssistantHistoryResponse(
+    String conversationId,
+    List<AiAssistantMessageView> messages) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record AiAssistantMessageView(
+    String role,
+    String content,
+    List<AiAssistantCard> cards,
+    List<AiAssistantAction> quickActions,
+    List<AiAssistantStep> steps,
+    List<String> usedSkills,
+    boolean modelUsed,
+    String createdAt) {}
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+record AiAssistantStep(
+    String title,
+    String detail,
+    String status) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record AiAssistantCard(
