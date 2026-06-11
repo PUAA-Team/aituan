@@ -2,20 +2,24 @@ package com.aituan.ai;
 
 import com.aituan.common.security.CurrentUser;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AiAgentService {
   private static final String SYSTEM_PROMPT = """
-      你是“爱团”平台内的 AI 助手，只回答与本项目用户消费、订单、优惠券、评价、投诉、客服有关的问题。
-      规则：
-      1. 使用中文，语气专业、简洁、可执行。
-      2. skill 上下文是系统查询到的真实业务信息，必须优先使用；不要编造订单、优惠券或处理结果。
-      3. 遇到退款、投诉、食品安全、账号纠纷、评价举报等问题，要提示可提交工单或转人工。
-      4. 不承诺已经退款、已经处罚商家、已经赔付；只能说明下一步入口和需要补充的材料。
-      5. 回复控制在 180 字以内。
+      你是“爱团”平台内的高级 AI 助手“小爱同学”，目标是像一个能查系统、能记上下文、能给下一步建议的产品内智能助理。
+      你可以回答订单、商品、店铺、优惠券、会员、购物车、地址、收藏、消息、评价、投诉、客服工单等项目内问题。
+      严格规则：
+      1. 必须优先使用 skill 上下文中的真实业务信息；没有查到就明确说“当前没有查到”，不要编造订单、券、处罚、退款或赔付。
+      2. 不要机械复述数据库片段；先判断用户真正想解决什么，再把关键事实和下一步操作组织成自然回答。
+      3. 如果用户在追问“刚才那个/第一个/继续”等，结合最近对话记忆理解指代。
+      4. 遇到退款、投诉、食品安全、账号纠纷、评价举报、平台介入，要说明入口、材料、当前状态，并提示可转人工。
+      5. 回答应具体、聪明、有执行性；不要只说“请补充信息”。确实缺关键信息时，最多问 1 个最重要的问题。
+      6. 回复控制在 260 字以内。中文回答。
       """;
 
   private final AiChatClient aiChatClient;
@@ -38,7 +42,7 @@ public class AiAgentService {
     AiSkillContext context = new AiSkillContext(currentUser, content, memoryText, conversation.id(), null, null, "user_assistant");
     List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
     List<AiAssistantStep> steps = steps(skillResults, true);
-    AgentReply reply = generateReply("用户端助手", content, skillResults, fallbackReply(content, skillResults));
+    AgentReply reply = generateReply("用户端助手", content, memoryText, skillResults, fallbackReply(content, skillResults));
     List<AiAssistantCard> cards = cards(skillResults);
     List<AiAssistantAction> actions = actions(skillResults);
     List<String> usedSkills = skillResults.stream().map(AiSkillResult::name).toList();
@@ -72,18 +76,27 @@ public class AiAgentService {
     AiSkillContext context = new AiSkillContext(currentUser, cleaned, "", null, sessionId, relatedOrderId, "platform_support");
     List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
     String fallback = fallbackReply(cleaned, skillResults);
-    return generateReply("平台客服 AI", cleaned, skillResults, fallback).content();
+    return generateReply("平台客服 AI", cleaned, "", skillResults, fallback).content();
   }
 
   public String localKeywordReply(String content) {
     return fallbackReply(clean(content), List.of());
   }
 
-  private AgentReply generateReply(String role, String content, List<AiSkillResult> skills, String fallback) {
+  private AgentReply generateReply(String role, String content, String memoryText, List<AiSkillResult> skills, String fallback) {
     String skillContext = skillContext(skills);
     List<AiChatClient.AiChatMessage> messages = List.of(
         new AiChatClient.AiChatMessage("system", SYSTEM_PROMPT),
-        new AiChatClient.AiChatMessage("user", "当前角色：" + role + "\n用户消息：" + content + "\n可用业务上下文：\n" + skillContext));
+        new AiChatClient.AiChatMessage("user", """
+            当前角色：%s
+            最近对话记忆：
+            %s
+            用户本轮消息：%s
+            已调用 skill 得到的真实业务上下文：
+            %s
+
+            请基于这些真实信息给出自然、具体、可执行的回答。不要输出 JSON，不要列内部字段名，不要声称已经完成未发生的业务动作。
+            """.formatted(role, memoryText == null || memoryText.isBlank() ? "无" : memoryText, content, skillContext)));
     return aiChatClient.chat(messages)
         .map(text -> new AgentReply(text, true))
         .orElseGet(() -> new AgentReply(fallback, false));
@@ -91,12 +104,19 @@ public class AiAgentService {
 
   private String fallbackReply(String content, List<AiSkillResult> skills) {
     if (!skills.isEmpty()) {
-      StringBuilder builder = new StringBuilder();
+      StringBuilder builder = new StringBuilder("我已根据真实业务信息帮你查到：");
+      int count = 0;
       for (AiSkillResult skill : skills) {
-        if (!builder.isEmpty()) builder.append("\n");
-        builder.append(skill.content());
+        if (count >= 4) break;
+        builder.append("\n").append(count + 1).append(". ")
+            .append(skill.title()).append("：")
+            .append(limit(skill.content().replace("\n", "；"), 110));
+        count++;
       }
-      builder.append("\n需要进一步处理时，可打开对应入口或发送“转人工”。");
+      if (skills.size() > count) {
+        builder.append("\n另外还查到了 ").append(skills.size() - count).append(" 类相关信息，可点下方卡片继续查看。");
+      }
+      builder.append("\n需要我继续细查某一项，直接说“查第一个订单/这个店铺/我的投诉”；需要人工可发送“转人工”。");
       return limit(builder.toString(), 420);
     }
     if (containsAny(content, "退款", "退单", "取消")) {
@@ -147,7 +167,16 @@ public class AiAgentService {
       actions.add(new AiAssistantAction("找平台客服", null, "/support/sessions", java.util.Map.of()));
       actions.add(new AiAssistantAction("提交投诉", null, "/complaint/submit", java.util.Map.of()));
     }
-    return actions;
+    Map<String, AiAssistantAction> unique = new LinkedHashMap<>();
+    for (AiAssistantAction action : actions) {
+      String key = (action.route() == null ? "" : action.route())
+          + "|"
+          + (action.message() == null ? "" : action.message())
+          + "|"
+          + action.label();
+      unique.putIfAbsent(key, action);
+    }
+    return new ArrayList<>(unique.values());
   }
 
   private AiAssistantRepository.ConversationRow resolveConversation(CurrentUser currentUser, String conversationNo, String content) {

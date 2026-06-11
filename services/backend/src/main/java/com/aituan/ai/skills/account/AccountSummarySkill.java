@@ -13,7 +13,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 class AccountSummarySkill implements AiSkill {
-  private static final List<String> WORDS = List.of("我的", "账号", "会员", "地址", "收藏", "喜欢", "消息", "通知", "资料", "个人", "全部信息", "所有信息");
+  private static final List<String> WORDS = List.of(
+      "账号", "账户", "个人资料", "我的资料", "我的信息", "账号信息", "账号摘要",
+      "账号总览", "个人总览", "我的情况", "个人情况", "账号情况", "全部信息", "所有信息", "总结一下");
 
   private final JdbcTemplate jdbcTemplate;
 

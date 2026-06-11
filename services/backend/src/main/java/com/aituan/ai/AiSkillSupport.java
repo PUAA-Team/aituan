@@ -7,7 +7,7 @@ import java.util.Map;
 
 final class AiSkillSupport {
   private static final List<String> BROAD_USER_INFO_WORDS = List.of(
-      "全部信息", "所有信息", "全面", "帮我看看", "我的情况", "个人情况", "账号情况", "我有什么", "我的信息", "总结一下");
+      "全部信息", "所有信息", "全面", "全量", "所有业务", "账号总览", "个人总览", "我的情况", "个人情况", "账号情况", "我的信息", "总结一下");
   private static final List<String> FOLLOW_UP_WORDS = List.of(
       "这个", "那个", "刚才", "上面", "前面", "第一", "第二", "第三", "它", "这些", "继续", "详情");
   private static final List<String> DOMAIN_WORDS = List.of(
