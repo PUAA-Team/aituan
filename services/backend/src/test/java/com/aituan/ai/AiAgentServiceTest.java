@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.aituan.TestAuthSupport;
 import com.aituan.common.security.CurrentUserContext;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,6 +101,31 @@ class AiAgentServiceTest {
       }
     });
     assertThat(response.reply()).contains("团购", "推荐逻辑");
+  }
+
+  @Test
+  void assistantKeepsLeisureQueriesFocusedOnLeisureCards() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    AiAssistantResponse response = aiAgentService.userAssistant(
+        CurrentUserContext.required(),
+        new AiAssistantMessageRequest("附近有什么休闲玩乐", null));
+
+    Set<String> leisureTypes = Set.of("movie", "ticket", "massage", "entertainment");
+
+    assertThat(response.usedSkills()).contains("store_lookup", "item_lookup");
+    assertThat(response.cards()).isNotEmpty();
+    assertThat(response.cards())
+        .allSatisfy(card -> {
+          assertThat(card.payload()).containsKey("businessType");
+          assertThat(card.payload().get("businessType")).isIn(leisureTypes);
+        });
+    assertThat(response.cards())
+        .extracting(AiAssistantCard::title)
+        .noneMatch(title -> title.contains("汉堡") || title.contains("拌饭") || title.contains("炸鸡"));
+    assertThat(response.quickActions())
+        .anySatisfy(action -> assertThat(action.payload()).containsEntry("keyword", "休闲玩乐"));
+    assertThat(response.reply()).contains("休闲玩乐");
   }
 
   @Test

@@ -9,6 +9,8 @@ import static com.aituan.ai.AiSkillSupport.shouldRun;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,9 +19,11 @@ import org.springframework.stereotype.Component;
 @Component
 class StoreLookupSkill implements AiSkill {
   private static final List<String> WORDS = List.of(
-      "店", "商家", "门店", "附近", "推荐", "周边", "吃", "团购", "汉堡", "拌饭", "酒店", "电影", "密室", "按摩", "足疗", "spa", "SPA", "烤肉");
+      "店", "商家", "门店", "附近", "推荐", "周边", "吃", "团购", "汉堡", "拌饭", "酒店", "电影", "密室", "按摩", "足疗",
+      "景点", "门票", "观景", "休闲", "玩乐", "娱乐", "电玩城", "游玩", "spa", "SPA", "烤肉");
   private static final List<String> CANDIDATES = List.of(
-      "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "SPA", "spa", "烤肉", "小馆", "美食", "外卖");
+      "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲玩乐", "休闲", "玩乐",
+      "娱乐", "电玩城", "SPA", "spa", "烤肉", "小馆", "美食", "外卖");
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -41,10 +45,25 @@ class StoreLookupSkill implements AiSkill {
   public Optional<AiSkillResult> evaluate(AiSkillContext context) {
     if (!shouldRun(context, WORDS)) return Optional.empty();
     String message = context.normalizedMessage();
-    boolean groupBuyOnly = groupBuyIntent(message);
+    List<String> businessTypes = AiSkillSupport.businessTypes(message);
+    boolean groupBuyOnly = businessTypes.size() == 1 && "group_buy".equals(businessTypes.get(0));
+    String scopeLabel = AiSkillSupport.businessTypeLabel(businessTypes);
     String key = key(message);
-    List<StoreRow> stores = jdbcTemplate.query(
-        """
+    List<Object> args = new ArrayList<>();
+    String typeClause = "";
+    if (!businessTypes.isEmpty()) {
+      typeClause = "          and s.business_type in (" + placeholders(businessTypes.size()) + ")\n";
+      args.addAll(businessTypes);
+    }
+    args.add(key);
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    String sql = """
         select distinct s.id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
                s.rating, s.monthly_sales, s.avg_price, s.business_hours_text, s.tag_text,
                dr.delivery_fee, dr.start_price, dr.estimated_minutes, dr.delivery_text,
@@ -66,21 +85,22 @@ class StoreLookupSkill implements AiSkill {
         left join merchant_delivery_rule dr on dr.store_id = s.id and dr.is_deleted = 0
         left join catalog_item i on i.store_id = s.id and i.is_deleted = 0 and i.status = 'on_sale'
         where s.is_deleted = 0 and s.status = 'open'
-          and (? = 0 or s.business_type = 'group_buy')
+        """
+        + typeClause
+        + """
           and (? = '' or s.store_name like ? or s.summary like ? or s.tag_text like ? or s.address like ?
             or i.item_name like ? or i.subtitle like ? or i.tag_text like ?)
         order by s.monthly_sales desc, s.rating desc, s.id
         limit 6
-        """,
-        this::mapStore,
-        groupBuyOnly ? 1 : 0, key, like(key), like(key), like(key), like(key), like(key), like(key), like(key));
+        """;
+    List<StoreRow> stores = jdbcTemplate.query(sql, this::mapStore, args.toArray());
     if (stores.isEmpty()) {
       return Optional.of(AiSkillResult.text(
           name(),
           "店铺查询",
-          groupBuyOnly ? "没有匹配到开放营业的团购店铺，可换关键词或进入团购分类浏览。" : "没有匹配到开放营业店铺，可换关键词或进入首页分类浏览。"));
+          groupBuyOnly ? "没有匹配到开放营业的团购店铺，可换关键词或进入团购分类浏览。" : "没有匹配到开放营业的" + scopeLabel + "店铺，可换关键词或进入首页分类浏览。"));
     }
-    StringBuilder summary = new StringBuilder(groupBuyOnly ? "匹配到真实团购店铺：" : "匹配到真实开放店铺：");
+    StringBuilder summary = new StringBuilder(groupBuyOnly ? "匹配到真实团购店铺：" : "匹配到真实" + scopeLabel + "店铺：");
     for (StoreRow store : stores) {
       summary.append("\n- ").append(store.name()).append("，")
           .append(groupBuyOnly ? "团购" : store.businessType()).append("，评分 ").append(store.rating())
@@ -114,7 +134,7 @@ class StoreLookupSkill implements AiSkill {
         "店铺查询",
         summary.toString(),
         cards,
-        List.of(new AiAssistantAction("搜索店铺", null, "/search", params("keyword", groupBuyOnly && key.isBlank() ? "团购" : key)))));
+        List.of(new AiAssistantAction("搜索店铺", null, "/search", params("keyword", AiSkillSupport.searchKeyword(key, businessTypes))))));
   }
 
   private String key(String text) {
@@ -122,8 +142,8 @@ class StoreLookupSkill implements AiSkill {
     return keyword(text, CANDIDATES);
   }
 
-  private boolean groupBuyIntent(String text) {
-    return AiSkillSupport.containsAny(text, "团购", "到店套餐", "多人餐", "双人餐", "核销套餐");
+  private String placeholders(int size) {
+    return String.join(", ", Collections.nCopies(size, "?"));
   }
 
   private String storeCardContent(StoreRow store, boolean groupBuyOnly) {

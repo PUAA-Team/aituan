@@ -74,8 +74,14 @@ class AiToolRegistry {
     } else {
       if (containsAny(current, "订单", "退款", "退单", "配送", "催单", "券码", "核销", "预约")) names.add("order_lookup");
       if (containsAny(current, "优惠", "优惠券", "红包", "满减", "领券", "折扣")) names.add("coupon_lookup");
-      if (containsAny(current, "店", "商家", "门店", "附近", "周边", "推荐", "吃", "团购")) names.add("store_lookup");
-      if (containsAny(current, "商品", "套餐", "服务", "价格", "库存", "团购", "券", "双人", "多人")) names.add("item_lookup");
+      if (containsAny(current, "店", "商家", "门店", "附近", "周边", "推荐", "吃", "团购",
+          "休闲", "玩乐", "娱乐", "电影", "影院", "按摩", "足疗", "足道", "洗脚", "景点", "门票", "观景", "密室", "电玩城", "SPA", "spa", "丽人", "医美", "美容")) {
+        names.add("store_lookup");
+      }
+      if (containsAny(current, "商品", "套餐", "服务", "价格", "库存", "团购", "券", "双人", "多人",
+          "休闲", "玩乐", "娱乐", "电影", "影院", "按摩", "足疗", "足道", "洗脚", "景点", "门票", "观景", "密室", "电玩城", "SPA", "spa", "丽人", "医美", "美容")) {
+        names.add("item_lookup");
+      }
       if (containsAny(current, "评价", "评分", "评论", "点赞", "举报评价")) names.add("review_lookup");
       if (containsAny(current, "投诉", "举报", "纠纷", "食品安全", "服务态度")) names.add("complaint_lookup");
       if (containsAny(current, "客服", "人工", "平台介入", "商家客服", "平台客服")) names.add("support_lookup");
@@ -114,7 +120,8 @@ class AiToolRegistry {
     String query = textArg(call.arguments(), "query");
     String businessType = textArg(call.arguments(), "businessType");
     String base = (query.isBlank() ? originalMessage : query) == null ? "" : (query.isBlank() ? originalMessage : query);
-    String typeHint = "group_buy".equalsIgnoreCase(businessType) ? " 团购 " : "";
+    String typeHint = AiSkillSupport.businessTypeHint(businessType);
+    typeHint = typeHint.isBlank() ? "" : " " + typeHint + " ";
     return switch (call.name()) {
       case "account_summary" -> "账号 全部信息 账号总览 " + base;
       case "order_lookup" -> "订单 退款 配送 券码 预约 " + base;

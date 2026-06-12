@@ -9,6 +9,8 @@ import static com.aituan.ai.AiSkillSupport.shouldRun;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,9 +19,11 @@ import org.springframework.stereotype.Component;
 @Component
 class ItemLookupSkill implements AiSkill {
   private static final List<String> WORDS = List.of(
-      "商品", "套餐", "团购", "服务", "价格", "多少钱", "库存", "预约", "核销", "退款规则", "使用规则", "汉堡", "拌饭", "酒店", "电影", "SPA", "spa");
+      "商品", "套餐", "团购", "服务", "价格", "多少钱", "库存", "预约", "核销", "退款规则", "使用规则", "汉堡", "拌饭", "酒店", "电影",
+      "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲", "玩乐", "娱乐", "电玩城", "游玩", "SPA", "spa");
   private static final List<String> CANDIDATES = List.of(
-      "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "SPA", "spa", "烤肉", "套餐", "券", "双人");
+      "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲玩乐", "休闲", "玩乐",
+      "娱乐", "电玩城", "SPA", "spa", "烤肉", "套餐", "券", "双人");
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -41,10 +45,22 @@ class ItemLookupSkill implements AiSkill {
   public Optional<AiSkillResult> evaluate(AiSkillContext context) {
     if (!shouldRun(context, WORDS)) return Optional.empty();
     String message = context.normalizedMessage();
-    boolean groupBuyOnly = groupBuyIntent(message);
+    List<String> businessTypes = AiSkillSupport.businessTypes(message);
+    boolean groupBuyOnly = businessTypes.size() == 1 && "group_buy".equals(businessTypes.get(0));
+    String scopeLabel = AiSkillSupport.businessTypeLabel(businessTypes);
     String key = key(message);
-    List<ItemRow> items = jdbcTemplate.query(
-        """
+    List<Object> args = new ArrayList<>();
+    String typeClause = "";
+    if (!businessTypes.isEmpty()) {
+      typeClause = "          and i.business_type in (" + placeholders(businessTypes.size()) + ")\n";
+      args.addAll(businessTypes);
+    }
+    args.add(key);
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    args.add(like(key));
+    String sql = """
         select i.id, i.item_name, i.subtitle, i.price, i.original_price, i.store_id, s.store_name, s.business_type,
                coalesce(sku.stock, 0) as stock, i.sales_count, i.usage_rules, i.refund_policy, i.notice
         from catalog_item i
@@ -56,20 +72,21 @@ class ItemLookupSkill implements AiSkill {
           group by item_id
         ) sku on sku.item_id = i.id
         where i.is_deleted = 0 and i.status = 'on_sale'
-          and (? = 0 or i.business_type = 'group_buy')
+        """
+        + typeClause
+        + """
           and (? = '' or i.item_name like ? or i.subtitle like ? or i.tag_text like ? or s.store_name like ?)
         order by i.sales_count desc, i.id
         limit 6
-        """,
-        this::mapItem,
-        groupBuyOnly ? 1 : 0, key, like(key), like(key), like(key), like(key));
+        """;
+    List<ItemRow> items = jdbcTemplate.query(sql, this::mapItem, args.toArray());
     if (items.isEmpty()) {
       return Optional.of(AiSkillResult.text(
           name(),
           "商品服务查询",
-          groupBuyOnly ? "没有匹配到上架团购套餐，可换关键词或进入团购分类浏览。" : "没有匹配到上架商品或服务。"));
+          groupBuyOnly ? "没有匹配到上架团购套餐，可换关键词或进入团购分类浏览。" : "没有匹配到上架" + scopeLabel + "商品或服务。"));
     }
-    StringBuilder summary = new StringBuilder(groupBuyOnly ? "匹配到真实团购套餐：" : "匹配到真实上架商品/服务：");
+    StringBuilder summary = new StringBuilder(groupBuyOnly ? "匹配到真实团购套餐：" : "匹配到真实上架" + scopeLabel + "商品/服务：");
     for (ItemRow item : items) {
       summary.append("\n- ").append(item.name()).append("，")
           .append(item.storeName()).append("，")
@@ -98,7 +115,7 @@ class ItemLookupSkill implements AiSkill {
         "商品服务查询",
         summary.toString(),
         cards,
-        List.of(new AiAssistantAction("继续搜索", null, "/search", params("keyword", groupBuyOnly && key.isBlank() ? "团购" : key)))));
+        List.of(new AiAssistantAction("继续搜索", null, "/search", params("keyword", AiSkillSupport.searchKeyword(key, businessTypes))))));
   }
 
   private String key(String text) {
@@ -106,8 +123,8 @@ class ItemLookupSkill implements AiSkill {
     return keyword(text, CANDIDATES);
   }
 
-  private boolean groupBuyIntent(String text) {
-    return AiSkillSupport.containsAny(text, "团购", "到店套餐", "多人餐", "双人餐", "核销套餐");
+  private String placeholders(int size) {
+    return String.join(", ", Collections.nCopies(size, "?"));
   }
 
   private ItemRow mapItem(ResultSet rs, int rowNum) throws SQLException {

@@ -103,22 +103,26 @@ class DiscoveryService {
     LocationContext location = locationContext(latitude, longitude);
     SearchSort searchSort = SearchSort.from(sort);
     String normalizedBusinessType = normalizeBusinessType(businessType);
+    List<String> inferredBusinessTypes = normalizedBusinessType == null ? inferredBusinessTypes(keyword) : List.of();
+    String effectiveKeyword = inferredBusinessTypes.isEmpty() ? keyword : "";
     List<DiscoveryRepository.StoreRow> stores = sortStores(
-        discoveryRepository.searchStores(keyword, normalizedBusinessType, 100),
+        inferredBusinessTypes.isEmpty()
+            ? discoveryRepository.searchStores(keyword, normalizedBusinessType, 100)
+            : discoveryRepository.searchStoresByBusinessTypes(inferredBusinessTypes, 100),
         location,
         searchSort,
-        keyword);
+        effectiveKeyword);
     List<StoreCardView> mapped = stores.stream().map(store -> {
-      List<DiscoveryRepository.ItemRow> matchedRows = new java.util.ArrayList<>(discoveryRepository.searchItems(store.id(), keyword, 6));
+      List<DiscoveryRepository.ItemRow> matchedRows = new java.util.ArrayList<>(discoveryRepository.searchItems(store.id(), effectiveKeyword, 6));
       if (matchedRows.size() < 6) {
         List<Long> excluded = matchedRows.stream().map(DiscoveryRepository.ItemRow::id).toList();
         List<Long> preferredCategories = matchedRows.stream().map(DiscoveryRepository.ItemRow::categoryId).distinct().toList();
         matchedRows.addAll(discoveryRepository.listStoreItemsForFill(store.id(), excluded, preferredCategories, 6 - matchedRows.size()));
       }
       List<ItemCardView> matchedItems = matchedRows.stream().limit(6)
-          .map(row -> toItemCard(row, itemSearchReason(row, keyword)))
+          .map(row -> toItemCard(row, itemSearchReason(row, effectiveKeyword)))
           .toList();
-      return toStoreCard(store, matchedItems, location, true, storeReason(store, location, searchSort, keyword));
+      return toStoreCard(store, matchedItems, location, true, storeReason(store, location, searchSort, effectiveKeyword));
     }).toList();
     int fromIndex = Math.max(0, (page - 1) * safePageSize);
     int toIndex = Math.min(mapped.size(), fromIndex + safePageSize);
@@ -494,6 +498,27 @@ class DiscoveryService {
     } catch (IllegalArgumentException ex) {
       throw new BusinessException(ErrorCode.BAD_REQUEST, "业务类型不正确");
     }
+  }
+
+  private List<String> inferredBusinessTypes(String keyword) {
+    String normalized = normalizeText(keyword);
+    if (normalized.isEmpty()) return List.of();
+    if (containsAny(normalized, "休闲玩乐", "休闲娱乐", "附近玩", "周边玩", "玩乐", "娱乐")) {
+      return List.of("movie", "ticket", "massage", "entertainment");
+    }
+    if (containsAny(normalized, "电影", "影院", "剧场", "演出")) return List.of("movie");
+    if (containsAny(normalized, "景点", "门票", "观景", "游玩")) return List.of("ticket");
+    if (containsAny(normalized, "按摩", "足疗", "足道", "洗脚", "肩颈")) return List.of("massage");
+    if (containsAny(normalized, "密室", "电玩城")) return List.of("entertainment");
+    if (containsAny(normalized, "spa", "丽人", "美容", "医美", "护理")) return List.of("beauty");
+    return List.of();
+  }
+
+  private boolean containsAny(String text, String... words) {
+    for (String word : words) {
+      if (text.contains(word)) return true;
+    }
+    return false;
   }
 
   private String normalizeText(String value) {
