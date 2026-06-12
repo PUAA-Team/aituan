@@ -1,7 +1,9 @@
 package com.aituan.ai;
 
 import com.aituan.common.security.CurrentUser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -219,21 +221,44 @@ public class AiAgentService {
       return Optional.empty();
     }
 
-    StringBuilder builder = new StringBuilder("我按“先选店铺、再看该店套餐”的逻辑整理了真实团购结果：");
+    StringBuilder builder = new StringBuilder("我先按店铺把团购归好了：");
     int storeCount = 0;
+    boolean appendedItem = false;
     for (AiAssistantCard card : groupBuyCards) {
       if ("store".equals(card.type())) {
-        if (storeCount >= 3) break;
+        if (storeCount >= 2) break;
         storeCount++;
-        builder.append("\n").append(storeCount).append(". ")
-            .append(card.title()).append("：").append(card.content());
-      } else if (storeCount > 0 && storeCount <= 3) {
-        builder.append("\n   - 套餐：").append(card.title()).append("，")
-            .append(card.content());
+        appendedItem = false;
+        builder.append("\n").append(storeCount).append(". ").append(card.title())
+            .append("，").append(storeBrief(card));
+      } else if (storeCount > 0 && storeCount <= 2) {
+        builder.append(appendedItem ? "；" : "。套餐可以看：")
+            .append(itemBrief(card));
+        appendedItem = true;
       }
     }
-    builder.append("\n推荐逻辑：优先看营业状态、评分/月售和距离，再对比套餐价格、库存与退改规则；点下方卡片可直接进店或查看套餐详情。");
-    return Optional.of(limit(builder.toString(), 520));
+    builder.append("\n我的推荐逻辑是先看距离、评分和月售，再按用餐人数和价格选套餐；下面卡片已经按店铺分组，点店铺或套餐都能直接进详情。");
+    return Optional.of(limit(builder.toString(), 360));
+  }
+
+  private String storeBrief(AiAssistantCard card) {
+    String content = card.content() == null ? "" : card.content();
+    String[] parts = content.split(" · ");
+    List<String> keep = new ArrayList<>();
+    for (String part : parts) {
+      if (part.contains("个套餐") || part.contains("起") || part.startsWith("评分")
+          || part.startsWith("月售") || part.endsWith("m") || part.endsWith("km")) {
+        keep.add(part);
+      }
+      if (keep.size() >= 4) break;
+    }
+    return keep.isEmpty() ? limit(content, 48) : String.join("、", keep);
+  }
+
+  private String itemBrief(AiAssistantCard card) {
+    Object price = card.payload() == null ? null : card.payload().get("price");
+    String priceText = price == null ? "" : "¥" + price;
+    return priceText.isBlank() ? card.title() : card.title() + " " + priceText;
   }
 
   private String skillContext(List<AiSkillResult> skills) {
@@ -279,7 +304,9 @@ public class AiAgentService {
     List<AiAssistantCard> grouped = new ArrayList<>(others);
     for (Map.Entry<Long, AiAssistantCard> entry : stores.entrySet()) {
       grouped.add(entry.getValue());
-      grouped.addAll(itemsByStore.getOrDefault(entry.getKey(), List.of()));
+      List<AiAssistantCard> items = new ArrayList<>(itemsByStore.getOrDefault(entry.getKey(), List.of()));
+      items.sort(Comparator.comparing(card -> payloadDecimal(card, "price").orElse(BigDecimal.valueOf(Long.MAX_VALUE))));
+      grouped.addAll(items);
     }
     for (Map.Entry<Long, List<AiAssistantCard>> entry : itemsByStore.entrySet()) {
       if (!stores.containsKey(entry.getKey())) grouped.addAll(entry.getValue());
@@ -294,6 +321,21 @@ public class AiAgentService {
     if (value instanceof String text) {
       try {
         return Optional.of(Long.parseLong(text));
+      } catch (NumberFormatException ignored) {
+        return Optional.empty();
+      }
+    }
+    return Optional.empty();
+  }
+
+  private Optional<BigDecimal> payloadDecimal(AiAssistantCard card, String key) {
+    if (card.payload() == null) return Optional.empty();
+    Object value = card.payload().get(key);
+    if (value instanceof BigDecimal number) return Optional.of(number);
+    if (value instanceof Number number) return Optional.of(BigDecimal.valueOf(number.doubleValue()));
+    if (value instanceof String text) {
+      try {
+        return Optional.of(new BigDecimal(text));
       } catch (NumberFormatException ignored) {
         return Optional.empty();
       }
