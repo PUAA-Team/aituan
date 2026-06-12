@@ -26,7 +26,7 @@ class BackendAppRepository {
       'account': account,
       'password': password,
     });
-    return AuthSession.fromApi(_map(json['data']));
+    return _withProfileSnapshot(AuthSession.fromApi(_map(json['data'])));
   }
 
   Future<AuthSession?> checkToken(String token) async {
@@ -35,9 +35,29 @@ class BackendAppRepository {
       final json = await _get('/api/open/auth/token/check');
       final data = _map(json['data']);
       if (data['valid'] != true || data['profile'] == null) return null;
-      return AuthSession.fromTokenProfile(token, _map(data['profile']));
+      return _withProfileSnapshot(
+        AuthSession.fromTokenProfile(token, _map(data['profile'])),
+      );
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<AuthSession> _withProfileSnapshot(AuthSession session) async {
+    if (session.token.isEmpty) return session;
+    await appState.restoreToken(session.token);
+    try {
+      final profile = await fetchProfile();
+      return session.copyWith(
+        nickname: profile.nickname,
+        avatarUrl: profile.avatarUrl,
+        phone: profile.phone,
+        email: profile.email,
+        memberLevelName: profile.memberLevelName,
+        unreadMessageCount: profile.unreadMessageCount,
+      );
+    } catch (_) {
+      return session;
     }
   }
 
@@ -61,7 +81,7 @@ class BackendAppRepository {
       'emailCode': emailCode,
       'password': password,
     });
-    return AuthSession.fromApi(_map(json['data']));
+    return _withProfileSnapshot(AuthSession.fromApi(_map(json['data'])));
   }
 
   Future<void> resetPassword({
@@ -250,7 +270,10 @@ class BackendAppRepository {
     return OrderDetailData.fromApi(_map(json['data']));
   }
 
-  Future<OrderDetailData> requestRefund(String orderId, {String reason = '用户申请退款'}) async {
+  Future<OrderDetailData> requestRefund(
+    String orderId, {
+    String reason = '用户申请退款',
+  }) async {
     final json = await _post('/api/app/trade/orders/$orderId/refund', {
       'reason': reason,
     });
@@ -301,18 +324,44 @@ class BackendAppRepository {
     return BookingData.fromApi(_map(json['data']));
   }
 
-  Future<List<MessageItem>> fetchMessages({String? type}) async {
-    final query = <String, String>{'page': '1', 'pageSize': '20'};
+  Future<List<MessageItem>> fetchMessages({
+    String? type,
+    int page = 1,
+    int pageSize = 20,
+  }) async => (await _fetchMessagePage(
+    type: type,
+    page: page,
+    pageSize: pageSize,
+  )).list;
+
+  Future<List<MessageItem>> fetchAllMessages({String? type}) async {
+    final messages = <MessageItem>[];
+    var page = 1;
+    while (true) {
+      final data = await _fetchMessagePage(
+        type: type,
+        page: page,
+        pageSize: 50,
+      );
+      messages.addAll(data.list);
+      if (!data.hasNext || data.list.isEmpty) return messages;
+      page += 1;
+    }
+  }
+
+  Future<_MessagePageData> _fetchMessagePage({
+    String? type,
+    required int page,
+    required int pageSize,
+  }) async {
+    final query = <String, String>{'page': '$page', 'pageSize': '$pageSize'};
     if (type != null && type.isNotEmpty) query['type'] = type;
     final path = Uri(
       path: '/api/app/message/station',
       queryParameters: query,
     ).toString();
     final json = await _get(path);
-    final page = _map(json['data']);
-    return _list(
-      page['list'],
-    ).map((entry) => MessageItem.fromApi(_map(entry))).toList();
+    return _MessagePageData.fromApi(_map(json['data']));
   }
 
   Future<void> markMessageRead(int messageId) async {
@@ -514,6 +563,23 @@ class AuthSession {
     memberLevelName: _string(profile['memberLevelName'], fallback: '普通会员'),
     unreadMessageCount: _int(profile['unreadMessageCount']),
   );
+
+  AuthSession copyWith({
+    String? nickname,
+    String? avatarUrl,
+    String? phone,
+    String? email,
+    String? memberLevelName,
+    int? unreadMessageCount,
+  }) => AuthSession(
+    token: token,
+    nickname: nickname ?? this.nickname,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
+    phone: phone ?? this.phone,
+    email: email ?? this.email,
+    memberLevelName: memberLevelName ?? this.memberLevelName,
+    unreadMessageCount: unreadMessageCount ?? this.unreadMessageCount,
+  );
 }
 
 class HomeData {
@@ -637,6 +703,21 @@ class ItemGroupData {
   final String categoryId;
   final String categoryName;
   final List<ItemModel> items;
+}
+
+class _MessagePageData {
+  const _MessagePageData({required this.list, required this.hasNext});
+
+  final List<MessageItem> list;
+  final bool hasNext;
+
+  factory _MessagePageData.fromApi(Map<String, dynamic> json) =>
+      _MessagePageData(
+        list: _list(
+          json['list'],
+        ).map((entry) => MessageItem.fromApi(_map(entry))).toList(),
+        hasNext: _bool(json['hasNext']),
+      );
 }
 
 class ProfileData {

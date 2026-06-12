@@ -21,6 +21,7 @@ class DiscoveryServiceTest {
 
   @AfterEach
   void cleanup() {
+    jdbcTemplate.update("delete from support_station_message where user_id = ?", 99001L);
     jdbcTemplate.update("delete from user_favorite where user_id = ?", 99001L);
     jdbcTemplate.update("delete from order_item where order_id in (select id from order_main where user_id = ?)", 99001L);
     jdbcTemplate.update("delete from order_main where user_id = ?", 99001L);
@@ -52,6 +53,17 @@ class DiscoveryServiceTest {
 
     assertThat(page.list()).isNotEmpty();
     assertThat(page.list().get(0).recommendReason()).isNotBlank();
+  }
+
+  @Test
+  void anonymousHomeDoesNotExposeDemoUnreadMessages() {
+    jdbcTemplate.update(
+        "insert into support_station_message(user_id, message_type, title, content, read_status) values (?, 'system', '测试未读', '不应展示给游客', 'unread')",
+        99001L);
+
+    HomeView home = discoveryService.home(null, null);
+
+    assertThat(home.unreadMessageCount()).isZero();
   }
 
   @Test
