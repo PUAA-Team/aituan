@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
 @Component
 class CouponLookupSkill implements AiSkill {
   private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MM-dd");
-  private static final List<String> WORDS = List.of("优惠券", "红包", "满减", "活动", "券", "折扣", "领券", "可用券", "过期");
+  private static final List<String> WORDS = List.of(
+      "优惠", "优惠券", "红包", "满减", "活动", "券", "折扣", "领券", "可用券", "过期");
 
   private final JdbcTemplate jdbcTemplate;
 

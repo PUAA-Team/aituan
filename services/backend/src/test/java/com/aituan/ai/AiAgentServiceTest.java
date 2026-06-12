@@ -52,6 +52,20 @@ class AiAgentServiceTest {
   }
 
   @Test
+  void assistantTreatsGenericDiscountQuestionAsCouponSkill() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    AiAssistantResponse response = aiAgentService.userAssistant(
+        CurrentUserContext.required(),
+        new AiAssistantMessageRequest("看一下我有什么优惠可用", null));
+
+    assertThat(response.usedSkills()).contains("coupon_lookup");
+    assertThat(response.steps())
+        .extracting(AiAssistantStep::title)
+        .contains("调用了优惠券信息");
+  }
+
+  @Test
   void assistantQueriesBroadRealBusinessContext() {
     TestAuthSupport.loginAsUser(1L, 1L);
 

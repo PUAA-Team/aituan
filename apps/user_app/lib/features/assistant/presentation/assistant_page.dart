@@ -368,6 +368,10 @@ class _AssistantStepsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skillSteps = steps
+        .where((step) => step.title.startsWith('调用了'))
+        .toList();
+    if (skillSteps.isEmpty) return const SizedBox.shrink();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 360),
       child: Container(
@@ -390,7 +394,7 @@ class _AssistantStepsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  modelUsed ? 'AI 已调用业务信息' : '本地助手已调用业务信息',
+                  modelUsed ? 'AI 已调用业务 Skill' : '本地助手已调用业务 Skill',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -403,13 +407,13 @@ class _AssistantStepsView extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: steps
+              children: skillSteps
                   .map(
                     (step) => Chip(
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       avatar: const Icon(Icons.check_circle, size: 14),
-                      label: Text(step.title),
+                      label: Text(_skillLabel(step.title)),
                     ),
                   )
                   .toList(),
@@ -419,6 +423,8 @@ class _AssistantStepsView extends StatelessWidget {
       ),
     );
   }
+
+  String _skillLabel(String title) => title.replaceFirst('调用了', '');
 }
 
 class _AssistantCardView extends StatelessWidget {
