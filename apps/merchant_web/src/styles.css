@@ -1,4 +1,5 @@
 :root {
+  --console-sidebar-width: 256px;
   color: #1f2329;
   background: #f5f6f8;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -186,8 +187,9 @@ td span {
 .modal-panel,
 .empty-card {
   border: 1px solid #e5e8ef;
+  border-radius: 4px;
   background: #fff;
-  box-shadow: 0 10px 28px rgba(31, 35, 41, 0.06);
+  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04);
 }
 
 .login-card {
@@ -198,15 +200,20 @@ td span {
 
 .console-layout {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  background: #f5f6f8;
 }
 
 .console-side {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 10;
+  width: var(--console-sidebar-width);
+  height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   border-right: 1px solid #e5e8ef;
   background: #fff;
+  overflow: hidden;
 }
 
 .brand-block {
@@ -233,7 +240,9 @@ td span {
   display: grid;
   align-content: start;
   gap: 4px;
+  min-height: 0;
   padding: 14px;
+  overflow-y: auto;
 }
 
 .side-nav button {
@@ -241,10 +250,15 @@ td span {
   gap: 5px;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 12px;
+  padding: 11px 12px;
   text-align: left;
   color: #1f2329;
   background: #fff;
+}
+
+.side-nav button:hover {
+  border-color: #edf0f4;
+  background: #f7f8fa;
 }
 
 .side-nav button small {
@@ -268,6 +282,8 @@ td span {
   display: grid;
   align-content: start;
   gap: 16px;
+  min-height: 100vh;
+  margin-left: var(--console-sidebar-width);
   padding: 24px;
 }
 
@@ -286,8 +302,10 @@ td span {
 
 .console-topbar {
   border: 1px solid #e5e8ef;
+  border-radius: 4px;
   padding: 18px;
   background: #fff;
+  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04);
 }
 
 .console-topbar h1 {
@@ -648,11 +666,15 @@ td span {
 
   .console-side {
     position: sticky;
+    inset: auto;
     top: 0;
     z-index: 10;
+    width: auto;
+    height: auto;
     display: block;
     border-right: 0;
     border-bottom: 1px solid #e5e8ef;
+    overflow: visible;
   }
 
   .brand-block {
@@ -663,6 +685,7 @@ td span {
     display: flex;
     gap: 8px;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 10px 12px 12px;
   }
 
@@ -675,6 +698,8 @@ td span {
   }
 
   .console-main {
+    min-height: auto;
+    margin-left: 0;
     padding: 14px;
   }
 

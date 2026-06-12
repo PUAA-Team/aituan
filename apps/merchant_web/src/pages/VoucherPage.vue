@@ -166,10 +166,10 @@ function statusLabel(status: string) {
   flex: 1;
 }
 .result-box {
-  border: 1px solid var(--line, #e7ebf0);
-  border-radius: 12px;
+  border: 1px solid #f3c9d1;
+  border-radius: 4px;
   padding: 16px;
-  background: #fffdf6;
+  background: #fff7f8;
 }
 .result-grid {
   display: grid;
@@ -179,7 +179,7 @@ function statusLabel(status: string) {
 }
 .result-rule {
   font-size: 13px;
-  color: #666;
+  color: #4e5969;
   margin-bottom: 8px;
 }
 .result-actions {
@@ -187,7 +187,7 @@ function statusLabel(status: string) {
 }
 .empty-row {
   text-align: center;
-  color: #999;
+  color: #86909c;
   padding: 18px 0;
 }
 </style>

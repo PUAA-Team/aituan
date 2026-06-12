@@ -148,12 +148,12 @@ function ratingTotal() {
 .bar-wrap {
   height: 12px;
   background: #f0f0f0;
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
 }
 .bar {
   height: 100%;
-  background: #fa8c16;
+  background: #e4002b;
   transition: width 0.2s;
 }
 .rating-row strong {

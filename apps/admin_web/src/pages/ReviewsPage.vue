@@ -198,7 +198,7 @@ tr.active {
   align-items: center;
 }
 .detail-head .rating {
-  color: #fa8c16;
+  color: #e4002b;
   font-weight: 700;
 }
 .detail-head small {
@@ -221,15 +221,16 @@ tr.active {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .reply-card,
 .report-card {
   display: grid;
   gap: 4px;
+  border: 1px solid #edf0f4;
+  border-radius: 4px;
   padding: 10px;
   background: #f7f8fa;
-  border-radius: 6px;
 }
 .report-card {
   background: #fff4f6;

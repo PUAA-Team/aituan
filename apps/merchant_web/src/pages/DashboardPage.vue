@@ -60,18 +60,18 @@ function barHeight(count: number, all: { count: number }[]) {
 </script>
 
 <style scoped>
-.dashboard-page { padding: 16px; }
+.dashboard-page { padding: 0; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.kpi { background: white; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.kpi .label { color: #888; font-size: 13px; }
-.kpi .value { color: #d4380d; font-size: 22px; font-weight: 600; }
-.card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.kpi { display: flex; flex-direction: column; gap: 6px; border: 1px solid #e5e8ef; border-radius: 4px; padding: 16px; background: #fff; box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04); }
+.kpi .label { color: #86909c; font-size: 13px; }
+.kpi .value { color: #e4002b; font-size: 22px; font-weight: 600; }
+.card { border: 1px solid #e5e8ef; border-radius: 4px; padding: 16px; background: #fff; box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04); }
 .card-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
 .bars { display: flex; align-items: flex-end; gap: 16px; height: 160px; }
 .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.bar { width: 24px; background: #fa8c16; border-radius: 4px 4px 0 0; }
-.bar-num { font-size: 12px; color: #555; }
-.bar-label { font-size: 11px; color: #999; }
-.hint, .error { padding: 24px; color: #888; }
-.error { color: #d4380d; }
+.bar { width: 24px; background: #e4002b; border-radius: 4px 4px 0 0; }
+.bar-num { font-size: 12px; color: #4e5969; }
+.bar-label { font-size: 11px; color: #86909c; }
+.hint, .error { padding: 24px; color: #86909c; }
+.error { color: #9f001e; }
 </style>

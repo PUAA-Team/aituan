@@ -244,7 +244,7 @@ tr.active {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 .action-row {
   display: flex;

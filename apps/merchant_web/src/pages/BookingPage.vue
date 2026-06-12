@@ -150,7 +150,7 @@ function businessLabel(code: string) {
 <style scoped>
 .empty-row {
   text-align: center;
-  color: #999;
+  color: #86909c;
   padding: 18px 0;
 }
 </style>

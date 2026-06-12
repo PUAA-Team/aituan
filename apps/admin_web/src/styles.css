@@ -1,4 +1,5 @@
 :root {
+  --admin-sidebar-width: 270px;
   color: #1f2329;
   background: #f5f6f8;
   font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -39,22 +40,23 @@ label { display: grid; gap: 8px; color: #4e5969; font-size: 13px; }
 .login-copy h1 { margin-top: 12px; font-size: clamp(42px, 6vw, 72px); line-height: 1; letter-spacing: -0.05em; }
 .login-points { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .login-points span, .tag { display: inline-flex; width: fit-content; align-items: center; border: 1px solid #edf0f4; padding: 4px 8px; color: #4e5969; background: #fff; font-size: 12px; font-weight: 800; }
-.login-card, .panel-card, .drawer-card, .metric-card, .modal-panel, .empty-card { border: 1px solid #e5e8ef; background: #fff; box-shadow: 0 10px 28px rgba(31, 35, 41, 0.06); }
+.login-card, .panel-card, .drawer-card, .metric-card, .modal-panel, .empty-card { border: 1px solid #e5e8ef; border-radius: 4px; background: #fff; box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04); }
 .login-card { display: grid; gap: 18px; padding: 28px; }
 
-.admin-layout { min-height: 100vh; display: grid; grid-template-columns: 270px minmax(0, 1fr); }
-.admin-side { display: grid; grid-template-rows: auto 1fr auto; border-right: 1px solid #e5e8ef; background: #fff; }
+.admin-layout { min-height: 100vh; background: #f5f6f8; }
+.admin-side { position: fixed; inset: 0 auto 0 0; z-index: 10; width: var(--admin-sidebar-width); height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border-right: 1px solid #e5e8ef; background: #fff; overflow: hidden; }
 .brand-block { display: grid; gap: 7px; padding: 24px 20px; border-bottom: 1px solid #edf0f4; }
 .brand-block span, .brand-block small, .side-footer, .catalog-card small { color: #86909c; font-size: 12px; }
 .brand-block strong { font-size: 20px; }
-.side-nav { display: grid; align-content: start; gap: 4px; padding: 14px; }
-.side-nav button { display: grid; gap: 5px; border: 1px solid transparent; border-radius: 4px; padding: 12px; text-align: left; color: #1f2329; background: #fff; }
+.side-nav { display: grid; align-content: start; gap: 4px; min-height: 0; padding: 14px; overflow-y: auto; }
+.side-nav button { display: grid; gap: 5px; border: 1px solid transparent; border-radius: 4px; padding: 11px 12px; text-align: left; color: #1f2329; background: #fff; }
+.side-nav button:hover { border-color: #edf0f4; background: #f7f8fa; }
 .side-nav button small { color: #86909c; }
 .side-nav button.active { border-color: #f0b7c2; color: #b80022; background: #fff5f6; }
 .side-footer { display: grid; gap: 10px; padding: 18px; border-top: 1px solid #edf0f4; }
-.admin-main { display: grid; align-content: start; gap: 16px; padding: 24px; }
+.admin-main { display: grid; align-content: start; gap: 16px; min-height: 100vh; margin-left: var(--admin-sidebar-width); padding: 24px; }
 .topbar, .panel-toolbar, .row-actions, .toolbar-actions, .line-row, .catalog-head, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.topbar { border: 1px solid #e5e8ef; padding: 18px; background: #fff; }
+.topbar { border: 1px solid #e5e8ef; border-radius: 4px; padding: 18px; background: #fff; box-shadow: 0 1px 2px rgba(31, 35, 41, 0.04); }
 .topbar h1 { margin-top: 6px; font-size: 26px; }
 
 .page-grid { display: grid; gap: 16px; }
@@ -118,12 +120,12 @@ label { display: grid; gap: 8px; color: #4e5969; font-size: 13px; }
 @media (max-width: 1180px) { .store-grid, .catalog-grid, .metric-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) {
   .login-shell, .admin-layout, .page-grid.two-col, .split-grid, .store-grid, .catalog-grid, .metric-row, .form-grid.three, .config-row { grid-template-columns: 1fr; }
-  .admin-side { position: sticky; top: 0; z-index: 10; display: block; border-right: 0; border-bottom: 1px solid #e5e8ef; }
+  .admin-side { position: sticky; inset: auto; top: 0; z-index: 10; width: auto; height: auto; display: block; border-right: 0; border-bottom: 1px solid #e5e8ef; overflow: visible; }
   .brand-block { padding: 14px 16px 10px; }
-  .side-nav { display: flex; gap: 8px; overflow-x: auto; padding: 10px 12px 12px; }
+  .side-nav { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 10px 12px 12px; }
   .side-nav button { min-width: 132px; }
   .side-footer { display: none; }
-  .admin-main { padding: 14px; }
+  .admin-main { min-height: auto; margin-left: 0; padding: 14px; }
   .table-wrap { overflow-x: auto; }
   .toolbar-actions, .topbar, .panel-toolbar { align-items: stretch; flex-direction: column; }
   .search-input, .mini-input { width: 100%; }

@@ -237,7 +237,7 @@ function timeText(value: string | undefined) {
   gap: 6px;
   padding: 10px;
   border: 1px solid #edf0f4;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
   text-align: left;
 }
@@ -256,12 +256,14 @@ function timeText(value: string | undefined) {
   font-size: 12px;
 }
 .status.open {
-  color: #237804;
-  background: #f6ffed;
+  color: #0f7a3d;
+  border: 1px solid #bde7cf;
+  background: #f1fbf5;
 }
 .status.closed {
-  color: #595959;
-  background: #f0f0f0;
+  color: #4e5969;
+  border: 1px solid #edf0f4;
+  background: #f7f8fa;
 }
 .row-topic {
   color: #4e5969;
@@ -275,7 +277,7 @@ function timeText(value: string | undefined) {
   color: #86909c;
 }
 .row-foot small.unread {
-  color: #d4380d;
+  color: #e4002b;
   font-weight: 700;
 }
 .chat-area {
@@ -288,7 +290,7 @@ function timeText(value: string | undefined) {
   gap: 8px;
   padding: 12px;
   border: 1px solid #edf0f4;
-  border-radius: 6px;
+  border-radius: 4px;
   min-height: 240px;
   max-height: 420px;
   overflow-y: auto;
@@ -297,11 +299,11 @@ function timeText(value: string | undefined) {
   display: grid;
   gap: 4px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 4px;
   max-width: 80%;
 }
 .bubble.user {
-  background: #f0f0f0;
+  background: #f7f8fa;
   justify-self: flex-start;
 }
 .bubble.merchant {
@@ -309,7 +311,7 @@ function timeText(value: string | undefined) {
   justify-self: flex-end;
 }
 .bubble.system {
-  background: #e6f4ff;
+  background: #f5f6f8;
   justify-self: center;
 }
 .bubble small {
@@ -335,7 +337,7 @@ function timeText(value: string | undefined) {
 .rule-chip {
   padding: 4px 8px;
   border: 1px solid #d9dee7;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #f7f8fa;
   color: #4e5969;
   font-size: 12px;
@@ -347,7 +349,7 @@ function timeText(value: string | undefined) {
 .template-chip {
   padding: 4px 8px;
   border: 1px solid #d9dee7;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #fff;
   font-size: 12px;
   height: 24px;
