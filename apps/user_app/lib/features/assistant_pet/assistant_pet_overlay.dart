@@ -19,7 +19,7 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
     with SingleTickerProviderStateMixin {
   static const _petWidth = 118.0;
   static const _petHeight = 86.0;
-  static const _peek = 58.0;
+  static const _peek = 26.0;
   static const _margin = 10.0;
 
   late final AnimationController _breathController;
@@ -224,28 +224,30 @@ class _AssistantPetButton extends StatelessWidget {
           onPanStart: (_) => onPanStart(),
           onPanUpdate: onPanUpdate,
           onPanEnd: (_) => onPanEnd(),
-          child: AnimatedBuilder(
-            animation: breathController,
-            builder: (context, child) {
-              final scale = expanded
-                  ? 1.06
-                  : 0.96 + breathController.value * 0.045;
-              final tilt = leftEdge ? -0.035 : 0.035;
-              return Transform.rotate(
-                angle: expanded ? 0 : tilt,
-                child: Transform.scale(scale: scale, child: child),
-              );
-            },
-            child: Semantics(
-              button: true,
-              label: '小爱同学 AI 助手',
-              child: Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()
-                  ..setEntry(0, 0, leftEdge ? -1.0 : 1.0),
-                child: Image.asset(
-                  'assets/assistant_pet/xiaoai_pet_cutout.png',
-                  fit: BoxFit.contain,
+          child: ClipRect(
+            child: AnimatedBuilder(
+              animation: breathController,
+              builder: (context, child) {
+                final scale = expanded
+                    ? 1.06
+                    : 0.96 + breathController.value * 0.045;
+                final tilt = leftEdge ? -0.035 : 0.035;
+                return Transform.rotate(
+                  angle: expanded ? 0 : tilt,
+                  child: Transform.scale(scale: scale, child: child),
+                );
+              },
+              child: Semantics(
+                button: true,
+                label: '小爱同学 AI 助手',
+                child: Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(0, 0, leftEdge ? -1.0 : 1.0),
+                  child: Image.asset(
+                    'assets/assistant_pet/xiaoai_pet_cutout.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
