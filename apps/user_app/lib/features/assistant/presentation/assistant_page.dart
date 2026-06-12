@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/item_model.dart';
+import '../../../shared/models/merchant_model.dart';
 import '../data/assistant_repository.dart';
 
 class AssistantPage extends StatefulWidget {
@@ -74,7 +78,7 @@ class _AssistantPageState extends State<AssistantPage> {
                     itemBuilder: (context, index) => _MessageBubble(
                       entry: _entries[index],
                       onAction: _handleAction,
-                      onRoute: _openRoute,
+                      onCard: _handleCard,
                     ),
                   ),
           ),
@@ -211,6 +215,57 @@ class _AssistantPageState extends State<AssistantPage> {
     Navigator.pushNamed(context, target);
   }
 
+  void _handleCard(AssistantCard card) {
+    if (card.route == '/stores/detail') {
+      final type = businessTypeFromApi(
+        _payloadText(card.payload, 'businessType'),
+      );
+      Navigator.pushNamed(
+        context,
+        Routes.merchantDetail,
+        arguments: MerchantArgs(
+          type: type,
+          merchant: MerchantModel(
+            id: _payloadText(card.payload, 'storeId'),
+            name: card.title,
+            type: type,
+            distance: '',
+            rating: 0,
+            summary: card.content,
+            address: '',
+            tags: const [],
+            items: const [],
+          ),
+        ),
+      );
+      return;
+    }
+    if (card.route == '/items/detail') {
+      final type = businessTypeFromApi(
+        _payloadText(card.payload, 'businessType'),
+      );
+      Navigator.pushNamed(
+        context,
+        Routes.itemDetail,
+        arguments: ItemArgs(
+          ItemModel(
+            id: _payloadText(card.payload, 'itemId'),
+            title: card.title,
+            subtitle: card.content,
+            type: type,
+            category: type.label,
+            price: _payloadDouble(card.payload, 'price'),
+            oldPrice: _payloadNullableDouble(card.payload, 'originalPrice'),
+            tags: const [],
+            storeId: _payloadText(card.payload, 'storeId'),
+          ),
+        ),
+      );
+      return;
+    }
+    _openRoute(card.route);
+  }
+
   String? _normalizeRoute(String? route) {
     return switch (route) {
       '/orders' => Routes.orders,
@@ -231,6 +286,22 @@ class _AssistantPageState extends State<AssistantPage> {
       String value when value.startsWith('/') => value,
       _ => null,
     };
+  }
+
+  String _payloadText(Map<String, dynamic> payload, String key) =>
+      payload[key]?.toString() ?? '';
+
+  double _payloadDouble(Map<String, dynamic> payload, String key) {
+    final value = payload[key];
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double? _payloadNullableDouble(Map<String, dynamic> payload, String key) {
+    final value = payload[key];
+    if (value == null || value == '') return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 
   void _scrollToBottom() {
@@ -298,12 +369,12 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.entry,
     required this.onAction,
-    required this.onRoute,
+    required this.onCard,
   });
 
   final _ChatEntry entry;
   final ValueChanged<AssistantAction> onAction;
-  final ValueChanged<String?> onRoute;
+  final ValueChanged<AssistantCard> onCard;
 
   @override
   Widget build(BuildContext context) {
@@ -333,10 +404,7 @@ class _MessageBubble extends StatelessWidget {
           _AssistantStepsView(steps: entry.steps, modelUsed: entry.modelUsed),
         if (entry.cards.isNotEmpty)
           ...entry.cards.map(
-            (card) => _AssistantCardView(
-              card: card,
-              onTap: () => onRoute(card.route),
-            ),
+            (card) => _AssistantCardView(card: card, onTap: () => onCard(card)),
           ),
         if (entry.actions.isNotEmpty)
           Padding(

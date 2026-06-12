@@ -66,6 +66,28 @@ class AiAgentServiceTest {
   }
 
   @Test
+  void assistantKeepsGroupBuyQueriesFocusedOnDeals() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    AiAssistantResponse response = aiAgentService.userAssistant(
+        CurrentUserContext.required(),
+        new AiAssistantMessageRequest("帮我整理附近所有团购套餐", null));
+
+    assertThat(response.usedSkills()).contains("store_lookup", "item_lookup");
+    assertThat(response.steps())
+        .extracting(AiAssistantStep::title)
+        .contains("调用了店铺信息", "调用了商品服务信息");
+    assertThat(response.cards()).isNotEmpty();
+    assertThat(response.cards())
+        .filteredOn(card -> "store".equals(card.type()))
+        .allSatisfy(card -> assertThat(card.payload()).containsEntry("businessType", "group_buy"));
+    assertThat(response.cards())
+        .filteredOn(card -> "item".equals(card.type()))
+        .allSatisfy(card -> assertThat(card.payload()).containsEntry("businessType", "group_buy"));
+    assertThat(response.reply()).contains("团购");
+  }
+
+  @Test
   void assistantQueriesBroadRealBusinessContext() {
     TestAuthSupport.loginAsUser(1L, 1L);
 
