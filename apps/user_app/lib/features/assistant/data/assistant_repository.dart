@@ -129,16 +129,19 @@ class AssistantAction {
     required this.label,
     required this.message,
     required this.route,
+    this.payload = const {},
   });
 
   final String label;
   final String? message;
   final String? route;
+  final Map<String, dynamic> payload;
 
   factory AssistantAction.fromApi(Map<String, dynamic> json) => AssistantAction(
     label: (json['label'] ?? '') as String,
     message: json['message'] as String?,
     route: json['route'] as String?,
+    payload: _map(json['payload']),
   );
 }
 

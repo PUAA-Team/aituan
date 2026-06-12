@@ -8,6 +8,7 @@ import '../../../core/widgets/app_toast.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/item_model.dart';
 import '../../../shared/models/merchant_model.dart';
+import '../../home/data/backend_app_repository.dart';
 import '../data/assistant_repository.dart';
 
 class AssistantPage extends StatefulWidget {
@@ -206,6 +207,15 @@ class _AssistantPageState extends State<AssistantPage> {
       _send(action.message);
       return;
     }
+    if (action.route == '/search') {
+      final keyword = _payloadText(action.payload, 'keyword');
+      Navigator.pushNamed(
+        context,
+        keyword.isEmpty ? Routes.search : Routes.searchResult,
+        arguments: keyword.isEmpty ? null : SearchArgs(keyword),
+      );
+      return;
+    }
     _openRoute(action.route);
   }
 
@@ -215,7 +225,7 @@ class _AssistantPageState extends State<AssistantPage> {
     Navigator.pushNamed(context, target);
   }
 
-  void _handleCard(AssistantCard card) {
+  Future<void> _handleCard(AssistantCard card) async {
     if (card.route == '/stores/detail') {
       final type = businessTypeFromApi(
         _payloadText(card.payload, 'businessType'),
@@ -225,23 +235,12 @@ class _AssistantPageState extends State<AssistantPage> {
         'storeId',
         fallbackKey: 'targetId',
       );
+      final merchant = await _fetchStoreForCard(storeId, type, card);
+      if (!mounted) return;
       Navigator.pushNamed(
         context,
         Routes.merchantDetail,
-        arguments: MerchantArgs(
-          type: type,
-          merchant: MerchantModel(
-            id: storeId,
-            name: card.title,
-            type: type,
-            distance: '',
-            rating: 0,
-            summary: card.content,
-            address: '',
-            tags: const [],
-            items: const [],
-          ),
-        ),
+        arguments: MerchantArgs(type: merchant.type, merchant: merchant),
       );
       return;
     }
@@ -254,26 +253,68 @@ class _AssistantPageState extends State<AssistantPage> {
         'itemId',
         fallbackKey: 'targetId',
       );
+      final item = await _fetchItemForCard(itemId, type, card);
+      if (!mounted) return;
       Navigator.pushNamed(
         context,
         Routes.itemDetail,
-        arguments: ItemArgs(
-          ItemModel(
-            id: itemId,
-            title: card.title,
-            subtitle: card.content,
-            type: type,
-            category: type.label,
-            price: _payloadDouble(card.payload, 'price'),
-            oldPrice: _payloadNullableDouble(card.payload, 'originalPrice'),
-            tags: const [],
-            storeId: _payloadText(card.payload, 'storeId'),
-          ),
-        ),
+        arguments: ItemArgs(item),
       );
       return;
     }
     _openRoute(card.route);
+  }
+
+  Future<MerchantModel> _fetchStoreForCard(
+    String storeId,
+    BusinessType fallbackType,
+    AssistantCard card,
+  ) async {
+    final id = int.tryParse(storeId);
+    if (id != null) {
+      try {
+        return await backendRepository.fetchStore(id);
+      } catch (_) {
+        if (mounted) showAppSnackBar(context, '店铺详情暂时加载失败，先打开卡片信息');
+      }
+    }
+    return MerchantModel(
+      id: storeId,
+      name: card.title,
+      type: fallbackType,
+      distance: '',
+      rating: 0,
+      summary: card.content,
+      address: '',
+      tags: const [],
+      items: const [],
+    );
+  }
+
+  Future<ItemModel> _fetchItemForCard(
+    String itemId,
+    BusinessType fallbackType,
+    AssistantCard card,
+  ) async {
+    final id = int.tryParse(itemId);
+    if (id != null) {
+      try {
+        return (await backendRepository.fetchItem(id)).item;
+      } catch (_) {
+        if (mounted) showAppSnackBar(context, '套餐详情暂时加载失败，先打开卡片信息');
+      }
+    }
+    return ItemModel(
+      id: itemId,
+      title: card.title,
+      subtitle: card.content,
+      type: fallbackType,
+      category: fallbackType.label,
+      price: _payloadDouble(card.payload, 'price'),
+      oldPrice: _payloadNullableDouble(card.payload, 'originalPrice'),
+      tags: const [],
+      storeId: _payloadText(card.payload, 'storeId'),
+    );
   }
 
   String? _normalizeRoute(String? route) {

@@ -98,7 +98,7 @@ class ItemLookupSkill implements AiSkill {
         "商品服务查询",
         summary.toString(),
         cards,
-        List.of(new AiAssistantAction("继续搜索", null, "/search", params("keyword", key)))));
+        List.of(new AiAssistantAction("继续搜索", null, "/search", params("keyword", groupBuyOnly && key.isBlank() ? "团购" : key)))));
   }
 
   private String key(String text) {

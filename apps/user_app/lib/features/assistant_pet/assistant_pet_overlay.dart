@@ -19,7 +19,7 @@ class _AssistantPetOverlayState extends State<AssistantPetOverlay>
     with SingleTickerProviderStateMixin {
   static const _petWidth = 118.0;
   static const _petHeight = 86.0;
-  static const _peek = 26.0;
+  static const _peek = 34.0;
   static const _margin = 10.0;
 
   late final AnimationController _breathController;
@@ -225,32 +225,80 @@ class _AssistantPetButton extends StatelessWidget {
           onPanUpdate: onPanUpdate,
           onPanEnd: (_) => onPanEnd(),
           child: ClipRect(
-            child: AnimatedBuilder(
-              animation: breathController,
-              builder: (context, child) {
-                final scale = expanded
-                    ? 1.06
-                    : 0.96 + breathController.value * 0.045;
-                final tilt = leftEdge ? -0.035 : 0.035;
-                return Transform.rotate(
-                  angle: expanded ? 0 : tilt,
-                  child: Transform.scale(scale: scale, child: child),
-                );
-              },
-              child: Semantics(
-                button: true,
-                label: '小爱同学 AI 助手',
-                child: Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(0, 0, leftEdge ? -1.0 : 1.0),
-                  child: Image.asset(
-                    'assets/assistant_pet/xiaoai_pet_cutout.png',
-                    fit: BoxFit.contain,
+            child: Stack(
+              children: [
+                AnimatedBuilder(
+                  animation: breathController,
+                  builder: (context, child) {
+                    final scale = expanded
+                        ? 1.06
+                        : 0.96 + breathController.value * 0.045;
+                    final tilt = leftEdge ? -0.035 : 0.035;
+                    return Transform.rotate(
+                      angle: expanded ? 0 : tilt,
+                      child: Transform.scale(scale: scale, child: child),
+                    );
+                  },
+                  child: Semantics(
+                    button: true,
+                    label: '小爱同学 AI 助手',
+                    child: Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(0, 0, leftEdge ? -1.0 : 1.0),
+                      child: Image.asset(
+                        'assets/assistant_pet/xiaoai_pet_cutout.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  left: leftEdge ? null : 4,
+                  right: leftEdge ? 4 : null,
+                  top: 10,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 180),
+                    opacity: expanded ? 0.82 : 1,
+                    child: const _AskXiaoAiLabel(),
+                  ),
+                ),
+              ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AskXiaoAiLabel extends StatelessWidget {
+  const _AskXiaoAiLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(0xFFE4002B),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+        child: Text(
+          '问\n小\n爱',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            height: 1.05,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),

@@ -114,7 +114,7 @@ class StoreLookupSkill implements AiSkill {
         "店铺查询",
         summary.toString(),
         cards,
-        List.of(new AiAssistantAction("搜索店铺", null, "/search", params("keyword", key)))));
+        List.of(new AiAssistantAction("搜索店铺", null, "/search", params("keyword", groupBuyOnly && key.isBlank() ? "团购" : key)))));
   }
 
   private String key(String text) {
