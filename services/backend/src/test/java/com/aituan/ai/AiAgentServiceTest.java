@@ -88,7 +88,18 @@ class AiAgentServiceTest {
     assertThat(response.cards())
         .filteredOn(card -> "item".equals(card.type()))
         .allSatisfy(card -> assertThat(card.payload()).containsEntry("businessType", "group_buy"));
-    assertThat(response.reply()).contains("团购");
+    assertThat(response.cards()).satisfies(cards -> {
+      Long currentStoreId = null;
+      for (AiAssistantCard card : cards) {
+        if ("store".equals(card.type()) && "group_buy".equals(card.payload().get("businessType"))) {
+          currentStoreId = ((Number) card.payload().get("storeId")).longValue();
+        }
+        if ("item".equals(card.type()) && "group_buy".equals(card.payload().get("businessType"))) {
+          assertThat(currentStoreId).isEqualTo(((Number) card.payload().get("storeId")).longValue());
+        }
+      }
+    });
+    assertThat(response.reply()).contains("团购", "推荐逻辑");
   }
 
   @Test

@@ -116,6 +116,23 @@ class _SupportChatPageState extends State<SupportChatPage> {
     }
   }
 
+  Future<void> _requestPlatformIntervention() async {
+    try {
+      await supportRepository.requestPlatformIntervention(widget.sessionId);
+      if (!mounted) return;
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已申请平台客服介入')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('申请平台介入失败：$e')));
+    }
+  }
+
   void _openComplaint() {
     final session = _session;
     Navigator.pushNamed(
@@ -166,6 +183,10 @@ class _SupportChatPageState extends State<SupportChatPage> {
         isOpen &&
         (_session?.isPlatform ?? false) &&
         (_session?.isAiMode ?? false);
+    final canRequestPlatform =
+        isOpen &&
+        (_session?.isMerchant ?? false) &&
+        !(_session?.hasPlatformIntervention ?? false);
     final actionButtonStyle = TextButton.styleFrom(
       foregroundColor: Theme.of(context).colorScheme.primary,
     );
@@ -183,6 +204,12 @@ class _SupportChatPageState extends State<SupportChatPage> {
               style: actionButtonStyle,
               onPressed: _handoff,
               child: const Text('转人工'),
+            ),
+          if (canRequestPlatform)
+            TextButton(
+              style: actionButtonStyle,
+              onPressed: _requestPlatformIntervention,
+              child: const Text('平台介入'),
             ),
           if (isOpen)
             TextButton(

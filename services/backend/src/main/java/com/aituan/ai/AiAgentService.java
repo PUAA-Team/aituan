@@ -174,6 +174,8 @@ public class AiAgentService {
 
   private String fallbackReply(String content, List<AiSkillResult> skills) {
     if (!skills.isEmpty()) {
+      Optional<String> groupBuyReply = groupBuyFallbackReply(skills);
+      if (groupBuyReply.isPresent()) return groupBuyReply.get();
       StringBuilder builder = new StringBuilder("我已根据真实业务信息帮你查到：");
       int count = 0;
       for (AiSkillResult skill : skills) {
@@ -207,6 +209,33 @@ public class AiAgentService {
     return "平台客服助手已收到。请继续补充订单或问题细节；如需人工处理，可点击“转人工”或直接发送“转人工”。";
   }
 
+  private Optional<String> groupBuyFallbackReply(List<AiSkillResult> skills) {
+    List<AiAssistantCard> groupBuyCards = cards(skills).stream()
+        .filter(card -> ("store".equals(card.type()) || "item".equals(card.type()))
+            && "group_buy".equals(payloadString(card, "businessType")))
+        .toList();
+    if (groupBuyCards.stream().noneMatch(card -> "store".equals(card.type()))
+        || groupBuyCards.stream().noneMatch(card -> "item".equals(card.type()))) {
+      return Optional.empty();
+    }
+
+    StringBuilder builder = new StringBuilder("我按“先选店铺、再看该店套餐”的逻辑整理了真实团购结果：");
+    int storeCount = 0;
+    for (AiAssistantCard card : groupBuyCards) {
+      if ("store".equals(card.type())) {
+        if (storeCount >= 3) break;
+        storeCount++;
+        builder.append("\n").append(storeCount).append(". ")
+            .append(card.title()).append("：").append(card.content());
+      } else if (storeCount > 0 && storeCount <= 3) {
+        builder.append("\n   - 套餐：").append(card.title()).append("，")
+            .append(card.content());
+      }
+    }
+    builder.append("\n推荐逻辑：优先看营业状态、评分/月售和距离，再对比套餐价格、库存与退改规则；点下方卡片可直接进店或查看套餐详情。");
+    return Optional.of(limit(builder.toString(), 520));
+  }
+
   private String skillContext(List<AiSkillResult> skills) {
     if (skills.isEmpty()) return "无命中的业务 skill。";
     StringBuilder builder = new StringBuilder();
@@ -225,7 +254,57 @@ public class AiAgentService {
     for (AiSkillResult result : results) {
       cards.addAll(result.cards());
     }
-    return cards;
+    return groupGroupBuyCards(cards);
+  }
+
+  private List<AiAssistantCard> groupGroupBuyCards(List<AiAssistantCard> cards) {
+    Map<Long, AiAssistantCard> stores = new LinkedHashMap<>();
+    Map<Long, List<AiAssistantCard>> itemsByStore = new LinkedHashMap<>();
+    List<AiAssistantCard> others = new ArrayList<>();
+    for (AiAssistantCard card : cards) {
+      if ("store".equals(card.type()) && "group_buy".equals(payloadString(card, "businessType"))) {
+        payloadLong(card, "storeId").ifPresentOrElse(
+            storeId -> stores.putIfAbsent(storeId, card),
+            () -> others.add(card));
+      } else if ("item".equals(card.type()) && "group_buy".equals(payloadString(card, "businessType"))) {
+        payloadLong(card, "storeId").ifPresentOrElse(
+            storeId -> itemsByStore.computeIfAbsent(storeId, ignored -> new ArrayList<>()).add(card),
+            () -> others.add(card));
+      } else {
+        others.add(card);
+      }
+    }
+    if (stores.isEmpty() || itemsByStore.isEmpty()) return cards;
+
+    List<AiAssistantCard> grouped = new ArrayList<>(others);
+    for (Map.Entry<Long, AiAssistantCard> entry : stores.entrySet()) {
+      grouped.add(entry.getValue());
+      grouped.addAll(itemsByStore.getOrDefault(entry.getKey(), List.of()));
+    }
+    for (Map.Entry<Long, List<AiAssistantCard>> entry : itemsByStore.entrySet()) {
+      if (!stores.containsKey(entry.getKey())) grouped.addAll(entry.getValue());
+    }
+    return grouped;
+  }
+
+  private Optional<Long> payloadLong(AiAssistantCard card, String key) {
+    if (card.payload() == null) return Optional.empty();
+    Object value = card.payload().get(key);
+    if (value instanceof Number number) return Optional.of(number.longValue());
+    if (value instanceof String text) {
+      try {
+        return Optional.of(Long.parseLong(text));
+      } catch (NumberFormatException ignored) {
+        return Optional.empty();
+      }
+    }
+    return Optional.empty();
+  }
+
+  private String payloadString(AiAssistantCard card, String key) {
+    if (card.payload() == null) return null;
+    Object value = card.payload().get(key);
+    return value == null ? null : value.toString();
   }
 
   private List<AiAssistantAction> actions(List<AiSkillResult> results) {

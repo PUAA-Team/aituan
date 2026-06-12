@@ -39,7 +39,9 @@ class SupportSession {
   final String platformInterventionStatus;
 
   bool get isPlatform => serviceScope == 'platform' || storeId == 0;
+  bool get isMerchant => !isPlatform;
   bool get isAiMode => assistantMode == 'ai';
+  bool get hasPlatformIntervention => platformInterventionStatus == 'active';
 
   factory SupportSession.fromApi(Map<String, dynamic> json) => SupportSession(
     id: (json['id'] as num).toInt(),
@@ -147,6 +149,14 @@ class SupportRepository {
   Future<SupportSession> handoffToHuman(int sessionId) async {
     final json = await _client.post(
       '/api/app/support/sessions/$sessionId/handoff',
+      {},
+    );
+    return SupportSession.fromApi(json['data'] as Map<String, dynamic>);
+  }
+
+  Future<SupportSession> requestPlatformIntervention(int sessionId) async {
+    final json = await _client.post(
+      '/api/app/support/sessions/$sessionId/platform-intervention',
       {},
     );
     return SupportSession.fromApi(json['data'] as Map<String, dynamic>);
