@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -23,12 +24,12 @@ public class AiAgentService {
       """;
 
   private final AiChatClient aiChatClient;
-  private final AiSkillRegistry skillRegistry;
+  private final AiToolRegistry toolRegistry;
   private final AiAssistantRepository assistantRepository;
 
-  AiAgentService(AiChatClient aiChatClient, AiSkillRegistry skillRegistry, AiAssistantRepository assistantRepository) {
+  AiAgentService(AiChatClient aiChatClient, AiToolRegistry toolRegistry, AiAssistantRepository assistantRepository) {
     this.aiChatClient = aiChatClient;
-    this.skillRegistry = skillRegistry;
+    this.toolRegistry = toolRegistry;
     this.assistantRepository = assistantRepository;
   }
 
@@ -39,15 +40,16 @@ public class AiAgentService {
     long userMessageId = assistantRepository.insertMessage(
         conversation.id(), currentUser.userId(), "user", content, List.of(), List.of(), List.of(), List.of(), false);
     assistantRepository.touchConversation(conversation.id(), userMessageId, titleFrom(content));
-    AiSkillContext context = new AiSkillContext(currentUser, content, memoryText, conversation.id(), null, null, "user_assistant");
-    List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
-    List<AiAssistantStep> steps = steps(skillResults, true);
+    ToolRun toolRun = runTools("用户端助手", currentUser, content, memoryText, conversation.id(), null, null, "user_assistant");
+    List<AiSkillResult> skillResults = toolRun.results();
+    List<AiAssistantStep> steps = steps(skillResults, true, toolRun.modelUsed());
     AgentReply reply = generateReply("用户端助手", content, memoryText, skillResults, fallbackReply(content, skillResults));
+    boolean modelUsed = toolRun.modelUsed() || reply.modelUsed();
     List<AiAssistantCard> cards = cards(skillResults);
     List<AiAssistantAction> actions = actions(skillResults);
     List<String> usedSkills = skillResults.stream().map(AiSkillResult::name).toList();
     long assistantMessageId = assistantRepository.insertMessage(
-        conversation.id(), currentUser.userId(), "assistant", reply.content(), cards, actions, steps, usedSkills, reply.modelUsed());
+        conversation.id(), currentUser.userId(), "assistant", reply.content(), cards, actions, steps, usedSkills, modelUsed);
     assistantRepository.touchConversation(conversation.id(), assistantMessageId, titleFrom(content));
     return new AiAssistantResponse(
         conversation.conversationNo(),
@@ -56,7 +58,7 @@ public class AiAgentService {
         actions,
         steps,
         usedSkills,
-        reply.modelUsed());
+        modelUsed);
   }
 
   public AiAssistantHistoryResponse currentConversation(CurrentUser currentUser) {
@@ -73,8 +75,8 @@ public class AiAgentService {
 
   public String platformSupportReply(CurrentUser currentUser, Long sessionId, Long relatedOrderId, String content) {
     String cleaned = clean(content);
-    AiSkillContext context = new AiSkillContext(currentUser, cleaned, "", null, sessionId, relatedOrderId, "platform_support");
-    List<AiSkillResult> skillResults = skillRegistry.evaluate(context);
+    ToolRun toolRun = runTools("平台客服 AI", currentUser, cleaned, "", null, sessionId, relatedOrderId, "platform_support");
+    List<AiSkillResult> skillResults = toolRun.results();
     String fallback = fallbackReply(cleaned, skillResults);
     return generateReply("平台客服 AI", cleaned, "", skillResults, fallback).content();
   }
@@ -100,6 +102,74 @@ public class AiAgentService {
     return aiChatClient.chat(messages)
         .map(text -> new AgentReply(text, true))
         .orElseGet(() -> new AgentReply(fallback, false));
+  }
+
+  private ToolRun runTools(
+      String role,
+      CurrentUser currentUser,
+      String content,
+      String memoryText,
+      Long conversationId,
+      Long supportSessionId,
+      Long relatedOrderId,
+      String channel) {
+    List<AiChatClient.AiChatMessage> messages = List.of(
+        new AiChatClient.AiChatMessage("system", """
+            你是爱团应用内 AI agent 的工具规划器。你必须通过 tools 读取真实数据库信息，不要仅凭关键词或常识回答。
+            根据用户问题和最近对话，选择必要且足够的工具；如果用户问店铺/团购，请优先查询店铺，再查询相关团购套餐或商品。
+            如果用户问“刚才那个/第一个/继续”，根据对话记忆里的 cards 指代选择工具。
+            平台客服场景下，退款、投诉、纠纷、食品安全、人工客服诉求都要查询订单/客服/治理入口等相关工具。
+            不要输出普通文本，优先返回 tool_calls。
+            """),
+        new AiChatClient.AiChatMessage("user", """
+            当前角色：%s
+            当前通道：%s
+            关联客服会话：%s
+            关联订单：%s
+            最近对话记忆：
+            %s
+            用户消息：%s
+            """.formatted(
+            role,
+            channel,
+            supportSessionId == null ? "无" : supportSessionId,
+            relatedOrderId == null ? "无" : relatedOrderId,
+            memoryText == null || memoryText.isBlank() ? "无" : memoryText,
+            content)));
+    Optional<List<AiToolCall>> planned = aiChatClient.toolCalls(messages, toolRegistry.definitions())
+        .or(() -> aiChatClient.toolPlanJson(messages, toolRegistry.definitions()));
+    boolean modelUsed = planned.isPresent();
+    List<AiToolCall> calls = enrichToolCalls(
+        planned.orElseGet(() -> toolRegistry.fallbackCalls(content, memoryText, channel)),
+        content);
+    List<AiSkillResult> results = new ArrayList<>();
+    Map<String, Boolean> executed = new LinkedHashMap<>();
+    for (AiToolCall call : calls) {
+      if (call == null || call.name() == null || executed.containsKey(call.name())) continue;
+      executed.put(call.name(), true);
+      toolRegistry.execute(call, currentUser, content, memoryText, conversationId, supportSessionId, relatedOrderId, channel)
+          .ifPresent(results::add);
+      if (results.size() >= 14) break;
+    }
+    return new ToolRun(results, modelUsed);
+  }
+
+  private List<AiToolCall> enrichToolCalls(List<AiToolCall> calls, String content) {
+    if (calls == null || calls.isEmpty()) return List.of();
+    boolean groupBuyIntent = containsAny(content == null ? "" : content, "团购", "到店套餐", "双人餐", "多人餐", "核销套餐");
+    if (!groupBuyIntent) return calls;
+    boolean hasStore = calls.stream().anyMatch(call -> "store_lookup".equals(call.name()));
+    boolean hasItem = calls.stream().anyMatch(call -> "item_lookup".equals(call.name()));
+    if (hasStore == hasItem) return calls;
+    List<AiToolCall> enriched = new ArrayList<>();
+    if (hasItem) {
+      enriched.add(new AiToolCall("enriched-store", "store_lookup", Map.of("query", content, "businessType", "group_buy")));
+    }
+    enriched.addAll(calls);
+    if (hasStore) {
+      enriched.add(new AiToolCall("enriched-item", "item_lookup", Map.of("query", content, "businessType", "group_buy")));
+    }
+    return enriched;
   }
 
   private String fallbackReply(String content, List<AiSkillResult> skills) {
@@ -224,9 +294,12 @@ public class AiAgentService {
     return builder.toString();
   }
 
-  private List<AiAssistantStep> steps(List<AiSkillResult> skills, boolean replyStep) {
+  private List<AiAssistantStep> steps(List<AiSkillResult> skills, boolean replyStep, boolean modelPlannedTools) {
     List<AiAssistantStep> steps = new ArrayList<>();
-    steps.add(new AiAssistantStep("识别问题类型", "根据消息内容选择可用业务信息", "done"));
+    steps.add(new AiAssistantStep(
+        modelPlannedTools ? "模型选择工具" : "本地兜底选择工具",
+        modelPlannedTools ? "由 AI 根据上下文选择需要调用的业务 tool" : "模型不可用或未返回 tool call，使用保守兜底工具计划",
+        "done"));
     for (AiSkillResult skill : skills) {
       steps.add(new AiAssistantStep(stepTitle(skill.name()), skill.title(), "done"));
     }
@@ -277,4 +350,6 @@ public class AiAgentService {
   }
 
   record AgentReply(String content, boolean modelUsed) {}
+
+  record ToolRun(List<AiSkillResult> results, boolean modelUsed) {}
 }

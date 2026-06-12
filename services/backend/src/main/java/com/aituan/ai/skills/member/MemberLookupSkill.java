@@ -4,21 +4,28 @@ import static com.aituan.ai.AiSkillSupport.limit;
 import static com.aituan.ai.AiSkillSupport.params;
 import static com.aituan.ai.AiSkillSupport.shouldRun;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 class MemberLookupSkill implements AiSkill {
+  private static final TypeReference<List<Map<String, Object>>> BENEFIT_LIST = new TypeReference<>() {};
   private static final List<String> WORDS = List.of("会员", "等级", "成长值", "权益", "升级", "每周券", "周券");
 
   private final JdbcTemplate jdbcTemplate;
+  private final ObjectMapper objectMapper;
 
-  MemberLookupSkill(JdbcTemplate jdbcTemplate) {
+  MemberLookupSkill(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
     this.jdbcTemplate = jdbcTemplate;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -61,7 +68,7 @@ class MemberLookupSkill implements AiSkill {
     StringBuilder summary = new StringBuilder("会员真实信息：")
         .append(member.levelName()).append("，成长值 ").append(member.growthValue());
     if (current != null && current.benefits() != null) {
-      summary.append("，当前权益 ").append(limit(current.benefits(), 80));
+      summary.append("，当前权益 ").append(limit(formatBenefits(current.benefits()), 80));
     }
     if (next != null) {
       summary.append("，距离 ").append(next.levelName()).append(" 还差 ")
@@ -77,6 +84,31 @@ class MemberLookupSkill implements AiSkill {
 
   private LevelRow mapLevel(ResultSet rs, int rowNum) throws SQLException {
     return new LevelRow(rs.getString("level_name"), rs.getInt("min_growth_value"), rs.getString("benefits"));
+  }
+
+  private String formatBenefits(String benefits) {
+    if (benefits == null || benefits.isBlank()) return "暂无权益说明";
+    try {
+      List<Map<String, Object>> rows = objectMapper.readValue(benefits, BENEFIT_LIST);
+      String text = rows.stream()
+          .map(row -> {
+            String title = text(row.get("title"));
+            String desc = text(row.get("desc"));
+            if (title.isBlank()) return desc;
+            if (desc.isBlank()) return title;
+            return title + "：" + desc;
+          })
+          .filter(value -> !value.isBlank())
+          .reduce((left, right) -> left + "；" + right)
+          .orElse("");
+      return text.isBlank() ? benefits : text;
+    } catch (JsonProcessingException ex) {
+      return benefits;
+    }
+  }
+
+  private String text(Object value) {
+    return value == null ? "" : value.toString().trim();
   }
 
   record MemberRow(String levelName, int growthValue) {}

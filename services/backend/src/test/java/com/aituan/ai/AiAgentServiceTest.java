@@ -80,7 +80,11 @@ class AiAgentServiceTest {
     assertThat(response.cards()).isNotEmpty();
     assertThat(response.cards())
         .filteredOn(card -> "store".equals(card.type()))
-        .allSatisfy(card -> assertThat(card.payload()).containsEntry("businessType", "group_buy"));
+        .allSatisfy(card -> {
+          assertThat(card.payload()).containsEntry("businessType", "group_buy");
+          assertThat(card.content()).contains("套餐", "¥", "热门", "评分", "月售");
+          assertThat(card.payload()).containsKeys("dealCount", "minDealPrice", "topDealName");
+        });
     assertThat(response.cards())
         .filteredOn(card -> "item".equals(card.type()))
         .allSatisfy(card -> assertThat(card.payload()).containsEntry("businessType", "group_buy"));

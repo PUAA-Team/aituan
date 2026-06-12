@@ -47,7 +47,21 @@ class StoreLookupSkill implements AiSkill {
         """
         select distinct s.id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
                s.rating, s.monthly_sales, s.avg_price, s.business_hours_text, s.tag_text,
-               dr.delivery_fee, dr.start_price, dr.estimated_minutes, dr.delivery_text
+               dr.delivery_fee, dr.start_price, dr.estimated_minutes, dr.delivery_text,
+               (select count(1)
+                  from catalog_item gi
+                 where gi.store_id = s.id and gi.is_deleted = 0 and gi.status = 'on_sale'
+                   and gi.business_type = 'group_buy') as deal_count,
+               (select min(gi.price)
+                  from catalog_item gi
+                 where gi.store_id = s.id and gi.is_deleted = 0 and gi.status = 'on_sale'
+                   and gi.business_type = 'group_buy') as min_deal_price,
+               (select gi.item_name
+                  from catalog_item gi
+                 where gi.store_id = s.id and gi.is_deleted = 0 and gi.status = 'on_sale'
+                   and gi.business_type = 'group_buy'
+                 order by gi.sales_count desc, gi.id
+                 limit 1) as top_deal_name
         from merchant_store s
         left join merchant_delivery_rule dr on dr.store_id = s.id and dr.is_deleted = 0
         left join catalog_item i on i.store_id = s.id and i.is_deleted = 0 and i.status = 'on_sale'
@@ -73,6 +87,9 @@ class StoreLookupSkill implements AiSkill {
           .append("，月售 ").append(store.monthlySales()).append("，人均 ")
           .append(money(store.avgPrice())).append("，").append(store.distanceText())
           .append("，").append(store.hours())
+          .append(store.dealCount() <= 0 ? "" : "，可买团购 " + store.dealCount() + " 个")
+          .append(store.minDealPrice() == null ? "" : "，团购 ¥" + money(store.minDealPrice()) + " 起")
+          .append(store.topDealName() == null ? "" : "，热门：" + store.topDealName())
           .append(store.estimatedMinutes() == 0 ? "" : "，约 " + store.estimatedMinutes() + " 分钟送达")
           .append(store.deliveryFee() == null ? "" : "，配送费 " + money(store.deliveryFee()));
     }
@@ -80,10 +97,17 @@ class StoreLookupSkill implements AiSkill {
         .map(store -> new AiAssistantCard(
             "store",
             store.name(),
-            (groupBuyOnly ? "团购店 · " : "") + store.summary() + " · " + store.address(),
+            storeCardContent(store, groupBuyOnly),
             "查看店铺",
             "/stores/detail",
-            params("storeId", store.id(), "businessType", store.businessType())))
+            params(
+                "storeId", store.id(),
+                "businessType", store.businessType(),
+                "dealCount", store.dealCount(),
+                "minDealPrice", store.minDealPrice(),
+                "topDealName", store.topDealName(),
+                "rating", store.rating(),
+                "monthlySales", store.monthlySales())))
         .toList();
     return Optional.of(new AiSkillResult(
         name(),
@@ -102,6 +126,23 @@ class StoreLookupSkill implements AiSkill {
     return AiSkillSupport.containsAny(text, "团购", "到店套餐", "多人餐", "双人餐", "核销套餐");
   }
 
+  private String storeCardContent(StoreRow store, boolean groupBuyOnly) {
+    StringBuilder content = new StringBuilder();
+    if (groupBuyOnly || "group_buy".equals(store.businessType())) {
+      content.append("团购店");
+      if (store.dealCount() > 0) content.append(" · ").append(store.dealCount()).append(" 个套餐");
+      if (store.minDealPrice() != null) content.append(" · ¥").append(money(store.minDealPrice())).append("起");
+      if (store.topDealName() != null && !store.topDealName().isBlank()) content.append(" · 热门：").append(store.topDealName());
+    } else {
+      content.append(store.summary());
+    }
+    content.append(" · 评分 ").append(store.rating())
+        .append(" · 月售 ").append(store.monthlySales())
+        .append(" · ").append(store.distanceText())
+        .append(" · ").append(store.address());
+    return content.toString();
+  }
+
   private StoreRow mapStore(ResultSet rs, int rowNum) throws SQLException {
     return new StoreRow(
         rs.getLong("id"),
@@ -118,10 +159,14 @@ class StoreLookupSkill implements AiSkill {
         rs.getBigDecimal("delivery_fee"),
         rs.getBigDecimal("start_price"),
         rs.getInt("estimated_minutes"),
-        rs.getString("delivery_text"));
+        rs.getString("delivery_text"),
+        rs.getInt("deal_count"),
+        rs.getBigDecimal("min_deal_price"),
+        rs.getString("top_deal_name"));
   }
 
   record StoreRow(long id, String name, String businessType, String summary, String address, String distanceText,
                   BigDecimal rating, int monthlySales, BigDecimal avgPrice, String hours, String tags,
-                  BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText) {}
+                  BigDecimal deliveryFee, BigDecimal startPrice, int estimatedMinutes, String deliveryText,
+                  int dealCount, BigDecimal minDealPrice, String topDealName) {}
 }

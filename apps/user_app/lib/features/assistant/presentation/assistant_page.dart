@@ -220,13 +220,18 @@ class _AssistantPageState extends State<AssistantPage> {
       final type = businessTypeFromApi(
         _payloadText(card.payload, 'businessType'),
       );
+      final storeId = _payloadText(
+        card.payload,
+        'storeId',
+        fallbackKey: 'targetId',
+      );
       Navigator.pushNamed(
         context,
         Routes.merchantDetail,
         arguments: MerchantArgs(
           type: type,
           merchant: MerchantModel(
-            id: _payloadText(card.payload, 'storeId'),
+            id: storeId,
             name: card.title,
             type: type,
             distance: '',
@@ -244,12 +249,17 @@ class _AssistantPageState extends State<AssistantPage> {
       final type = businessTypeFromApi(
         _payloadText(card.payload, 'businessType'),
       );
+      final itemId = _payloadText(
+        card.payload,
+        'itemId',
+        fallbackKey: 'targetId',
+      );
       Navigator.pushNamed(
         context,
         Routes.itemDetail,
         arguments: ItemArgs(
           ItemModel(
-            id: _payloadText(card.payload, 'itemId'),
+            id: itemId,
             title: card.title,
             subtitle: card.content,
             type: type,
@@ -288,8 +298,15 @@ class _AssistantPageState extends State<AssistantPage> {
     };
   }
 
-  String _payloadText(Map<String, dynamic> payload, String key) =>
-      payload[key]?.toString() ?? '';
+  String _payloadText(
+    Map<String, dynamic> payload,
+    String key, {
+    String? fallbackKey,
+  }) {
+    final value =
+        payload[key] ?? (fallbackKey == null ? null : payload[fallbackKey]);
+    return value?.toString() ?? '';
+  }
 
   double _payloadDouble(Map<String, dynamic> payload, String key) {
     final value = payload[key];
@@ -436,10 +453,7 @@ class _AssistantStepsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skillSteps = steps
-        .where((step) => step.title.startsWith('调用了'))
-        .toList();
-    if (skillSteps.isEmpty) return const SizedBox.shrink();
+    if (steps.isEmpty) return const SizedBox.shrink();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 360),
       child: Container(
@@ -462,7 +476,7 @@ class _AssistantStepsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  modelUsed ? 'AI 已调用业务 Skill' : '本地助手已调用业务 Skill',
+                  modelUsed ? 'AI Tool 调用过程' : '本地 Tool 调用过程',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -475,12 +489,12 @@ class _AssistantStepsView extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: skillSteps
+              children: steps
                   .map(
                     (step) => Chip(
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      avatar: const Icon(Icons.check_circle, size: 14),
+                      avatar: Icon(_stepIcon(step.title), size: 14),
                       label: Text(_skillLabel(step.title)),
                     ),
                   )
@@ -490,6 +504,14 @@ class _AssistantStepsView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _stepIcon(String title) {
+    if (title.contains('选择工具')) return Icons.psychology_alt_outlined;
+    if (title.contains('整理') || title.contains('准备')) {
+      return Icons.auto_awesome;
+    }
+    return Icons.check_circle;
   }
 
   String _skillLabel(String title) => title.replaceFirst('调用了', '');
