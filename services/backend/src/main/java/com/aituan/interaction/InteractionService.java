@@ -8,6 +8,7 @@ import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
 import com.aituan.member.MemberService;
+import com.aituan.message.StationMessagePublisher;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -22,11 +23,17 @@ class InteractionService {
   private final InteractionRepository interactionRepository;
   private final JdbcTemplate jdbcTemplate;
   private final MemberService memberService;
+  private final StationMessagePublisher stationMessagePublisher;
 
-  InteractionService(InteractionRepository interactionRepository, JdbcTemplate jdbcTemplate, MemberService memberService) {
+  InteractionService(
+      InteractionRepository interactionRepository,
+      JdbcTemplate jdbcTemplate,
+      MemberService memberService,
+      StationMessagePublisher stationMessagePublisher) {
     this.interactionRepository = interactionRepository;
     this.jdbcTemplate = jdbcTemplate;
     this.memberService = memberService;
+    this.stationMessagePublisher = stationMessagePublisher;
   }
 
   // ============ 用户端 ============
@@ -177,6 +184,12 @@ class InteractionService {
     }
     interactionRepository.insertReply(reviewId, merchantId, content);
     interactionRepository.markReviewReplied(reviewId);
+    stationMessagePublisher.review(
+        row.userId(),
+        "商家回复了你的评价",
+        row.storeName() + " 已回复你对订单「" + row.orderTitle() + "」的评价。",
+        row.orderId(),
+        reviewId);
     interactionRepository.insertSysAuditLog(
         "merchant", requireMerchant().accountId(), "review_reply", "review", reviewId,
         "商家回复评价 " + reviewId);
@@ -212,6 +225,7 @@ class InteractionService {
     };
     if (!fromStatus.equals(toStatus)) {
       interactionRepository.updateReviewStatus(reviewId, toStatus);
+      publishReviewAuditMessage(row, toStatus);
     }
     interactionRepository.insertReviewAuditLog(reviewId, action, fromStatus, toStatus, admin.accountId(), request.remark());
     if ("pass".equals(action) || "hide".equals(action)) {
@@ -313,6 +327,24 @@ class InteractionService {
   }
 
   // ============ 字符串工具 ============
+
+  private void publishReviewAuditMessage(InteractionRepository.ReviewRow row, String toStatus) {
+    if (REVIEW_STATUS_HIDDEN.equals(toStatus)) {
+      stationMessagePublisher.review(
+          row.userId(),
+          "评价审核结果",
+          "你对「" + row.storeName() + "」的评价因平台审核被隐藏。",
+          row.orderId(),
+          row.id());
+      return;
+    }
+    stationMessagePublisher.review(
+        row.userId(),
+        "评价审核结果",
+        "你对「" + row.storeName() + "」的评价已通过平台审核。",
+        row.orderId(),
+        row.id());
+  }
 
   private String normalizeReviewStatus(String value) {
     if (value == null || value.isBlank()) return null;

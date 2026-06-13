@@ -6,6 +6,7 @@ import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.message.StationMessagePublisher;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ class ComplaintService {
   private static final List<String> ALLOWED_STATUS = List.of("pending", "processing", "resolved", "closed");
 
   private final ComplaintRepository complaintRepository;
+  private final StationMessagePublisher stationMessagePublisher;
 
-  ComplaintService(ComplaintRepository complaintRepository) {
+  ComplaintService(ComplaintRepository complaintRepository, StationMessagePublisher stationMessagePublisher) {
     this.complaintRepository = complaintRepository;
+    this.stationMessagePublisher = stationMessagePublisher;
   }
 
   // ============ 用户端 ============
@@ -78,6 +81,13 @@ class ComplaintService {
     Long id = complaintRepository.insertTicket(ticketNo, current.userId(), orderId, storeId, merchantId,
         category, title, detail, evidence);
     complaintRepository.insertLog(id, "submit", "user", current.userId(), null);
+    stationMessagePublisher.complaint(
+        current.userId(),
+        "投诉已提交",
+        "你的投诉工单 " + ticketNo + " 已提交，平台将尽快处理。",
+        orderId,
+        id,
+        "投诉");
     complaintRepository.insertSysAuditLog("user", current.accountId(), "complaint_submit", "complaint", id,
         "用户提交投诉：" + title);
     return complaintRepository.findById(id).map(r -> toView(r, false))
@@ -158,6 +168,7 @@ class ComplaintService {
     }
     String remark = request == null ? null : request.remark();
     complaintRepository.insertLog(id, action, "admin", admin.accountId(), remark);
+    publishComplaintProgressMessage(row, action, remark);
     complaintRepository.insertSysAuditLog("admin", admin.accountId(), auditAction, "complaint", id,
         auditDetailPrefix + " #" + row.ticketNo());
     return complaintRepository.findById(id).map(r -> toView(r, true))
@@ -210,6 +221,35 @@ class ComplaintService {
   }
 
   // ============ 字符串工具 ============
+
+  private void publishComplaintProgressMessage(ComplaintRepository.TicketRow row, String action, String remark) {
+    String suffix = remark == null || remark.isBlank() ? "" : " 处理说明：" + remark.trim();
+    switch (action) {
+      case "accept" -> stationMessagePublisher.complaint(
+          row.userId(),
+          "投诉已受理",
+          "你的投诉工单 " + row.ticketNo() + " 已由平台受理。" + suffix,
+          row.orderId(),
+          row.id(),
+          "受理");
+      case "resolve" -> stationMessagePublisher.complaint(
+          row.userId(),
+          "投诉处理完成",
+          "你的投诉工单 " + row.ticketNo() + " 已处理完成。" + suffix,
+          row.orderId(),
+          row.id(),
+          "处理");
+      case "close" -> stationMessagePublisher.complaint(
+          row.userId(),
+          "投诉工单已关闭",
+          "你的投诉工单 " + row.ticketNo() + " 已关闭。" + suffix,
+          row.orderId(),
+          row.id(),
+          "关闭");
+      default -> {
+      }
+    }
+  }
 
   private String normalizeStatus(String value) {
     if (value == null || value.isBlank()) return null;

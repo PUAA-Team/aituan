@@ -10,6 +10,7 @@ class AppCard extends StatelessWidget {
     this.padding,
     this.margin,
     this.onTap,
+    this.onLongPress,
     this.radius,
     this.backgroundColor,
     this.borderColor,
@@ -19,6 +20,7 @@ class AppCard extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final double? radius;
   final Color? backgroundColor;
   final Color? borderColor;
@@ -38,6 +40,7 @@ class AppCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: padding ?? const EdgeInsets.all(AppTokens.cardPadding),
             child: child,

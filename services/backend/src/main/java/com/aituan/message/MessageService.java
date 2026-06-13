@@ -41,4 +41,20 @@ class MessageService {
     long userId = CurrentUserContext.required().userId();
     messageRepository.markAllRead(userId);
   }
+
+  void markBatchRead(MessageBatchRequest request) {
+    messageRepository.markRead(CurrentUserContext.required().userId(), normalizedIds(request));
+  }
+
+  void markBatchUnread(MessageBatchRequest request) {
+    messageRepository.markUnread(CurrentUserContext.required().userId(), normalizedIds(request));
+  }
+
+  void deleteBatch(MessageBatchRequest request) {
+    messageRepository.softDelete(CurrentUserContext.required().userId(), normalizedIds(request));
+  }
+
+  private List<Long> normalizedIds(MessageBatchRequest request) {
+    return request.messageIds().stream().distinct().toList();
+  }
 }
