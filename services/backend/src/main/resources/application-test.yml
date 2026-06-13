@@ -10,3 +10,7 @@ spring:
 logging:
   level:
     com.aituan: WARN
+
+aituan:
+  ai:
+    enabled: false

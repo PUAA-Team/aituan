@@ -104,6 +104,7 @@ class AssistantCard {
     required this.content,
     required this.actionLabel,
     required this.route,
+    required this.payload,
   });
 
   final String type;
@@ -111,6 +112,7 @@ class AssistantCard {
   final String content;
   final String? actionLabel;
   final String? route;
+  final Map<String, dynamic> payload;
 
   factory AssistantCard.fromApi(Map<String, dynamic> json) => AssistantCard(
     type: (json['type'] ?? '') as String,
@@ -118,6 +120,7 @@ class AssistantCard {
     content: (json['content'] ?? '') as String,
     actionLabel: json['actionLabel'] as String?,
     route: json['route'] as String?,
+    payload: _map(json['payload']),
   );
 }
 
@@ -126,16 +129,19 @@ class AssistantAction {
     required this.label,
     required this.message,
     required this.route,
+    this.payload = const {},
   });
 
   final String label;
   final String? message;
   final String? route;
+  final Map<String, dynamic> payload;
 
   factory AssistantAction.fromApi(Map<String, dynamic> json) => AssistantAction(
     label: (json['label'] ?? '') as String,
     message: json['message'] as String?,
     route: json['route'] as String?,
+    payload: _map(json['payload']),
   );
 }
 
@@ -155,6 +161,13 @@ class AssistantStep {
     detail: json['detail'] as String?,
     status: json['status'] as String?,
   );
+}
+
+Map<String, dynamic> _map(dynamic value) {
+  if (value is Map) {
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
+  }
+  return <String, dynamic>{};
 }
 
 final assistantRepository = AssistantRepository();

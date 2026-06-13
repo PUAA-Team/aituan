@@ -338,6 +338,31 @@ class DiscoveryRepository {
     return jdbcTemplate.query(sql.toString(), this::mapStore, params.toArray());
   }
 
+  List<StoreRow> searchStoresByBusinessTypes(List<String> businessTypes, int limit) {
+    if (businessTypes == null || businessTypes.isEmpty()) {
+      return searchStores("", null, limit);
+    }
+    List<Object> params = new ArrayList<>(businessTypes);
+    String placeholders = String.join(", ", java.util.Collections.nCopies(businessTypes.size(), "?"));
+    params.add(limit);
+    return jdbcTemplate.query(
+        """
+        select s.id, s.merchant_id, s.store_name, s.business_type, s.summary, s.address, s.distance_text,
+               s.longitude, s.latitude, s.rating, s.monthly_sales, s.avg_price, s.status, s.business_hours_text, s.tag_text, s.cover_url
+        from merchant_store s
+        where s.is_deleted = 0 and s.status = 'open'
+          and s.business_type in (
+        """
+            + placeholders
+            + """
+          )
+        order by s.monthly_sales desc, s.rating desc, s.id
+        limit ?
+        """,
+        this::mapStore,
+        params.toArray());
+  }
+
   List<PreferenceSignalRow> userPreferenceSignals(long userId) {
     return jdbcTemplate.query(
         """

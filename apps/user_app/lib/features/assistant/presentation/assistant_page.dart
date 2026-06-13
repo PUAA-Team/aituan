@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/route_args.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../shared/enums/business_type.dart';
+import '../../../shared/models/item_model.dart';
+import '../../../shared/models/merchant_model.dart';
+import '../../home/data/backend_app_repository.dart';
 import '../data/assistant_repository.dart';
 
 class AssistantPage extends StatefulWidget {
@@ -74,7 +79,7 @@ class _AssistantPageState extends State<AssistantPage> {
                     itemBuilder: (context, index) => _MessageBubble(
                       entry: _entries[index],
                       onAction: _handleAction,
-                      onRoute: _openRoute,
+                      onCard: _handleCard,
                     ),
                   ),
           ),
@@ -202,6 +207,15 @@ class _AssistantPageState extends State<AssistantPage> {
       _send(action.message);
       return;
     }
+    if (action.route == '/search') {
+      final keyword = _payloadText(action.payload, 'keyword');
+      Navigator.pushNamed(
+        context,
+        keyword.isEmpty ? Routes.search : Routes.searchResult,
+        arguments: keyword.isEmpty ? null : SearchArgs(keyword),
+      );
+      return;
+    }
     _openRoute(action.route);
   }
 
@@ -209,6 +223,98 @@ class _AssistantPageState extends State<AssistantPage> {
     final target = _normalizeRoute(route);
     if (target == null) return;
     Navigator.pushNamed(context, target);
+  }
+
+  Future<void> _handleCard(AssistantCard card) async {
+    if (card.route == '/stores/detail') {
+      final type = businessTypeFromApi(
+        _payloadText(card.payload, 'businessType'),
+      );
+      final storeId = _payloadText(
+        card.payload,
+        'storeId',
+        fallbackKey: 'targetId',
+      );
+      final merchant = await _fetchStoreForCard(storeId, type, card);
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        Routes.merchantDetail,
+        arguments: MerchantArgs(type: merchant.type, merchant: merchant),
+      );
+      return;
+    }
+    if (card.route == '/items/detail') {
+      final type = businessTypeFromApi(
+        _payloadText(card.payload, 'businessType'),
+      );
+      final itemId = _payloadText(
+        card.payload,
+        'itemId',
+        fallbackKey: 'targetId',
+      );
+      final item = await _fetchItemForCard(itemId, type, card);
+      if (!mounted) return;
+      Navigator.pushNamed(
+        context,
+        Routes.itemDetail,
+        arguments: ItemArgs(item),
+      );
+      return;
+    }
+    _openRoute(card.route);
+  }
+
+  Future<MerchantModel> _fetchStoreForCard(
+    String storeId,
+    BusinessType fallbackType,
+    AssistantCard card,
+  ) async {
+    final id = int.tryParse(storeId);
+    if (id != null) {
+      try {
+        return await backendRepository.fetchStore(id);
+      } catch (_) {
+        if (mounted) showAppSnackBar(context, '店铺详情暂时加载失败，先打开卡片信息');
+      }
+    }
+    return MerchantModel(
+      id: storeId,
+      name: card.title,
+      type: fallbackType,
+      distance: '',
+      rating: 0,
+      summary: card.content,
+      address: '',
+      tags: const [],
+      items: const [],
+    );
+  }
+
+  Future<ItemModel> _fetchItemForCard(
+    String itemId,
+    BusinessType fallbackType,
+    AssistantCard card,
+  ) async {
+    final id = int.tryParse(itemId);
+    if (id != null) {
+      try {
+        return (await backendRepository.fetchItem(id)).item;
+      } catch (_) {
+        if (mounted) showAppSnackBar(context, '套餐详情暂时加载失败，先打开卡片信息');
+      }
+    }
+    return ItemModel(
+      id: itemId,
+      title: card.title,
+      subtitle: card.content,
+      type: fallbackType,
+      category: fallbackType.label,
+      price: _payloadDouble(card.payload, 'price'),
+      oldPrice: _payloadNullableDouble(card.payload, 'originalPrice'),
+      tags: const [],
+      storeId: _payloadText(card.payload, 'storeId'),
+    );
   }
 
   String? _normalizeRoute(String? route) {
@@ -233,15 +339,49 @@ class _AssistantPageState extends State<AssistantPage> {
     };
   }
 
+  String _payloadText(
+    Map<String, dynamic> payload,
+    String key, {
+    String? fallbackKey,
+  }) {
+    final value =
+        payload[key] ?? (fallbackKey == null ? null : payload[fallbackKey]);
+    return value?.toString() ?? '';
+  }
+
+  double _payloadDouble(Map<String, dynamic> payload, String key) {
+    final value = payload[key];
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double? _payloadNullableDouble(Map<String, dynamic> payload, String key) {
+    final value = payload[key];
+    if (value == null || value == '') return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOut,
-      );
+      _animateToBottom();
+      Future<void>.delayed(const Duration(milliseconds: 120), _jumpToBottom);
+      Future<void>.delayed(const Duration(milliseconds: 320), _jumpToBottom);
     });
+  }
+
+  void _animateToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _jumpToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
   }
 }
 
@@ -287,12 +427,12 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.entry,
     required this.onAction,
-    required this.onRoute,
+    required this.onCard,
   });
 
   final _ChatEntry entry;
   final ValueChanged<AssistantAction> onAction;
-  final ValueChanged<String?> onRoute;
+  final ValueChanged<AssistantCard> onCard;
 
   @override
   Widget build(BuildContext context) {
@@ -322,10 +462,7 @@ class _MessageBubble extends StatelessWidget {
           _AssistantStepsView(steps: entry.steps, modelUsed: entry.modelUsed),
         if (entry.cards.isNotEmpty)
           ...entry.cards.map(
-            (card) => _AssistantCardView(
-              card: card,
-              onTap: () => onRoute(card.route),
-            ),
+            (card) => _AssistantCardView(card: card, onTap: () => onCard(card)),
           ),
         if (entry.actions.isNotEmpty)
           Padding(
@@ -357,6 +494,7 @@ class _AssistantStepsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (steps.isEmpty) return const SizedBox.shrink();
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 360),
       child: Container(
@@ -379,7 +517,7 @@ class _AssistantStepsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  modelUsed ? 'AI 已调用业务信息' : '本地助手已调用业务信息',
+                  modelUsed ? 'AI Tool 调用过程' : '本地 Tool 调用过程',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -397,8 +535,8 @@ class _AssistantStepsView extends StatelessWidget {
                     (step) => Chip(
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      avatar: const Icon(Icons.check_circle, size: 14),
-                      label: Text(step.title),
+                      avatar: Icon(_stepIcon(step.title), size: 14),
+                      label: Text(_skillLabel(step.title)),
                     ),
                   )
                   .toList(),
@@ -408,6 +546,16 @@ class _AssistantStepsView extends StatelessWidget {
       ),
     );
   }
+
+  IconData _stepIcon(String title) {
+    if (title.contains('选择工具')) return Icons.psychology_alt_outlined;
+    if (title.contains('整理') || title.contains('准备')) {
+      return Icons.auto_awesome;
+    }
+    return Icons.check_circle;
+  }
+
+  String _skillLabel(String title) => title.replaceFirst('调用了', '');
 }
 
 class _AssistantCardView extends StatelessWidget {

@@ -51,6 +51,11 @@ class SupportController {
     return ApiResponse.ok(supportService.userHandoffToHuman(id));
   }
 
+  @PostMapping("/sessions/{id}/platform-intervention")
+  ApiResponse<SupportSessionView> requestPlatformIntervention(@PathVariable long id) {
+    return ApiResponse.ok(supportService.userRequestPlatformIntervention(id));
+  }
+
   @PostMapping("/sessions/{id}/close")
   ApiResponse<SupportSessionView> close(@PathVariable long id, @RequestBody(required = false) SupportSessionCloseRequest request) {
     return ApiResponse.ok(supportService.userCloseSession(id, request));

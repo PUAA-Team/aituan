@@ -171,6 +171,27 @@ class SupportServiceTest {
   }
 
   @Test
+  void userCanRequestPlatformHumanInterventionFromMerchantSession() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+    SupportSessionView session = supportService.createUserSession(
+        new SupportSessionCreateRequest(1L, "商家客服咨询", null));
+
+    SupportSessionView escalated = supportService.userRequestPlatformIntervention(session.id());
+
+    assertThat(escalated.platformInterventionStatus()).isEqualTo("active");
+    assertThat(escalated.assistantMode()).isEqualTo("human");
+    assertThat(escalated.serviceScope()).isEqualTo("platform");
+
+    SupportSessionDetailView detail = supportService.userSessionDetail(session.id());
+    assertThat(detail.messages())
+        .anySatisfy(message -> {
+          assertThat(message.senderType()).isEqualTo("platform");
+          assertThat(message.messageKind()).isEqualTo("platform_intervention");
+          assertThat(message.content()).contains("用户已申请平台客服介入");
+        });
+  }
+
+  @Test
   void adminCanReplyTransferredPlatformSession() {
     TestAuthSupport.loginAsUser(1L, 1L);
     SupportSessionView session = supportService.createUserSession(

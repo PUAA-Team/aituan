@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.aituan.TestAuthSupport;
 import com.aituan.common.api.PageResponse;
 import java.math.BigDecimal;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,5 +91,17 @@ class DiscoveryServiceTest {
 
     assertThat(page.list()).isNotEmpty();
     assertThat(page.list()).allMatch(store -> "takeaway".equals(store.businessType()));
+  }
+
+  @Test
+  void searchInfersLeisureKeywordAsMultipleRealBusinessTypes() {
+    PageResponse<StoreCardView> page = discoveryService.search("休闲玩乐", 1, 20, "default", null, null, null);
+
+    Set<String> leisureTypes = Set.of("movie", "ticket", "massage", "entertainment");
+    assertThat(page.list()).isNotEmpty();
+    assertThat(page.list()).allMatch(store -> leisureTypes.contains(store.businessType()));
+    assertThat(page.list())
+        .extracting(StoreCardView::name)
+        .noneMatch(name -> name.contains("汉堡") || name.contains("拌饭") || name.contains("炸鸡"));
   }
 }

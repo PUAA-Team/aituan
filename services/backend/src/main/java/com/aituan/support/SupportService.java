@@ -125,6 +125,29 @@ class SupportService {
   }
 
   @Transactional
+  SupportSessionView userRequestPlatformIntervention(long sessionId) {
+    CurrentUser current = requireUser();
+    SupportRepository.SessionRow row = supportRepository.findById(sessionId)
+        .filter(r -> r.userId() == current.userId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"open".equals(row.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
+    }
+    if (!"merchant".equals(row.serviceScope())) {
+      throw new BusinessException(ErrorCode.BAD_REQUEST, "仅商家客服会话支持申请平台介入");
+    }
+    supportRepository.requestPlatformIntervention(sessionId);
+    Long messageId = supportRepository.insertMessage(sessionId, "platform", 0L,
+        "用户已申请平台客服介入，平台人工客服将协助处理本次商家客服会话。", "platform_intervention");
+    supportRepository.updateLastMessage(sessionId, messageId, "platform");
+    supportRepository.insertSysAuditLog("user", current.accountId(), "support_platform_intervention", "support_session", sessionId,
+        "用户申请平台客服介入商家会话");
+    return supportRepository.findById(sessionId)
+        .map(r -> toSessionView(r, "user"))
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  @Transactional
   SupportSessionView userCloseSession(long sessionId, SupportSessionCloseRequest request) {
     CurrentUser current = requireUser();
     SupportRepository.SessionRow row = supportRepository.findById(sessionId)
