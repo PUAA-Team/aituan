@@ -28,6 +28,18 @@ function Normalize-Origin {
   return $Trimmed
 }
 
+function Get-GitCommit {
+  param([string]$Root)
+
+  try {
+    $Commit = git -C $Root rev-parse HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($Commit)) {
+      return $Commit.Trim()
+    }
+  } catch {}
+  return 'local'
+}
+
 function Install-NpmDependencies {
   param([string]$AppDir)
 
@@ -70,7 +82,7 @@ function Build-FlutterUserWeb {
       if (Test-Path $OutDir) {
         Remove-Item $OutDir -Recurse -Force
       }
-      flutter build web --base-href $BaseHref "--dart-define=API_BASE_URL=$Origin" --output $OutDir
+      flutter build web --base-href $BaseHref "--dart-define=API_BASE_URL=$Origin" "--dart-define=AITUAN_BUILD_COMMIT=$BuildCommit" "--dart-define=AITUAN_BUILD_SOURCE=script" --output $OutDir
     }
   } finally {
     Pop-Location
@@ -108,6 +120,7 @@ $LandingOut = Join-Path $RepoRoot 'deploy\artifacts\landing'
 $NpmCache = 'D:\aituan_cache\npm'
 $PubCache = 'D:\aituan_cache\pub'
 $Origin = Normalize-Origin $ServerOrigin
+$BuildCommit = Get-GitCommit $RepoRoot
 
 New-Item -ItemType Directory -Force -Path $NpmCache | Out-Null
 New-Item -ItemType Directory -Force -Path $PubCache | Out-Null

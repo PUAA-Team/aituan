@@ -24,6 +24,18 @@ function Remove-DirectoryIfExists {
   }
 }
 
+function Get-GitCommit {
+  param([string]$Root)
+
+  try {
+    $Commit = git -C $Root rev-parse HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($Commit)) {
+      return $Commit.Trim()
+    }
+  } catch {}
+  return 'local'
+}
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir '..\..')
 $SourceDir = Join-Path $RepoRoot 'apps\user_app'
@@ -31,7 +43,10 @@ $WorkDir = 'D:\aituan_build\user_app'
 $ReleaseDir = 'D:\aituan_release\apk'
 $PubCache = 'D:\aituan_cache\pub'
 $GradleHome = 'D:\aituan_cache\gradle'
-$ApkName = 'aituan-user-debug.apk'
+$AppVersion = (Select-String -Path (Join-Path $SourceDir 'pubspec.yaml') -Pattern '^version:\s*(.+)$').Matches.Groups[1].Value.Trim()
+$SafeAppVersion = $AppVersion.Replace('+', '-')
+$ApkName = "aituan-user-$SafeAppVersion-debug.apk"
+$BuildCommit = Get-GitCommit $RepoRoot
 
 New-Item -ItemType Directory -Force -Path $WorkDir, $ReleaseDir, $PubCache, $GradleHome | Out-Null
 $env:PUB_CACHE = $PubCache
@@ -46,7 +61,9 @@ try {
   Invoke-Step 'pub-get' { flutter pub get }
   Invoke-Step 'analyze' { flutter analyze }
   Invoke-Step 'test' { flutter test }
-  Invoke-Step 'build-apk-debug' { flutter build apk --debug }
+  Invoke-Step 'build-apk-debug' {
+    flutter build apk --debug "--dart-define=AITUAN_BUILD_COMMIT=$BuildCommit" "--dart-define=AITUAN_BUILD_SOURCE=script"
+  }
 } finally {
   Pop-Location
 }
@@ -57,3 +74,5 @@ Copy-Item $BuiltApk $TargetApk -Force
 Remove-DirectoryIfExists $WorkDir
 
 Write-Host "APK output: $TargetApk"
+Write-Host "App version: $AppVersion"
+Write-Host "Build commit: $BuildCommit"

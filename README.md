@@ -276,6 +276,34 @@ cd apps/user_app
 flutter build apk --debug --dart-define=API_BASE_URL=http://your-backend-host:8080
 ```
 
+### 4. 合并后保持 Web 与 Android App 版本一致
+
+用户端 Web 和 Android App 共用 `apps/user_app/` 下同一套 Flutter 代码，但它们是两个不同的构建产物。合并分支后必须用同一个 Git commit 分别重新构建 Web 和 APK，不能只更新 Web 页面。
+
+版本号统一维护在 `apps/user_app/pubspec.yaml` 的 `version` 字段。Android `versionName/versionCode` 会自动读取该字段；关于页会显示 `v版本号+构建号` 和构建 commit，验收时 Web 与 App 两端显示的 commit 应一致。
+
+推荐合并后执行：
+
+```bash
+git pull
+cd apps/user_app
+flutter pub get
+flutter build web --base-href /web/ \
+  --dart-define=API_BASE_URL=http://your-backend-host:8080 \
+  --dart-define=AITUAN_BUILD_COMMIT=$(git rev-parse HEAD) \
+  --dart-define=AITUAN_BUILD_SOURCE=manual
+flutter build apk --debug \
+  --dart-define=API_BASE_URL=http://your-backend-host:8080 \
+  --dart-define=AITUAN_BUILD_COMMIT=$(git rev-parse HEAD) \
+  --dart-define=AITUAN_BUILD_SOURCE=manual
+```
+
+Android 模拟器本地联调仍使用：
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+```
+
 ## 常用接口验证
 
 ### 登录
