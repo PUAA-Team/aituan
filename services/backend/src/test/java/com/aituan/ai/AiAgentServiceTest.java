@@ -104,6 +104,24 @@ class AiAgentServiceTest {
   }
 
   @Test
+  void assistantKeepsSpecificGroupBuyCardsRelevantToQuery() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    AiAssistantResponse response = aiAgentService.userAssistant(
+        CurrentUserContext.required(),
+        new AiAssistantMessageRequest("我想找烤肉套餐", null));
+
+    assertThat(response.usedSkills()).contains("store_lookup", "item_lookup");
+    assertThat(response.cards()).isNotEmpty();
+    assertThat(response.cards())
+        .filteredOn(card -> "store".equals(card.type()) || "item".equals(card.type()))
+        .allSatisfy(card -> assertThat(card.title()).containsAnyOf("烤肉", "琥珀"));
+    assertThat(response.cards())
+        .extracting(AiAssistantCard::title)
+        .noneMatch(title -> title.contains("江南小馆") || title.contains("汉堡") || title.contains("拌饭"));
+  }
+
+  @Test
   void assistantKeepsLeisureQueriesFocusedOnLeisureCards() {
     TestAuthSupport.loginAsUser(1L, 1L);
 

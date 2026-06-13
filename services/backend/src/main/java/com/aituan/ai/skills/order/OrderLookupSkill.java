@@ -78,10 +78,10 @@ class OrderLookupSkill implements AiSkill {
       }
       if (order.bookingDate() != null) {
         summary.append("，预约：").append(order.bookingDate()).append(" ").append(order.bookingTimeSlot())
-            .append("，确认状态 ").append(order.bookingStatus());
+            .append("，确认状态 ").append(bookingStatusText(order.bookingStatus()));
       }
       if (order.latestRefundStatus() != null) {
-        summary.append("，退款 ").append(order.latestRefundStatus())
+        summary.append("，退款 ").append(refundStatusText(order.latestRefundStatus()))
             .append(order.latestRefundReason() == null ? "" : "（" + order.latestRefundReason() + "）");
       }
     }
@@ -118,8 +118,80 @@ class OrderLookupSkill implements AiSkill {
   }
 
   private String statusText(OrderRow row) {
-    String refund = row.refundStatus() == null || "none".equals(row.refundStatus()) ? "" : "/" + row.refundStatus();
-    return row.displayStatus() + "/" + row.paymentStatus() + "/" + row.fulfillmentStatus() + refund;
+    List<String> parts = new java.util.ArrayList<>();
+    addIfPresent(parts, displayStatusText(row.displayStatus()));
+    addIfPresent(parts, paymentStatusText(row.paymentStatus()));
+    addIfPresent(parts, fulfillmentStatusText(row.fulfillmentStatus()));
+    if (row.refundStatus() != null && !"none".equals(row.refundStatus())) {
+      addIfPresent(parts, "退款" + refundStatusText(row.refundStatus()));
+    }
+    return String.join(" / ", parts);
+  }
+
+  private void addIfPresent(List<String> parts, String value) {
+    if (value != null && !value.isBlank()) parts.add(value);
+  }
+
+  private String displayStatusText(String status) {
+    return switch (status == null ? "" : status) {
+      case "pending" -> "待处理";
+      case "paid" -> "已支付";
+      case "accepted" -> "已接单";
+      case "preparing" -> "备餐中";
+      case "ready_for_delivery" -> "待配送";
+      case "delivering" -> "配送中";
+      case "delivered" -> "已送达";
+      case "completed" -> "已完成";
+      case "used" -> "已核销";
+      case "cancelled" -> "已取消";
+      case "refunded" -> "已退款";
+      default -> status == null || status.isBlank() ? "" : status;
+    };
+  }
+
+  private String paymentStatusText(String status) {
+    return switch (status == null ? "" : status) {
+      case "unpaid" -> "未支付";
+      case "paid" -> "已付款";
+      case "refunding" -> "退款中";
+      case "refunded" -> "已退款";
+      default -> status == null || status.isBlank() ? "" : status;
+    };
+  }
+
+  private String fulfillmentStatusText(String status) {
+    return switch (status == null ? "" : status) {
+      case "merchant_pending" -> "待商家接单";
+      case "preparing" -> "商家备餐中";
+      case "ready_for_delivery" -> "待骑手取餐";
+      case "delivering" -> "骑手配送中";
+      case "delivered" -> "已送达";
+      case "completed" -> "已完成";
+      case "used" -> "已核销";
+      case "cancelled" -> "已取消";
+      default -> status == null || status.isBlank() ? "" : status;
+    };
+  }
+
+  private String refundStatusText(String status) {
+    return switch (status == null ? "" : status) {
+      case "requested", "pending" -> "待处理";
+      case "processing" -> "处理中";
+      case "succeeded", "success" -> "成功";
+      case "failed" -> "失败";
+      case "rejected" -> "已拒绝";
+      default -> status == null || status.isBlank() ? "" : status;
+    };
+  }
+
+  private String bookingStatusText(String status) {
+    return switch (status == null ? "" : status) {
+      case "pending" -> "待确认";
+      case "confirmed" -> "已确认";
+      case "rejected" -> "已拒绝";
+      case "cancelled" -> "已取消";
+      default -> status == null || status.isBlank() ? "" : status;
+    };
   }
 
   private OrderRow mapOrder(ResultSet rs, int rowNum) throws SQLException {

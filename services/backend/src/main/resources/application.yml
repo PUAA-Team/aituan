@@ -48,7 +48,7 @@ aituan:
     jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
   upload:
     strategy: ${AITUAN_UPLOAD_STRATEGY:local}
-    root-dir: ${AITUAN_UPLOAD_ROOT:D:/aituan_runtime/uploads}
+    root-dir: ${AITUAN_UPLOAD_ROOT:${user.home}/.aituan/uploads}
     public-prefix: ${AITUAN_UPLOAD_PUBLIC_PREFIX:/api/common/files}
     max-size-bytes: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5242880}
     lskypro:
