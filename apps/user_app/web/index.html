@@ -41,6 +41,45 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    (function () {
+      var isLocalHost = ['localhost', '127.0.0.1', '::1'].indexOf(window.location.hostname) !== -1;
+
+      function loadFlutter() {
+        var script = document.createElement('script');
+        script.src = 'flutter_bootstrap.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      if (!isLocalHost || !('serviceWorker' in navigator)) {
+        loadFlutter();
+        return;
+      }
+
+      Promise.all([
+        navigator.serviceWorker.getRegistrations()
+          .then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister();
+            }));
+          }),
+        window.caches
+          ? caches.keys().then(function (keys) {
+              return Promise.all(keys.map(function (key) {
+                return caches.delete(key);
+              }));
+            })
+          : Promise.resolve(),
+      ]).then(function () {
+        if (navigator.serviceWorker.controller && !sessionStorage.getItem('aituanLocalServiceWorkerCleared')) {
+          sessionStorage.setItem('aituanLocalServiceWorkerCleared', '1');
+          window.location.reload();
+          return;
+        }
+        loadFlutter();
+      }).catch(loadFlutter);
+    }());
+  </script>
 </body>
 </html>
