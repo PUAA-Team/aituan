@@ -6,7 +6,9 @@ import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/message_item.dart';
+import '../../complaint/data/complaint_repository.dart';
 import '../../home/data/backend_app_repository.dart';
+import '../../review/data/review_repository.dart';
 import '../../support/data/support_repository.dart';
 
 class MessagePage extends StatefulWidget {
@@ -106,12 +108,21 @@ class _MessagePageState extends State<MessagePage> {
       final results = await Future.wait<Object>([
         backendRepository.fetchMessages(),
         supportRepository.fetchSessions(),
+        reviewRepository.fetchMyReviews(pageSize: 50),
+        complaintRepository.fetchMy(),
       ]);
       final stationMessages = results[0] as List<MessageItem>;
       final supportSessions = results[1] as List<SupportSession>;
+      final reviews = results[2] as List<ReviewSummary>;
+      final complaints = results[3] as List<ComplaintSummary>;
       if (!mounted) return;
       setState(() {
-        _messages = _mergeMessages(stationMessages, supportSessions);
+        _messages = _mergeMessages(
+          stationMessages,
+          supportSessions,
+          reviews,
+          complaints,
+        );
         _loading = false;
       });
     } catch (error) {
@@ -153,6 +164,24 @@ class _MessagePageState extends State<MessagePage> {
       if (mounted) await _load();
       return;
     }
+    if (targetType == 'review' && targetId != null) {
+      await Navigator.pushNamed(
+        context,
+        Routes.reviewDetail,
+        arguments: targetId,
+      );
+      if (mounted) await _load();
+      return;
+    }
+    if (targetType == 'complaint' && targetId != null) {
+      await Navigator.pushNamed(
+        context,
+        Routes.complaintDetail,
+        arguments: targetId,
+      );
+      if (mounted) await _load();
+      return;
+    }
     if (item.unread) {
       try {
         await backendRepository.markMessageRead(item.id);
@@ -186,19 +215,78 @@ class _MessagePageState extends State<MessagePage> {
   List<MessageItem> _mergeMessages(
     List<MessageItem> stationMessages,
     List<SupportSession> supportSessions,
+    List<ReviewSummary> reviews,
+    List<ComplaintSummary> complaints,
   ) {
     final supportTargetIds = supportSessions.map((s) => s.id).toSet();
+    final reviewTargetIds = reviews.map((r) => r.id).toSet();
+    final complaintTargetIds = complaints.map((c) => c.id).toSet();
     final stationOnly = stationMessages.where((message) {
-      return !(message.relatedTargetType == 'support_session' &&
-          message.relatedTargetId != null &&
-          supportTargetIds.contains(message.relatedTargetId));
+      final targetType = message.relatedTargetType;
+      final targetId = message.relatedTargetId;
+      if (targetType == null || targetId == null) return true;
+      return !((targetType == 'support_session' &&
+              supportTargetIds.contains(targetId)) ||
+          (targetType == 'review' && reviewTargetIds.contains(targetId)) ||
+          (targetType == 'complaint' && complaintTargetIds.contains(targetId)));
     });
     final merged = <MessageItem>[
       ...stationOnly,
       for (final session in supportSessions) _supportSessionItem(session),
+      for (final review in reviews) _reviewItem(review),
+      for (final complaint in complaints) _complaintItem(complaint),
     ];
     merged.sort((a, b) => _sortTime(b).compareTo(_sortTime(a)));
     return merged;
+  }
+
+  MessageItem _reviewItem(ReviewSummary review) {
+    final title = review.storeName.trim().isEmpty ? '我的评价' : review.storeName;
+    final orderTitle = review.orderTitle.trim();
+    final content = [
+      if (orderTitle.isNotEmpty) orderTitle,
+      '${review.rating} 星评价',
+      if (review.content.trim().isNotEmpty) review.content.trim(),
+      if (review.replyContent?.trim().isNotEmpty ?? false)
+        '商家回复：${review.replyContent!.trim()}',
+    ].join(' · ');
+    return MessageItem(
+      id: review.id,
+      type: 'review',
+      title: title,
+      content: content,
+      badge: _reviewStatusText(review.status),
+      time: _displayTime(review.createdAt),
+      unread: false,
+      createdAt: review.repliedAt?.trim().isNotEmpty == true
+          ? review.repliedAt!.trim()
+          : review.createdAt,
+      relatedOrderId: review.orderId == 0 ? null : review.orderId,
+      relatedTargetType: 'review',
+      relatedTargetId: review.id,
+    );
+  }
+
+  MessageItem _complaintItem(ComplaintSummary complaint) {
+    final storeName = complaint.storeName?.trim();
+    final detail = complaint.detail.trim();
+    return MessageItem(
+      id: complaint.id,
+      type: 'complaint',
+      title: complaint.title.trim().isEmpty ? '投诉工单' : complaint.title,
+      content: [
+        if (complaint.ticketNo.isNotEmpty) '工单 ${complaint.ticketNo}',
+        if (storeName != null && storeName.isNotEmpty) storeName,
+        if (detail.isNotEmpty) detail,
+      ].join(' · '),
+      badge: _complaintStatusText(complaint.status),
+      time: _displayTime(complaint.createdAt),
+      unread: complaint.status == 'pending' || complaint.status == 'processing',
+      createdAt: complaint.createdAt,
+      relatedOrderId: complaint.orderId,
+      relatedTargetType: 'complaint',
+      relatedTargetId: complaint.id,
+    );
   }
 
   MessageItem _supportSessionItem(SupportSession session) {
@@ -243,6 +331,21 @@ class _MessagePageState extends State<MessagePage> {
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
+
+  String _reviewStatusText(String status) => switch (status) {
+    'published' => '已发布',
+    'hidden' => '已隐藏',
+    'deleted' => '已删除',
+    _ => '评价',
+  };
+
+  String _complaintStatusText(String status) => switch (status) {
+    'pending' => '待受理',
+    'processing' => '处理中',
+    'resolved' => '已处理',
+    'closed' => '已关闭',
+    _ => '投诉',
+  };
 }
 
 class _GroupTab {
