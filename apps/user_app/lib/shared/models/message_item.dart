@@ -7,6 +7,7 @@ class MessageItem {
     required this.badge,
     required this.time,
     required this.unread,
+    this.createdAt = '',
     this.relatedOrderId,
     this.relatedTargetType,
     this.relatedTargetId,
@@ -19,9 +20,12 @@ class MessageItem {
   final String badge;
   final String time;
   final bool unread;
+  final String createdAt;
   final int? relatedOrderId;
   final String? relatedTargetType;
   final int? relatedTargetId;
+
+  bool get isSupportSession => relatedTargetType == 'support_session';
 
   /// 把后端 type 归到用户端展示分组：评价 / 咨询 / 投诉 / 订单 / 系统。
   String get group => switch (type) {
@@ -40,6 +44,7 @@ class MessageItem {
     badge: _text(json['badgeText']),
     time: _time(json['createdAt']),
     unread: (json['unread'] as bool?) ?? false,
+    createdAt: _text(json['createdAt']),
     relatedOrderId: (json['relatedOrderId'] as num?)?.toInt(),
     relatedTargetType: _nullableText(json['relatedTargetType']),
     relatedTargetId: (json['relatedTargetId'] as num?)?.toInt(),
@@ -53,6 +58,7 @@ class MessageItem {
     badge: badge,
     time: time,
     unread: unread ?? this.unread,
+    createdAt: createdAt,
     relatedOrderId: relatedOrderId,
     relatedTargetType: relatedTargetType,
     relatedTargetId: relatedTargetId,

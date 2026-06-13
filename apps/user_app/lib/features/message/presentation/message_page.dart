@@ -7,6 +7,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../shared/enums/business_type.dart';
 import '../../../shared/models/message_item.dart';
 import '../../home/data/backend_app_repository.dart';
+import '../../support/data/support_repository.dart';
 
 class MessagePage extends StatefulWidget {
   const MessagePage({super.key});
@@ -57,10 +58,14 @@ class _MessagePageState extends State<MessagePage> {
                   ),
                 ),
                 TextButton(
-                  onPressed: _messages.any((message) => message.unread)
+                  onPressed:
+                      _messages.any(
+                        (message) =>
+                            message.unread && !message.isSupportSession,
+                      )
                       ? _markAllRead
                       : null,
-                  child: const Text('全部已读'),
+                  child: const Text('通知已读'),
                 ),
               ],
             ),
@@ -98,10 +103,15 @@ class _MessagePageState extends State<MessagePage> {
         _loading = true;
         _error = null;
       });
-      final messages = await backendRepository.fetchMessages();
+      final results = await Future.wait<Object>([
+        backendRepository.fetchMessages(),
+        supportRepository.fetchSessions(),
+      ]);
+      final stationMessages = results[0] as List<MessageItem>;
+      final supportSessions = results[1] as List<SupportSession>;
       if (!mounted) return;
       setState(() {
-        _messages = messages;
+        _messages = _mergeMessages(stationMessages, supportSessions);
         _loading = false;
       });
     } catch (error) {
@@ -119,7 +129,8 @@ class _MessagePageState extends State<MessagePage> {
       if (!mounted) return;
       setState(() {
         _messages = [
-          for (final item in _messages) item.copyWith(unread: false),
+          for (final item in _messages)
+            item.isSupportSession ? item : item.copyWith(unread: false),
         ];
       });
     } catch (error) {
@@ -129,6 +140,19 @@ class _MessagePageState extends State<MessagePage> {
   }
 
   Future<void> _openMessage(MessageItem item) async {
+    final targetType =
+        item.relatedTargetType ??
+        (item.relatedOrderId == null ? null : 'order');
+    final targetId = item.relatedTargetId ?? item.relatedOrderId;
+    if (targetType == 'support_session' && targetId != null) {
+      await Navigator.pushNamed(
+        context,
+        Routes.supportChat,
+        arguments: targetId,
+      );
+      if (mounted) await _load();
+      return;
+    }
     if (item.unread) {
       try {
         await backendRepository.markMessageRead(item.id);
@@ -136,15 +160,15 @@ class _MessagePageState extends State<MessagePage> {
           setState(() {
             _messages = [
               for (final message in _messages)
-                message.id == item.id ? message.copyWith(unread: false) : message,
+                message.id == item.id
+                    ? message.copyWith(unread: false)
+                    : message,
             ];
           });
         }
       } catch (_) {}
     }
     if (!mounted) return;
-    final targetType = item.relatedTargetType ?? (item.relatedOrderId == null ? null : 'order');
-    final targetId = item.relatedTargetId ?? item.relatedOrderId;
     if (targetType == 'order' && targetId != null) {
       await Navigator.pushNamed(
         context,
@@ -157,6 +181,67 @@ class _MessagePageState extends State<MessagePage> {
       );
       if (mounted) await _load();
     }
+  }
+
+  List<MessageItem> _mergeMessages(
+    List<MessageItem> stationMessages,
+    List<SupportSession> supportSessions,
+  ) {
+    final supportTargetIds = supportSessions.map((s) => s.id).toSet();
+    final stationOnly = stationMessages.where((message) {
+      return !(message.relatedTargetType == 'support_session' &&
+          message.relatedTargetId != null &&
+          supportTargetIds.contains(message.relatedTargetId));
+    });
+    final merged = <MessageItem>[
+      ...stationOnly,
+      for (final session in supportSessions) _supportSessionItem(session),
+    ];
+    merged.sort((a, b) => _sortTime(b).compareTo(_sortTime(a)));
+    return merged;
+  }
+
+  MessageItem _supportSessionItem(SupportSession session) {
+    final lastMessage = session.lastMessage?.trim();
+    final content = lastMessage == null || lastMessage.isEmpty
+        ? session.topic
+        : lastMessage;
+    final title = session.isPlatform
+        ? '平台客服'
+        : (session.storeName.trim().isEmpty ? '商家客服' : session.storeName);
+    final source = session.isPlatform ? '平台客服' : '商家客服';
+    final status = session.status == 'open' ? '进行中' : '已关闭';
+    final badge = session.unreadCount > 0
+        ? '$source · $status · 未读 ${session.unreadCount}'
+        : '$source · $status';
+    final createdAt = (session.lastMessageAt?.trim().isNotEmpty ?? false)
+        ? session.lastMessageAt!.trim()
+        : session.createdAt;
+    return MessageItem(
+      id: session.id,
+      type: 'support',
+      title: title,
+      content: content,
+      badge: badge,
+      time: _displayTime(createdAt),
+      unread: session.unreadCount > 0,
+      createdAt: createdAt,
+      relatedOrderId: session.relatedOrderId,
+      relatedTargetType: 'support_session',
+      relatedTargetId: session.id,
+    );
+  }
+
+  DateTime _sortTime(MessageItem item) =>
+      DateTime.tryParse(item.createdAt)?.toLocal() ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+
+  String _displayTime(String value) {
+    final time = DateTime.tryParse(value)?.toLocal();
+    if (time == null) return '';
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 }
 
