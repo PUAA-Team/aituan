@@ -133,7 +133,13 @@ jobs:
 
       - name: Build Flutter web
         working-directory: apps/user_app
-        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }} --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+        run: >
+          flutter build web
+          --base-href /web/
+          --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }}
+          --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
+          --dart-define=AITUAN_BUILD_SOURCE=github-actions
+          --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
 
       - name: Sync landing page
         run: |
