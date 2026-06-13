@@ -43,6 +43,14 @@ class InteractionServiceTest {
         "update review_record set reported_count = 1, status = 'published' where id = 9009");
     jdbcTemplate.update(
         "update review_record set reported_count = 2, status = 'hidden' where id = 9017");
+    jdbcTemplate.update("delete from review_helpful where review_id = 1");
+    for (long userId = 10001L; userId <= 10012L; userId++) {
+      jdbcTemplate.update(
+          "insert into review_helpful(review_id, user_id, is_deleted) values (?, ?, 0)",
+          1L,
+          userId);
+    }
+    jdbcTemplate.update("update review_record set helpful_count = 12 where id = 1");
   }
 
   @AfterEach
@@ -128,6 +136,25 @@ class InteractionServiceTest {
         9009L);
     assertThat(activeReports).isEqualTo(1);
     assertThat(reportedCount).isEqualTo(1);
+  }
+
+  @Test
+  void helpfulToggleKeepsSeededAggregateCountConsistent() {
+    TestAuthSupport.loginAsUser(1L, 1L);
+
+    ReviewHelpfulView liked = interactionService.toggleHelpful(1L);
+    ReviewHelpfulView unliked = interactionService.toggleHelpful(1L);
+
+    Integer storedCount = jdbcTemplate.queryForObject(
+        "select helpful_count from review_record where id = ?",
+        Integer.class,
+        1L);
+
+    assertThat(liked.helpful()).isTrue();
+    assertThat(liked.helpfulCount()).isEqualTo(13);
+    assertThat(unliked.helpful()).isFalse();
+    assertThat(unliked.helpfulCount()).isEqualTo(12);
+    assertThat(storedCount).isEqualTo(12);
   }
 
   @Test

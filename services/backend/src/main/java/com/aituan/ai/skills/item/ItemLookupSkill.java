@@ -20,10 +20,13 @@ import org.springframework.stereotype.Component;
 class ItemLookupSkill implements AiSkill {
   private static final List<String> WORDS = List.of(
       "商品", "套餐", "团购", "服务", "价格", "多少钱", "库存", "预约", "核销", "退款规则", "使用规则", "汉堡", "拌饭", "酒店", "电影",
-      "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲", "玩乐", "娱乐", "电玩城", "游玩", "SPA", "spa");
+      "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲", "玩乐", "娱乐", "电玩城", "游玩", "SPA", "spa", "烤肉");
   private static final List<String> CANDIDATES = List.of(
       "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲玩乐", "休闲", "玩乐",
       "娱乐", "电玩城", "SPA", "spa", "烤肉", "套餐", "券", "双人");
+  private static final List<String> SPECIFIC_CANDIDATES = List.of(
+      "烤肉", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "足道", "景点", "门票", "观景",
+      "电玩城", "SPA", "spa", "小馆", "江南", "琥珀", "米村", "塔斯汀", "雅境", "双人餐", "多人餐", "家庭餐");
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -119,6 +122,8 @@ class ItemLookupSkill implements AiSkill {
   }
 
   private String key(String text) {
+    String specific = keyword(text, SPECIFIC_CANDIDATES);
+    if (!specific.isBlank()) return specific;
     if (AiSkillSupport.containsAny(text, "全部", "所有", "推荐", "商品", "服务", "有什么", "刚才", "第一个", "团购")) return "";
     return keyword(text, CANDIDATES);
   }

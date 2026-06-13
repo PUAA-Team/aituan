@@ -289,17 +289,40 @@ class _AskXiaoAiLabel extends StatelessWidget {
           ),
         ],
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-        child: Text(
-          '问\n小\n爱',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            height: 1.05,
-            fontWeight: FontWeight.w800,
-          ),
+      child: const SizedBox(
+        width: 20,
+        height: 48,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _AskXiaoAiChar('问'),
+            _AskXiaoAiChar('小'),
+            _AskXiaoAiChar('爱'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AskXiaoAiChar extends StatelessWidget {
+  const _AskXiaoAiChar(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 13,
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          height: 1,
+          fontWeight: FontWeight.w800,
+          decoration: TextDecoration.none,
         ),
       ),
     );
