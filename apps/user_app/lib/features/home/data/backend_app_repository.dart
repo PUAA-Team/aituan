@@ -260,7 +260,14 @@ class BackendAppRepository {
     final json = await _post('/api/app/trade/orders/$orderId/pay', {
       'paymentMode': 'mock',
     });
-    return OrderDetailData.fromApi(_map(json['data']));
+    final paid = OrderDetailData.fromApi(_map(json['data']));
+    await refreshUnreadMessageCount();
+    return paid;
+  }
+
+  Future<void> refreshUnreadMessageCount() async {
+    final profile = await fetchProfile();
+    appState.updateProfile(unreadMessageCount: profile.unreadMessageCount);
   }
 
   Future<OrderDetailData> cancelOrder(String orderId) async {
@@ -366,6 +373,24 @@ class BackendAppRepository {
 
   Future<void> markMessageRead(int messageId) async {
     await _client.patch('/api/app/message/station/$messageId/read', {});
+  }
+
+  Future<void> markMessagesRead(List<int> messageIds) async {
+    await _client.patch('/api/app/message/station/batch-read', {
+      'messageIds': messageIds,
+    });
+  }
+
+  Future<void> markMessagesUnread(List<int> messageIds) async {
+    await _client.patch('/api/app/message/station/batch-unread', {
+      'messageIds': messageIds,
+    });
+  }
+
+  Future<void> deleteMessages(List<int> messageIds) async {
+    await _client.patch('/api/app/message/station/batch-delete', {
+      'messageIds': messageIds,
+    });
   }
 
   Future<void> markAllMessagesRead() async {

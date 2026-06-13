@@ -8,6 +8,7 @@ import com.aituan.coupon.CouponCalcResult;
 import com.aituan.coupon.CouponService;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.member.MemberService;
+import com.aituan.message.StationMessagePublisher;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
@@ -37,13 +38,15 @@ class TradeService {
   private final MapDistanceService mapDistanceService;
   private final CouponService couponService;
   private final MemberService memberService;
+  private final StationMessagePublisher stationMessagePublisher;
 
   TradeService(TradeRepository tradeRepository, MapDistanceService mapDistanceService, CouponService couponService,
-      MemberService memberService) {
+      MemberService memberService, StationMessagePublisher stationMessagePublisher) {
     this.tradeRepository = tradeRepository;
     this.mapDistanceService = mapDistanceService;
     this.couponService = couponService;
     this.memberService = memberService;
+    this.stationMessagePublisher = stationMessagePublisher;
   }
 
   List<PaymentMethodView> paymentMethods() {
@@ -155,6 +158,7 @@ class TradeService {
       String voucherCode = String.format("%08d", Math.abs((int) (System.nanoTime() % 100_000_000L)));
       tradeRepository.insertVoucher(orderId, voucherCode, "AITUAN:VOUCHER:" + voucherCode, LocalDateTime.now().plusMonths(6));
       tradeRepository.updateOrderAfterServicePaid(orderId, "券码 " + voucherCode);
+      publishVoucherCreatedMessage(order, voucherCode);
     }
     return getOrderDetail(orderId);
   }
@@ -468,6 +472,7 @@ class TradeService {
     ensureNotRefunded(order);
     tradeRepository.setOrderUsed(voucher.orderId(), operatorId);
     memberService.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
+    publishVoucherRedeemedMessage(order);
     return buildOrderDetail(requireOrderById(voucher.orderId()));
   }
 
@@ -557,11 +562,13 @@ class TradeService {
       tradeRepository.updateOrderAfterTakeawayPaid(order.id(), "accepted");
       tradeRepository.insertDeliveryTask(order.id(), "accepted", "商家已接单", LocalDateTime.now().plusMinutes(DELIVERY_TICK_MINUTES));
       writeOrderLogs(order, "accepted", "auto_accept", current.accountType().name().toLowerCase(), current.accountId(), "门店自动接单");
+      publishTakeawayPaidMessage(order, true);
       return;
     }
     tradeRepository.updateOrderAfterTakeawayPaid(order.id(), "merchant_pending");
     tradeRepository.insertDeliveryTask(order.id(), "merchant_pending", "待商家接单", null);
     writeOrderLogs(order, "merchant_pending", "payment_takeaway", current.accountType().name().toLowerCase(), current.accountId(), "等待商家接单");
+    publishTakeawayPaidMessage(order, false);
   }
 
   private OrderDetailView moveTakeawayOrder(long orderId, String expectedStage, TakeawayStage nextStage, String actionType, TakeawayOrderActionRequest request) {
@@ -618,6 +625,62 @@ class TradeService {
   private void writeOrderLogs(TradeRepository.OrderRow order, String toStatus, String actionType, String operatorType, Long operatorId, String remark) {
     tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), toStatus, actionType, operatorType, operatorId, remark);
     tradeRepository.insertAuditLog(operatorType, operatorId, actionType, "order", order.id(), remark == null ? order.orderNo() + " -> " + toStatus : remark);
+  }
+
+  private void publishTakeawayPaidMessage(TradeRepository.OrderRow order, boolean accepted) {
+    stationMessagePublisher.order(
+        order.userId(),
+        accepted ? "支付成功，商家已接单" : "支付成功，等待商家接单",
+        order.storeName() + " 的外卖订单已支付成功，" + (accepted ? "商家已接单。" : "正在等待商家接单。"),
+        accepted ? "接单" : "支付",
+        order.id());
+  }
+
+  private void publishVoucherCreatedMessage(TradeRepository.OrderRow order, String voucherCode) {
+    String badge = voucherBadge(order.orderType());
+    stationMessagePublisher.order(
+        order.userId(),
+        voucherTitle(order.orderType()),
+        order.storeName() + " 的订单券码已生成：" + voucherCode + "，请到店出示核销。",
+        badge,
+        order.id());
+  }
+
+  private void publishVoucherRedeemedMessage(TradeRepository.OrderRow order) {
+    stationMessagePublisher.order(
+        order.userId(),
+        "券码已核销",
+        order.storeName() + " 的订单已完成核销，感谢使用爱团。",
+        "核销",
+        order.id());
+  }
+
+  private void publishBookingConfirmedMessage(TradeRepository.OrderRow order, String remark) {
+    String suffix = remark == null || remark.isBlank() ? "" : " 备注：" + remark.trim();
+    stationMessagePublisher.order(
+        order.userId(),
+        "预约已确认",
+        order.storeName() + " 已确认您的预约，请按预约时间到店。" + suffix,
+        "预约",
+        order.id());
+  }
+
+  private String voucherTitle(String orderType) {
+    return switch (orderType) {
+      case "hotel" -> "酒店券待使用";
+      case "movie" -> "电影票待使用";
+      case "beauty", "massage" -> "服务券待预约";
+      default -> "券码已生成";
+    };
+  }
+
+  private String voucherBadge(String orderType) {
+    return switch (orderType) {
+      case "hotel" -> "酒店";
+      case "movie" -> "电影";
+      case "beauty", "massage" -> "预约";
+      default -> "券码";
+    };
   }
 
   private OrderDetailView refundOrder(
@@ -1361,6 +1424,7 @@ class TradeService {
           "order",
           orderId,
           remark);
+      publishBookingConfirmedMessage(order, remark);
     }
     return tradeRepository.findBookingByOrder(orderId)
         .map(row -> toBookingView(order, row))

@@ -6,6 +6,7 @@ import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
+import com.aituan.message.StationMessagePublisher;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,11 +20,17 @@ class SupportService {
   private final SupportRepository supportRepository;
   private final JdbcTemplate jdbcTemplate;
   private final AiSupportService aiSupportService;
+  private final StationMessagePublisher stationMessagePublisher;
 
-  SupportService(SupportRepository supportRepository, JdbcTemplate jdbcTemplate, AiSupportService aiSupportService) {
+  SupportService(
+      SupportRepository supportRepository,
+      JdbcTemplate jdbcTemplate,
+      AiSupportService aiSupportService,
+      StationMessagePublisher stationMessagePublisher) {
     this.supportRepository = supportRepository;
     this.jdbcTemplate = jdbcTemplate;
     this.aiSupportService = aiSupportService;
+    this.stationMessagePublisher = stationMessagePublisher;
   }
 
   // ============ 用户端 ============
@@ -168,6 +175,13 @@ class SupportService {
     }
     Long messageId = supportRepository.insertMessage(sessionId, "merchant", current.accountId(), request.content().trim(), "text");
     supportRepository.updateLastMessage(sessionId, messageId, "merchant");
+    stationMessagePublisher.support(
+        row.userId(),
+        "商家客服回复了你",
+        row.storeName() + " 客服回复：" + request.content().trim(),
+        row.relatedOrderId(),
+        sessionId,
+        "客服");
     return supportRepository.findMessageById(messageId)
         .map(this::toMessageView)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -185,6 +199,13 @@ class SupportService {
     }
     String reason = request == null ? null : request.reason();
     supportRepository.closeSession(sessionId, "merchant", current.accountId(), reason);
+    stationMessagePublisher.support(
+        row.userId(),
+        "商家客服会话已关闭",
+        row.storeName() + " 已关闭本次客服会话。" + (reason == null || reason.isBlank() ? "" : " 原因：" + reason.trim()),
+        row.relatedOrderId(),
+        sessionId,
+        "客服");
     return supportRepository.findById(sessionId)
         .map(r -> toSessionView(r, "merchant"))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
@@ -254,6 +275,13 @@ class SupportService {
     Long messageId = supportRepository.insertMessage(sessionId, "platform", 0L,
         "平台客服已介入，本次会话将由平台人工客服继续协助处理。", "platform_intervention");
     supportRepository.updateLastMessage(sessionId, messageId, "platform");
+    stationMessagePublisher.support(
+        row.userId(),
+        "平台客服已介入",
+        "平台客服已介入你的会话，将继续协助处理。",
+        row.relatedOrderId(),
+        sessionId,
+        "平台");
     supportRepository.insertSysAuditLog("merchant", current.accountId(), "support_platform_intervention", "support_session", sessionId,
         "商家申请平台客服介入");
     return supportRepository.findById(sessionId)
@@ -297,6 +325,13 @@ class SupportService {
     }
     Long messageId = supportRepository.insertMessage(sessionId, "platform", admin.accountId(), request.content().trim(), "text");
     supportRepository.updateLastMessage(sessionId, messageId, "platform");
+    stationMessagePublisher.support(
+        row.userId(),
+        "平台客服回复了你",
+        "平台客服回复：" + request.content().trim(),
+        row.relatedOrderId(),
+        sessionId,
+        "客服");
     supportRepository.insertSysAuditLog("admin", admin.accountId(), "support_platform_reply", "support_session", sessionId,
         "平台人工客服回复");
     return supportRepository.findMessageById(messageId)
