@@ -47,6 +47,7 @@ services:
       AITUAN_CONFIG_FILE: /app/.config
       AITUAN_UPLOAD_ROOT: /data/uploads
       AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
       JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
       TZ: Asia/Shanghai
     volumes:

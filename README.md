@@ -1,341 +1,484 @@
-# 爱团本地生活服务平台
+# 爱团本地生活服务综合平台
 
-爱团是一个面向本地生活场景的综合服务平台，覆盖外卖点餐、到店团购、酒店、休闲娱乐、电影演出、丽人医美、景点门票、足疗按摩等业务。项目包含 Flutter 用户端 APP、Spring Boot 后端服务、Flyway 数据库迁移脚本和本地构建部署脚本，目标是提供一套可运行、可联调、可扩展的本地生活服务系统。
+爱团是一个面向本地生活服务场景的综合平台，覆盖用户消费、商家经营、平台治理和 AI 辅助。项目围绕“生活助手平台”课程题目设计，实现了用户端 APP / Web、商家端 Web、后台端 Web、Spring Boot 后端、MySQL 数据库、自动化测试和 CI/CD 部署链路。
 
-## 功能概览
+项目目标不是只做页面原型，而是交付一套可以运行、可以联调、可以部署、可以测试、可以展示的课程级完整软件工程项目。
 
-- 用户认证：邮箱验证码、注册、密码登录、找回密码、Token 校验。
-- 首页发现：服务模块、猜你喜欢、热门商家与商品推荐。
-- 商家搜索：按商家、商品、标签和业务类型检索本地服务。
-- 外卖点单：商家详情、分类商品、购物车、确认订单、模拟支付、配送履约。
-- 到店服务：商品/服务详情、到店订单、券码和二维码核销凭证。
-- 订单中心：未支付、待完成、未使用、已使用等订单状态展示。
-- 个人中心：用户资料、消息、收藏、地址和会员信息入口。
-- 后台接口：预留商家/运营侧订单推进、券码核销和配送状态推进接口。
+## 1. 项目概览
 
-## 技术栈
+### 1.1 核心定位
 
-| 模块 | 技术 |
+- 面向用户：提供本地商家搜索、外卖点餐、团购预约、优惠券、会员、评价、客服、投诉和 AI 助手。
+- 面向商家：提供门店资料、商品/服务管理、订单履约、券码核销、评价回复和客服会话。
+- 面向平台：提供商户治理、商品治理、订单治理、会员优惠券配置、评价审核、投诉处理、平台客服、审计日志和系统配置。
+
+### 1.2 八大服务模块
+
+| 服务模块 | 用户侧能力 | 履约方式 |
+| --- | --- | --- |
+| 外卖 | 商家浏览、商品点单、购物车、地址选择、模拟支付、配送时间线 | 点单 + 配送模拟 |
+| 团购 | 套餐浏览、购买、券码展示、到店使用 | 券码核销 |
+| 酒店 | 房型/服务展示、预约信息、凭证展示 | 预约 / 凭证使用 |
+| 休闲娱乐 | 项目、套餐、时段和到店须知展示 | 预约 / 券码 |
+| 电影演出 | 场次、票档、入场规则展示 | 票券核销 |
+| 丽人医美 | 项目流程、服务时长、注意事项展示 | 预约服务 |
+| 景点门票 | 票种、入园日期、开放时间展示 | 电子票核销 |
+| 洗脚按摩 | 项目时长、到店/上门说明、预约时间展示 | 预约 / 服务完成 |
+
+### 1.3 当前交付形态
+
+| 交付项 | 说明 |
 | --- | --- |
-| 用户端 APP | Flutter / Dart |
-| 后端服务 | Java 17 / Spring Boot 3 / Maven |
-| 数据库 | MySQL 8，演示环境可使用 H2 内存库 |
-| 数据库迁移 | Flyway |
-| 接口文档 | springdoc-openapi / Swagger UI |
-| 构建脚本 | PowerShell |
+| 用户端 APP | Flutter Android APK，支持用户主流程演示。 |
+| 用户端 Web | Flutter Web 预览版，可由 Nginx 托管在 `/web/`。 |
+| 商家端 Web | Vue 3 + TypeScript，商家经营控制台，可由 Nginx 托管在 `/merchant/`。 |
+| 后台端 Web | Vue 3 + TypeScript，平台管理后台，可由 Nginx 托管在 `/admin/`。 |
+| 后端服务 | Spring Boot 3 + Java 17，提供统一 REST API。 |
+| 数据库 | MySQL 8，使用 Flyway 管理迁移和 seed 数据。 |
+| 部署 | 支持 Docker Compose、常规 JAR + Nginx 安装、GitHub Actions + GHCR 镜像部署。 |
+| 测试 | 后端 JUnit/MockMvc、Flutter test、Vitest、静态回归和 CI 自动化。 |
 
-## 目录结构
+线上演示地址如已部署，可访问：
+
+```text
+https://aituan.2b.gs
+```
+
+## 2. 技术栈
+
+| 层级 | 技术 |
+| --- | --- |
+| 用户端 | Flutter、Dart、Android APK、Flutter Web |
+| 商家端 / 后台端 | Vue 3、TypeScript、Vite、Vitest、happy-dom |
+| 后端 | Java 17、Spring Boot 3、Spring Security、JWT、JdbcTemplate、Flyway |
+| 数据库 | MySQL 8；测试环境使用 H2 `MODE=MySQL` |
+| 文件与资源 | 本地文件存储或外部图床配置，可通过 `.config` 切换 |
+| AI 能力 | 后端 AI Assistant + Skills，支持外部模型调用和本地降级 |
+| 部署 | Docker Compose、Nginx、GHCR、GitHub Actions、Let's Encrypt HTTPS |
+| 测试 | JUnit 5、Spring Boot Test、MockMvc、flutter_test、Vitest、Bash 静态回归 |
+
+## 3. 目录结构
 
 ```text
 .
-├─ apps/user_app/                 # Flutter 用户端 APP
-├─ services/backend/              # Spring Boot 后端服务
-├─ database/migrations/           # Flyway 增量迁移脚本
-├─ database/seeds/                # 幂等演示数据脚本
-├─ scripts/build/                 # 构建脚本
-├─ scripts/dev/                   # 本地启动脚本
-├─ scripts/release/               # 构建产物清理脚本
-└─ docs/                          # 设计、阶段说明和联调文档
+├─ apps/
+│  ├─ user_app/                 # Flutter 用户端 APP / Web
+│  ├─ merchant_web/             # 商家端 Vue Web
+│  └─ admin_web/                # 后台端 Vue Web
+├─ services/
+│  └─ backend/                  # Spring Boot 后端服务
+├─ database/
+│  ├─ migrations/               # Flyway 数据库迁移
+│  └─ seeds/                    # 幂等演示数据
+├─ deploy/                      # Docker Compose、Nginx、部署产物和示例配置
+├─ scripts/
+│  ├─ build/                    # 构建脚本
+│  ├─ dev/                      # 本地启动脚本
+│  └─ verify/                   # 静态回归验证脚本
+├─ docs/                        # 需求、设计、测试、部署、阶段交付文档
+└─ README.md                    # 项目总览
 ```
 
-## 环境要求
+## 4. 功能清单
 
-### 必需环境
+### 4.1 用户端
 
-- JDK 17+
-- Maven 3.9+
-- Flutter SDK
-- Android Studio 或 Android SDK（构建 Android APK 时需要）
-- MySQL 8.x（使用 `dev` profile 时需要）
-- PowerShell（使用仓库脚本时需要）
+- 登录注册：账号密码登录、邮箱验证码、找回密码、Token 校验。
+- 首页发现：八大服务模块、推荐商品、附近商家、搜索入口。
+- 搜索浏览：关键词搜索、模块筛选、商家详情、商品/服务详情。
+- 外卖点单：购物车、起送价、配送费、地址选择、确认订单、模拟支付、履约状态。
+- 非外卖服务：团购、门票、预约类服务的订单、券码、二维码、核销状态。
+- 订单中心：外卖订单、服务订单、预约详情、券码详情、配送跟踪。
+- 用户资产：个人资料、地址、收藏、消息、会员等级、成长值、优惠券。
+- 互动售后：发布评价、我的评价、评价详情、客服会话、投诉提交与查看。
+- AI 助手：基于订单、优惠券、投诉、评价和客服上下文提供智能回复与快捷入口。
 
-### 本地端口
+### 4.2 商家端
 
-| 服务 | 默认端口 |
-| --- | --- |
-| 后端 API | `8080` |
-| Swagger UI | `http://localhost:8080/swagger-ui.html` |
-| OpenAPI JSON | `http://localhost:8080/v3/api-docs` |
-| 健康检查 | `http://localhost:8080/actuator/health` |
+- 商家登录和 Token 管理。
+- 经营总览：订单、交易额、待处理评价、客服咨询等指标。
+- 门店资料：门店信息、营业状态、图片上传。
+- 商品/服务管理：外卖商品、非外卖服务、套餐与服务项目维护。
+- 订单履约：外卖接单、备餐、出餐、配送推进。
+- 券码核销：查询券码、核销券码、避免重复核销。
+- 互动售后：评价管理、评价回复、客服会话处理。
 
-## 快速启动：后端 Demo 环境
+### 4.3 后台端
 
-Demo 环境使用 H2 内存数据库，适合首次运行、接口体验和 APP 联调，不需要提前安装 MySQL。
+- 管理员登录和后台权限边界。
+- 平台总览和治理看板。
+- 商户门店治理、商品服务治理。
+- 用户管理、会员等级、优惠券模板配置。
+- 订单治理、预约治理、券码治理。
+- 评价审核、投诉工单、平台客服。
+- 管理员资料、系统配置、审计日志。
 
-### 1. 克隆仓库
+### 4.4 后端与基础能力
 
-```bash
-git clone https://github.com/PUAA-Team/aituan.git
-cd aituan
-```
+- 统一 API 前缀：`/api/open`、`/api/app`、`/api/merchant`、`/api/admin`、`/api/common`。
+- JWT 鉴权与 USER / MERCHANT / ADMIN 角色隔离。
+- 统一响应结构和统一异常处理。
+- Flyway 迁移和幂等 seed 数据。
+- 文件上传和访问。
+- 模拟支付、配送状态推进、券码核销。
+- 会员成长值、优惠券领取、下单抵扣、退款释放。
+- AI 助手配置、模型调用、Skill 编排和降级回复。
 
-### 2. 构建后端
+## 5. 配置说明
 
-通用方式：
+项目通过 `.config` 和 `deploy/.env` 区分业务配置与部署配置。真实密钥、数据库密码、JWT secret、AI key、邮箱授权码、图床 Token 不应提交到 Git。
 
-```bash
-mvn -f services/backend/pom.xml clean package
-```
+### 5.1 `.config`
 
-构建完成后，jar 位于：
+模板文件：
 
 ```text
-services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar
+.config.example
 ```
 
-Windows 本地也可以使用项目脚本：
+常见配置项：
 
-```powershell
-.\scripts\build\build_backend.ps1
+```properties
+aituan.security.jwt-secret=<LONG_RANDOM_SECRET>
+
+aituan.ai.enabled=false
+aituan.ai.api-url=<AI_API_BASE_URL>
+aituan.ai.api-key=<AI_API_KEY>
+aituan.ai.model=<MODEL_NAME>
+aituan.ai.timeout-seconds=20
+aituan.ai.max-tokens=800
+aituan.ai.temperature=0.25
+
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+
+aituan.upload.strategy=local
+aituan.map.provider=local
 ```
 
-该脚本会把构建缓存和最终 jar 放到 D 盘约定目录：
+说明：
+
+- `aituan.security.jwt-secret` 公开部署时必须改为强随机字符串。
+- `aituan.ai.enabled=false` 时 AI 助手会走本地降级回复。
+- `aituan.mail.debug-return-code=false` 用于避免验证码直接返回到前端。
+- 图片上传和地图服务均可通过 `.config` 切换为外部服务。
+
+### 5.2 `deploy/.env`
+
+模板文件：
 
 ```text
-D:/aituan_cache/m2/
-D:/aituan_release/backend/aituan-backend.jar
+deploy/.env.example
 ```
 
-> 如果你的 JDK 不在 `D:/tools/jdk-17.0.18+8`，请先修改脚本中的 `$JavaHome`，或使用上面的 Maven 通用命令。
+常见配置项：
 
-### 3. 启动后端
+```dotenv
+MYSQL_DATABASE=<DB_NAME>
+MYSQL_USER=<DB_USER>
+MYSQL_PASSWORD=<DB_PASSWORD>
+MYSQL_ROOT_PASSWORD=<DB_ROOT_PASSWORD>
+AITUAN_DATA_DIR=<DATA_DIR>
+AITUAN_CONFIG_HOST_FILE=<CONFIG_FILE>
 
-通用方式：
+AITUAN_IMAGE_REGISTRY=<IMAGE_REGISTRY>/<OWNER>/<REPO>
+AITUAN_IMAGE_TAG=<IMAGE_TAG>
+AITUAN_DOWNLOADS_DIR=<DOWNLOADS_DIR>
+```
+
+## 6. 快速启动
+
+### 6.1 后端 Demo 环境
+
+Demo 环境适合本地开发和接口体验。默认会使用 H2 内存数据库，并自动执行 Flyway 迁移和演示数据。
 
 ```bash
+mvn -B -f services/backend/pom.xml test
+mvn -B -f services/backend/pom.xml -DskipTests package
 java -jar services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar
 ```
 
-默认 profile 是 `demo`，会自动使用 H2 内存数据库并执行 Flyway 迁移和演示数据。
-
-Windows 脚本方式：
-
-```powershell
-.\scripts\dev\start_backend.ps1
-```
-
-脚本会启动：
-
-```text
-D:/aituan_release/backend/aituan-backend.jar
-```
-
-并将日志写入：
-
-```text
-D:/aituan_runtime/backend/backend.log
-```
-
-### 4. 验证后端
-
-启动成功后访问：
+验证：
 
 ```text
 http://localhost:8080/actuator/health
 http://localhost:8080/swagger-ui.html
 ```
 
-常用演示账号（仅用于本地开发、课程验收和演示；公网/生产部署前应禁用、删除或修改默认账号密码）：
+### 6.2 MySQL 开发环境
 
-| 角色/业务 | 登录名 | 邮箱或手机号 | 密码 |
-| --- | --- | --- | --- |
-| 用户 | `demo_user` | `user@example.com` 或 `18800001111` | `123456` |
-| 默认商家 | `demo_merchant` | `merchant@example.com` 或 `18800002222` | `123456` |
-| 后台运营 | `demo_admin` | `admin@example.com` 或 `18800003333` | `123456` |
-| 外卖商家 | `demo_takeaway_merchant` | `takeaway@example.com` 或 `18800002021` | `123456` |
-| 团购商家 | `demo_groupbuy_merchant` | `groupbuy@example.com` 或 `18800002022` | `123456` |
-| 酒店商家 | `demo_hotel_merchant` | `hotel@example.com` 或 `18800002023` | `123456` |
-| 休闲娱乐商家 | `demo_entertainment_merchant` | `entertainment@example.com` 或 `18800002024` | `123456` |
-| 电影演出商家 | `demo_movie_merchant` | `movie@example.com` 或 `18800002025` | `123456` |
-| 丽人医美商家 | `demo_beauty_merchant` | `beauty@example.com` 或 `18800002026` | `123456` |
-| 景点门票商家 | `demo_ticket_merchant` | `ticket@example.com` 或 `18800002027` | `123456` |
-| 洗脚按摩商家 | `demo_massage_merchant` | `massage@example.com` 或 `18800002028` | `123456` |
-| 拌饭外卖商家 | `demo_bibimbap_merchant` | `bibimbap@example.com` 或 `18800002029` | `123456` |
-| 烧烤商家 | `demo_bbq_merchant` | `bbq@example.com` 或 `18800002030` | `123456` |
-| 酒店房型商家 | `demo_hotel_room_merchant` | `hotelroom@example.com` 或 `18800002031` | `123456` |
-| 电玩城商家 | `demo_arcade_merchant` | `arcade@example.com` 或 `18800002032` | `123456` |
-| SPA 商家 | `demo_spa_merchant` | `spa@example.com` 或 `18800002033` | `123456` |
-
-## 使用 MySQL 部署后端
-
-生产或长期运行建议使用 MySQL，并使用环境变量注入数据库连接和 JWT 密钥。
-
-### 1. 创建数据库和账号
+创建数据库：
 
 ```sql
-CREATE DATABASE aituan_dev
+CREATE DATABASE <DB_NAME>
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
 
-CREATE USER 'aituan'@'%' IDENTIFIED BY 'your_password_here';
-GRANT ALL PRIVILEGES ON aituan_dev.* TO 'aituan'@'%';
+CREATE USER '<DB_USER>'@'%' IDENTIFIED BY '<DB_PASSWORD>';
+GRANT ALL PRIVILEGES ON <DB_NAME>.* TO '<DB_USER>'@'%';
 FLUSH PRIVILEGES;
 ```
 
-### 2. 配置环境变量
-
-Linux/macOS：
+启动后端时配置环境变量：
 
 ```bash
 export SPRING_PROFILES_ACTIVE=dev
-export AITUAN_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/aituan_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false'
-export AITUAN_DATASOURCE_USERNAME='aituan'
-export AITUAN_DATASOURCE_PASSWORD='your_password_here'
-export AITUAN_JWT_SECRET='replace-with-a-long-random-secret'
-```
+export AITUAN_DATASOURCE_URL='jdbc:mysql://<DB_HOST>:<DB_PORT>/<DB_NAME>?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false'
+export AITUAN_DATASOURCE_USERNAME='<DB_USER>'
+export AITUAN_DATASOURCE_PASSWORD='<DB_PASSWORD>'
+export AITUAN_CONFIG_FILE='<CONFIG_FILE>'
 
-Windows PowerShell：
-
-```powershell
-$env:SPRING_PROFILES_ACTIVE = 'dev'
-$env:AITUAN_DATASOURCE_URL = 'jdbc:mysql://127.0.0.1:3306/aituan_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false'
-$env:AITUAN_DATASOURCE_USERNAME = 'aituan'
-$env:AITUAN_DATASOURCE_PASSWORD = 'your_password_here'
-$env:AITUAN_JWT_SECRET = 'replace-with-a-long-random-secret'
-```
-
-不要把真实数据库密码、JWT secret、邮箱授权码等敏感信息提交到 Git。
-
-### 3. 启动服务
-
-```bash
 java -jar services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar
 ```
 
-Flyway 会在启动时自动执行：
-
-```text
-database/migrations/
-database/seeds/
-```
-
-迁移策略：
-
-- 只使用 Flyway 增量迁移更新结构。
-- `clean` 已禁用，避免清空数据库。
-- 演示数据脚本要求幂等，重复执行不应清空真实数据。
-
-## Flutter 用户端运行
-
-### 1. 获取依赖
+### 6.3 用户端 APP / Web
 
 ```bash
 cd apps/user_app
 flutter pub get
+flutter analyze
+flutter test
 ```
 
-### 2. 连接本机后端运行
-
-Android 模拟器访问宿主机后端时使用 `10.0.2.2`：
+Android 模拟器访问宿主机后端时：
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-桌面或浏览器调试可使用：
+桌面或浏览器调试：
 
 ```bash
 flutter run --dart-define=API_BASE_URL=http://localhost:8080
 ```
 
-真机调试时，需要把 `API_BASE_URL` 改成电脑在局域网中的 IP，例如：
+构建 Android Debug APK：
 
 ```bash
-flutter run --dart-define=API_BASE_URL=http://192.168.1.100:8080
+flutter build apk --debug --dart-define=API_BASE_URL=<PUBLIC_OR_LOCAL_ORIGIN>
 ```
 
-### 3. 构建 Android Debug APK
-
-在项目根目录运行：
+也可以使用项目脚本：
 
 ```powershell
-.\scripts\build\build_android_apk.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_android_apk.ps1
 ```
 
-脚本会执行：
+### 6.4 商家端 Web
 
-1. 同步 `apps/user_app/` 到 D 盘构建目录。
-2. 设置 Flutter Pub 缓存到 `D:/aituan_cache/pub/`。
-3. 设置 Gradle 缓存到 `D:/aituan_cache/gradle/`。
-4. 执行 `flutter pub get`。
-5. 执行 `flutter analyze`。
-6. 执行 `flutter test`。
-7. 执行 `flutter build apk --debug`。
-8. 输出 APK 到：
-
-```text
-D:/aituan_release/apk/aituan-user-debug.apk
+```bash
+npm ci --prefix apps/merchant_web
+npm test --prefix apps/merchant_web
+npm run build --prefix apps/merchant_web
 ```
 
-9. 删除临时构建目录，只保留最终 APK。
+本地开发：
 
-如果手动构建：
+```bash
+npm run dev --prefix apps/merchant_web
+```
+
+### 6.5 后台端 Web
+
+```bash
+npm ci --prefix apps/admin_web
+npm test --prefix apps/admin_web
+npm run build --prefix apps/admin_web
+```
+
+本地开发：
+
+```bash
+npm run dev --prefix apps/admin_web
+```
+
+## 7. 测试
+
+### 7.1 测试类型
+
+| 端 / 层级 | 测试内容 | 工具 |
+| --- | --- | --- |
+| 后端 | 服务层集成测试、API 集成测试、权限边界测试 | JUnit 5、Spring Boot Test、MockMvc、H2、Flyway |
+| 用户端 | 纯逻辑单测、Repository 测试、Widget 测试、静态分析 | flutter_test、flutter analyze |
+| 商家端 Web | API 层测试、类型检查、构建校验 | Vitest、happy-dom、vue-tsc、Vite |
+| 后台端 Web | API 层测试、类型检查、构建校验 | Vitest、happy-dom、vue-tsc、Vite |
+| 跨端回归 | 关键入口、文案和代码形态检查 | Bash + grep |
+
+### 7.2 常用测试命令
+
+后端：
+
+```bash
+mvn -B -f services/backend/pom.xml test
+```
+
+用户端：
 
 ```bash
 cd apps/user_app
-flutter build apk --debug --dart-define=API_BASE_URL=http://your-backend-host:8080
+flutter analyze
+flutter test
 ```
 
-## 常用接口验证
-
-### 登录
+商家端：
 
 ```bash
-curl -X POST http://localhost:8080/api/open/auth/user/login/password \
-  -H "Content-Type: application/json" \
-  -d '{"account":"user@example.com","password":"123456"}'
+npm test --prefix apps/merchant_web
+npm run build --prefix apps/merchant_web
 ```
 
-### 首页
+后台端：
 
 ```bash
-curl http://localhost:8080/api/app/discovery/home
+npm test --prefix apps/admin_web
+npm run build --prefix apps/admin_web
 ```
 
-### 搜索商家
+静态回归：
 
 ```bash
-curl "http://localhost:8080/api/app/discovery/stores/search?keyword=汉堡&page=1&pageSize=12"
+bash scripts/verify/member_e_regression_checks.sh
 ```
 
-### 订单列表
+### 7.3 当前测试覆盖
 
-需要先登录并在请求中带上 Token：
+项目当前覆盖：
+
+- 后端认证、权限、交易、优惠券、投诉、文件上传、评价、客服、会员成长值等高风险接口和服务。
+- Flutter 输入校验、JSON 解析、业务枚举、金额计算、Repository 请求路径和部分 Widget。
+- 商家端 / 后台端集中式 API 层。
+- CI 中的 backend、web matrix、flutter 和 static-regression job。
+
+详细报告见：
+
+```text
+docs/爱团测试报告.md
+docs/stage7/全端测试体系总结.md
+```
+
+## 8. 部署
+
+项目支持两种部署方式：
+
+1. Docker Compose 部署；
+2. 常规 JAR + MySQL + Nginx 安装。
+
+详细部署说明见：
+
+```text
+docs/爱团通用部署文档.md
+```
+
+### 8.1 Docker Compose 部署
+
+Compose 文件：
+
+```text
+deploy/docker-compose.server.yml
+deploy/docker-compose.cicd.yml
+```
+
+手动产物部署通常使用：
 
 ```bash
-curl http://localhost:8080/api/app/trade/orders \
-  -H "Authorization: Bearer <your-token>"
+docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml config
+docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml up -d --build
 ```
 
-## 清理构建产物
+CI/CD 镜像化部署通常使用：
 
-普通清理：
-
-```powershell
-.\scripts\release\clean_build_artifacts.ps1
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans
 ```
 
-连依赖缓存一起清理：
+### 8.2 HTTPS
 
-```powershell
-.\scripts\release\clean_build_artifacts.ps1 -IncludeCache
+Nginx 配置支持 Let's Encrypt 证书挂载：
+
+```text
+deploy/certbot/www
+deploy/certbot/conf
 ```
 
-默认不会删除 `D:/aituan_release/apk/` 下已经生成的 APK。
+HTTP 会跳转到 HTTPS，证书文件默认从容器内以下路径读取：
 
-## 部署注意事项
+```text
+/etc/letsencrypt/live/aituan.2b.gs/fullchain.pem
+/etc/letsencrypt/live/aituan.2b.gs/privkey.pem
+```
 
-1. 公开部署时必须在 `.config` 设置强随机 `aituan.security.jwt-secret`。
-2. MySQL 用户请只授权当前业务库，不建议使用 root 账号运行应用。
-3. 不要在仓库中提交真实数据库密码、JWT secret、邮箱授权码、`.config` 或生产配置文件。
-4. 数据库结构更新只走 Flyway 增量迁移，不要手动清表重灌。
-5. Android 模拟器、真机和桌面环境访问后端的地址不同，联调时优先检查 `API_BASE_URL`。
-6. 如果使用仓库 PowerShell 脚本，请根据本机实际 JDK 路径调整 `$JavaHome`。
+如部署到其他域名，需要同步调整：
 
-## 更多文档
+- `deploy/nginx/conf.d/default.conf` 中的 `server_name` 和证书路径；
+- GitHub Actions Variable `SERVER_ORIGIN`；
+- 前端构建时的 `API_BASE_URL` / `VITE_API_BASE_URL`。
 
-- `docs/ReadMe.md`：项目文档索引。
-- `docs/stage1/API 分组设计.md`：接口分组设计。
+### 8.3 常规安装
+
+常规安装方式适合已有 Java、MySQL、Nginx 运维环境的服务器：
+
+1. 安装 Java 17、MySQL 8、Nginx；
+2. 创建数据库和用户；
+3. 构建后端 JAR；
+4. 使用 systemd 或等价工具托管后端；
+5. 将用户端 Web、商家端 Web、后台端 Web 静态产物交给 Nginx；
+6. 配置 `/api/` 反向代理到后端端口；
+7. 配置 HTTPS 和健康检查。
+
+## 9. CI/CD
+
+项目包含 GitHub Actions workflow：
+
+| Workflow | 文件 | 作用 |
+| --- | --- | --- |
+| `aituan-ci` | `.github/workflows/ci.yml` | PR / 手动触发，运行静态回归、后端测试、Web 测试构建、Flutter 测试构建。 |
+| `aituan-deploy` | `.github/workflows/deploy.yml` | main / 手动触发，构建后端和 Web 镜像，推送 GHCR，并可部署服务器。 |
+| `aituan-android-apk` | `.github/workflows/android-apk.yml` | 手动触发，构建用户端 Android debug APK，可选上传到服务器下载目录。 |
+
+自动化部署通常需要配置：
+
+- `SERVER_ORIGIN`：公开访问 origin，例如 `https://<DOMAIN>`，不要包含 `/api`；
+- `SERVER_APP_DIR`：服务器部署目录；
+- `SERVER_HOST`、`SERVER_PORT`、`SERVER_USER`、`SERVER_SSH_KEY`、`SERVER_KNOWN_HOSTS`：SSH 部署信息；
+- 如镜像仓库为私有，还需要服务器具备读取镜像的权限。
+
+## 10. 演示账号
+
+演示账号由 seed 数据初始化，通常用于本地开发和课程展示。公开部署前应根据需要修改默认密码或禁用公开演示账号。
+
+| 端 | 账号 | 密码 | 说明 |
+| --- | --- | --- | --- |
+| 用户端 | `demo_user` | `123456` | 演示用户 |
+| 商家端 | `demo_merchant` | `123456` | 基础商家演示账号 |
+| 后台端 | `demo_admin` | `123456` | 平台管理员演示账号 |
+
+## 11. 文档索引
+
+- `docs/ReadMe.md`：完整文档索引。
+- `docs/爱团通用部署文档.md`：通用部署说明。
+- `docs/爱团测试报告.md`：项目测试报告。
+- `docs/stage-final/期末展示PPT大纲.md`：期末展示 PPT 大纲。
+- `docs/stage7/全端测试体系总结.md`：全端测试体系说明。
+- `docs/stage6-memberE/AI助手交付说明.md`：AI 助手说明。
+- `docs/stage1/API 分组设计.md`：API 分组设计。
 - `docs/stage1/数据库表设计.md`：数据库设计。
-- `docs/stage3/APP打包说明.md`：APP 打包说明。
-- `docs/stage4/后端部署与联调说明.md`：后端部署和 Flutter 联调说明。
+
+## 12. 安全注意事项
+
+1. 不要提交真实 `.config`、`deploy/.env`、数据库密码、JWT secret、AI key、邮箱授权码、SSH 私钥或第三方 Token。
+2. 公开部署必须设置强随机 `aituan.security.jwt-secret`。
+3. 邮箱验证码调试返回默认应关闭，不应在公开环境直接向前端返回验证码。
+4. 服务器部署前建议备份 `.config`、`deploy/.env`、数据库和旧产物。
+5. 数据库结构更新统一通过 Flyway 迁移，不建议手动改表后不留脚本。
+6. Docker Compose 镜像部署建议使用 `sha-<短提交号>` 标签，便于追踪和回滚。
+7. HTTPS 证书需要定期续期，续期后 reload Nginx。
+
+## 13. 后续可扩展方向
+
+- 接入真实支付沙箱和完整退款流程。
+- 增加真实骑手端或更完整的配送轨迹模拟。
+- 增加酒店房态、电影选座、技师排班等复杂预约能力。
+- 引入 Playwright / Cypress 做浏览器端 E2E 测试。
+- 引入 Flutter integration_test 做移动端端到端测试。
+- 扩展 AI Skills、调用日志、智能推荐和运营辅助能力。
