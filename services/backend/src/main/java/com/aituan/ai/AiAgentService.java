@@ -158,8 +158,9 @@ public class AiAgentService {
 
   private List<AiToolCall> enrichToolCalls(List<AiToolCall> calls, String content) {
     if (calls == null || calls.isEmpty()) return List.of();
-    boolean groupBuyIntent = containsAny(content == null ? "" : content, "团购", "到店套餐", "双人餐", "多人餐", "核销套餐");
+    boolean groupBuyIntent = containsAny(content == null ? "" : content, "团购", "套餐", "到店套餐", "双人餐", "多人餐", "核销套餐");
     if (!groupBuyIntent) return calls;
+    calls = calls.stream().map(call -> withGroupBuyType(call, content)).toList();
     boolean hasStore = calls.stream().anyMatch(call -> "store_lookup".equals(call.name()));
     boolean hasItem = calls.stream().anyMatch(call -> "item_lookup".equals(call.name()));
     if (hasStore == hasItem) return calls;
@@ -172,6 +173,15 @@ public class AiAgentService {
       enriched.add(new AiToolCall("enriched-item", "item_lookup", Map.of("query", content, "businessType", "group_buy")));
     }
     return enriched;
+  }
+
+  private AiToolCall withGroupBuyType(AiToolCall call, String content) {
+    if (call == null || (!"store_lookup".equals(call.name()) && !"item_lookup".equals(call.name()))) return call;
+    Map<String, Object> arguments = new LinkedHashMap<>();
+    if (call.arguments() != null) arguments.putAll(call.arguments());
+    arguments.putIfAbsent("query", content == null ? "" : content);
+    arguments.put("businessType", "group_buy");
+    return new AiToolCall(call.id(), call.name(), arguments);
   }
 
   private String fallbackReply(String content, List<AiSkillResult> skills) {

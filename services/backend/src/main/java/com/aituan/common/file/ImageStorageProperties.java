@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "aituan.upload")
 public class ImageStorageProperties {
   private String strategy = "local";
-  private String rootDir = "D:/aituan_runtime/uploads";
+  private String rootDir = System.getProperty("user.home") + "/.aituan/uploads";
   private String publicPrefix = "/api/common/files";
   private long maxSizeBytes = 5242880;
   private final Lskypro lskypro = new Lskypro();

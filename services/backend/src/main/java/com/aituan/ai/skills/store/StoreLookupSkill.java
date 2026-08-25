@@ -24,6 +24,9 @@ class StoreLookupSkill implements AiSkill {
   private static final List<String> CANDIDATES = List.of(
       "团购", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "景点", "门票", "观景", "休闲玩乐", "休闲", "玩乐",
       "娱乐", "电玩城", "SPA", "spa", "烤肉", "小馆", "美食", "外卖");
+  private static final List<String> SPECIFIC_CANDIDATES = List.of(
+      "烤肉", "汉堡", "拌饭", "炸鸡", "酒店", "电影", "密室", "按摩", "足疗", "足道", "景点", "门票", "观景",
+      "电玩城", "SPA", "spa", "小馆", "江南", "琥珀", "米村", "塔斯汀", "雅境");
 
   private final JdbcTemplate jdbcTemplate;
 
@@ -138,6 +141,8 @@ class StoreLookupSkill implements AiSkill {
   }
 
   private String key(String text) {
+    String specific = keyword(text, SPECIFIC_CANDIDATES);
+    if (!specific.isBlank()) return specific;
     if (AiSkillSupport.containsAny(text, "附近", "推荐", "周边", "全部", "所有", "团购")) return "";
     return keyword(text, CANDIDATES);
   }

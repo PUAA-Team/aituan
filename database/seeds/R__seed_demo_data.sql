@@ -444,10 +444,10 @@ INSERT INTO delivery_track_node (id, delivery_task_id, node_order, node_code, no
 ON DUPLICATE KEY UPDATE node_text = VALUES(node_text), reached_at = VALUES(reached_at);
 
 INSERT INTO review_record (id, order_id, store_id, user_id, rating, content, labels, image_urls, helpful_count, reported_count, status, replied) VALUES
-  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', 'https://picsum.photos/seed/aituan-review-1-a/720/540,https://picsum.photos/seed/aituan-review-1-b/720/540', 12, 0, 'published', 1),
-  (9005, 9005, 10, 1, 5, '拌饭送到还是热的，配菜足，适合工作日晚餐。', '送达快,份量足', 'https://picsum.photos/seed/aituan-review-9005-a/720/540', 8, 0, 'published', 1),
-  (9009, 9009, 11, 1, 5, '双人餐肉量不错，核销顺利，店员会主动确认券码。', '核销快,适合聚会', 'https://picsum.photos/seed/aituan-review-9009-a/720/540,https://picsum.photos/seed/aituan-review-9009-b/720/540', 17, 1, 'published', 0),
-  (9017, 9017, 1, 1, 3, '配送等待较久，希望商家加快出餐节奏。', '出餐慢', 'https://picsum.photos/seed/aituan-review-9017-a/720/540', 2, 2, 'hidden', 0)
+  (1, 4, 9, 1, 5, '环境安静，服务稳定，券码核销很顺畅。', '环境好,服务细致', '/api/common/demo-images/aituan-review-1-a.png,/api/common/demo-images/aituan-review-1-b.png', 12, 0, 'published', 1),
+  (9005, 9005, 10, 1, 5, '拌饭送到还是热的，配菜足，适合工作日晚餐。', '送达快,份量足', '/api/common/demo-images/aituan-review-9005-a.png', 8, 0, 'published', 1),
+  (9009, 9009, 11, 1, 5, '双人餐肉量不错，核销顺利，店员会主动确认券码。', '核销快,适合聚会', '/api/common/demo-images/aituan-review-9009-a.png,/api/common/demo-images/aituan-review-9009-b.png', 17, 1, 'published', 0),
+  (9017, 9017, 1, 1, 3, '配送等待较久，希望商家加快出餐节奏。', '出餐慢', '/api/common/demo-images/aituan-review-9017-a.png', 2, 2, 'hidden', 0)
 ON DUPLICATE KEY UPDATE content = VALUES(content), rating = VALUES(rating), image_urls = VALUES(image_urls), helpful_count = VALUES(helpful_count), reported_count = VALUES(reported_count), status = VALUES(status), replied = VALUES(replied);
 
 -- 商家回复
@@ -459,7 +459,44 @@ ON DUPLICATE KEY UPDATE reply_content = VALUES(reply_content), is_deleted = 0;
 -- 点"有用"（仅用户 1，演示按钮高亮）
 INSERT INTO review_helpful (id, review_id, user_id) VALUES
   (1, 9005, 1),
-  (2, 9009, 1)
+  (2, 9009, 1),
+  (1001, 1, 10001),
+  (1002, 1, 10002),
+  (1003, 1, 10003),
+  (1004, 1, 10004),
+  (1005, 1, 10005),
+  (1006, 1, 10006),
+  (1007, 1, 10007),
+  (1008, 1, 10008),
+  (1009, 1, 10009),
+  (1010, 1, 10010),
+  (1011, 1, 10011),
+  (1012, 1, 10012),
+  (90051, 9005, 10051),
+  (90052, 9005, 10052),
+  (90053, 9005, 10053),
+  (90054, 9005, 10054),
+  (90055, 9005, 10055),
+  (90056, 9005, 10056),
+  (90057, 9005, 10057),
+  (90091, 9009, 10091),
+  (90092, 9009, 10092),
+  (90093, 9009, 10093),
+  (90094, 9009, 10094),
+  (90095, 9009, 10095),
+  (90096, 9009, 10096),
+  (90097, 9009, 10097),
+  (90098, 9009, 10098),
+  (90099, 9009, 10099),
+  (90100, 9009, 10100),
+  (90101, 9009, 10101),
+  (90102, 9009, 10102),
+  (90103, 9009, 10103),
+  (90104, 9009, 10104),
+  (90105, 9009, 10105),
+  (90106, 9009, 10106),
+  (90171, 9017, 10171),
+  (90172, 9017, 10172)
 ON DUPLICATE KEY UPDATE is_deleted = 0;
 
 -- 评价举报（用户 1 举报 9009 与 9017，作为后台审核演示）

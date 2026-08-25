@@ -517,7 +517,7 @@ class _AssistantStepsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  modelUsed ? 'AI Tool 调用过程' : '本地 Tool 调用过程',
+                  modelUsed ? '小爱调用过程' : '本地调用过程',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

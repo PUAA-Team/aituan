@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_build_info.dart';
 import '../../../core/constants/route_constants.dart';
 import '../../../core/widgets/app_card.dart';
 
@@ -55,8 +56,15 @@ class AboutPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Text('v1.1.3'),
+                  const Text('v${AppBuildInfo.fullVersion}'),
                 ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '构建 ${AppBuildInfo.shortCommit} · ${AppBuildInfo.buildSource}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textLight),
               ),
               const SizedBox(height: 16),
               Text(
