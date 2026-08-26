@@ -133,6 +133,7 @@ function timeText(value: string | undefined) {
         <button
           v-for="row in sessions"
           :key="row.id"
+          :data-testid="`admin-support-${row.id}`"
           class="session-row"
           :class="{ active: active && active.id === row.id }"
           @click="openSession(row)"

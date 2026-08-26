@@ -253,7 +253,7 @@ function money(value: number | undefined) {
     </div>
 
     <div class="catalog-grid">
-      <article v-for="item in items" :key="item.id" class="catalog-card">
+      <article v-for="item in items" :key="item.id" :data-testid="`merchant-catalog-${item.id}`" class="catalog-card">
         <div class="thumb-box">
           <img v-if="item.coverUrl" :src="resolveAssetUrl(item.coverUrl)" :alt="item.title" />
           <span v-else>{{ item.categoryName || itemNoun }}</span>

@@ -108,6 +108,7 @@ function ratingText(rating: number | undefined) {
           <tr
             v-for="row in reviews"
             :key="row.id"
+            :data-testid="`admin-review-${row.id}`"
             :class="{ active: active && active.id === row.id }"
             @click="openReview(row)"
           >

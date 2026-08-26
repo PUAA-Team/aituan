@@ -150,6 +150,7 @@ function canRun(action: 'accept' | 'resolve' | 'close') {
           <tr
             v-for="row in tickets"
             :key="row.id"
+            :data-testid="`admin-complaint-${row.id}`"
             :class="{ active: active && active.id === row.id }"
             @click="open(row)"
           >
