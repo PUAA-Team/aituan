@@ -164,6 +164,16 @@
 
 `./docs/stage-new-1/第四项-UC08-UC13端到端测试说明.md`
 
+`./docs/stage-new-1/新服务器Docker部署与CICD说明.md`
+
+`./docs/stage-new-1/域名HTTPS证书部署说明.md`
+
+`./docs/stage-new-1/测试与CICD补齐总清单.md`
+
+`./docs/stage-new-1/详细设计说明书-小学期修订版.md`
+
+`./docs/stage-new-1/UC04-UC05用例图文档.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

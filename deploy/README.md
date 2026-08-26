@@ -4,17 +4,17 @@
 
 ## 1. 部署结构
 
-服务器统一由 Nginx 暴露 80 端口：
+服务器统一由 Nginx 暴露 80/443 端口，公网访问以 HTTPS 域名为准：
 
 | 地址 | 说明 |
 | --- | --- |
-| `http://182.92.238.178/` | 用户端下载展示页 |
-| `http://182.92.238.178/web/` | 用户端 Web 入口 |
-| `http://182.92.238.178/merchant/` | 商家端 Web |
-| `http://182.92.238.178/admin/` | 后台端 Web |
-| `http://182.92.238.178/api/...` | 后端 API |
-| `http://182.92.238.178/actuator/health` | 后端健康检查 |
-| `http://182.92.238.178/downloads/aituan-user-server-debug.apk` | 用户端服务器版 APK 下载 |
+| `https://aituan.2b.gs/` | 用户端下载展示页 |
+| `https://aituan.2b.gs/web/` | 用户端 Web 入口 |
+| `https://aituan.2b.gs/merchant/` | 商家端 Web |
+| `https://aituan.2b.gs/admin/` | 后台端 Web |
+| `https://aituan.2b.gs/api/...` | 后端 API |
+| `https://aituan.2b.gs/actuator/health` | 后端健康检查 |
+| `https://aituan.2b.gs/downloads/aituan-user-server-debug.apk` | 用户端服务器版 APK 下载 |
 
 Compose 服务包括：
 
@@ -54,7 +54,7 @@ deploy/artifacts/backend/aituan-backend.jar
 ### 3.2 构建用户端、商家端和后台端服务器版 Web
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_frontends_server.ps1" -ServerOrigin "http://182.92.238.178"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_frontends_server.ps1" -ServerOrigin "https://aituan.2b.gs"
 ```
 
 输出：
@@ -72,12 +72,12 @@ deploy/artifacts/admin-web
 - 用户端 Web 构建 base：`/web/`，产物输出到 `deploy/artifacts/user-web`
 - 商家端构建 base：`/merchant/`
 - 后台端构建 base：`/admin/`
-- API 地址：`http://182.92.238.178`
+- API 地址：`https://aituan.2b.gs`
 
 ### 3.3 构建用户端服务器版 APK
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_android_apk_server.ps1" -ServerOrigin "http://182.92.238.178"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_android_apk_server.ps1" -ServerOrigin "https://aituan.2b.gs"
 ```
 
 输出：
@@ -90,13 +90,13 @@ deploy/artifacts/downloads/aituan-user-server-debug.apk
 ### 3.4 一次性构建全部服务器版产物
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_all_server_artifacts.ps1" -ServerOrigin "http://182.92.238.178"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_all_server_artifacts.ps1" -ServerOrigin "https://aituan.2b.gs"
 ```
 
 如果只构建后端和两个 Web，不构建 APK：
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_all_server_artifacts.ps1" -ServerOrigin "http://182.92.238.178" -SkipApk
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:/Users/lixu/OneDrive/桌面/软工/new/scripts/build/build_all_server_artifacts.ps1" -ServerOrigin "https://aituan.2b.gs" -SkipApk
 ```
 
 ## 4. 服务器目录建议
@@ -141,6 +141,9 @@ MYSQL_PASSWORD=替换为强密码
 MYSQL_ROOT_PASSWORD=替换为强密码
 AITUAN_DATA_DIR=/opt/aituan/data
 AITUAN_CONFIG_HOST_FILE=../.config
+AITUAN_NGINX_SERVER_NAME=aituan.2b.gs
+AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
+AITUAN_CERTBOT_WEBROOT=/var/www/certbot
 ```
 
 编辑 `/opt/aituan/app/.config`，至少设置强随机 JWT secret；如需服务器发送 QQ 邮箱验证码，也在这里填写 SMTP 授权信息：
@@ -166,6 +169,8 @@ openssl rand -base64 48
 ```
 
 ## 6. 启动服务
+
+首次启用 HTTPS 前需要先通过 `deploy/docker-compose.acme.yml` 启动 HTTP/ACME 临时配置并申请证书；完整步骤见 `docs/stage-new-1/域名HTTPS证书部署说明.md`。证书存在后，再使用下面的正式 Compose 命令启动服务。
 
 在服务器中执行：
 
@@ -216,7 +221,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml logs -
 ### 7.1 后端健康检查
 
 ```bash
-curl http://182.92.238.178/actuator/health
+curl https://aituan.2b.gs/actuator/health
 ```
 
 预期返回健康状态。
@@ -226,27 +231,27 @@ curl http://182.92.238.178/actuator/health
 浏览器访问：
 
 ```text
-http://182.92.238.178/merchant/
+https://aituan.2b.gs/merchant/
 ```
 
-检查浏览器 Network：API 请求应为 `http://182.92.238.178/api/...`，不应出现 `localhost:8080`。
+检查浏览器 Network：API 请求应为 `https://aituan.2b.gs/api/...`，不应出现 `localhost:8080`。
 
 ### 7.3 后台端
 
 浏览器访问：
 
 ```text
-http://182.92.238.178/admin/
+https://aituan.2b.gs/admin/
 ```
 
-检查浏览器 Network：API 请求应为 `http://182.92.238.178/api/...`。
+检查浏览器 Network：API 请求应为 `https://aituan.2b.gs/api/...`。
 
 ### 7.4 用户端 APK
 
 下载安装：
 
 ```text
-http://182.92.238.178/downloads/aituan-user-server-debug.apk
+https://aituan.2b.gs/downloads/aituan-user-server-debug.apk
 ```
 
 安装后验证登录、首页、订单等接口能访问服务器。
@@ -257,7 +262,7 @@ http://182.92.238.178/downloads/aituan-user-server-debug.apk
 - MySQL 已按小内存场景限制连接数和缓冲池。
 - 后端 JVM 默认限制为 `-Xmx512m`。
 - 如遇 OOM，可先检查 `docker stats`，必要时增加 swap 或升级服务器配置。
-- 阿里云安全组至少需要放行 80 端口。
+- 云服务器安全组至少需要放行 80 和 443 端口；80 用于 ACME 验证和健康检查，443 用于 HTTPS。
 
 ## 9. 常用维护命令
 

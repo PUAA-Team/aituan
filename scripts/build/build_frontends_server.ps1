@@ -1,5 +1,5 @@
 param(
-  [string]$ServerOrigin = 'http://182.92.238.178'
+  [string]$ServerOrigin = 'https://aituan.2b.gs'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -62,6 +62,9 @@ function Build-WebApp {
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutDir) | Out-Null
   Invoke-Step "$Name-install" { Install-NpmDependencies $AppDir }
   Invoke-Step "$Name-build-server" {
+    if (Test-Path $OutDir) {
+      Remove-Item $OutDir -Recurse -Force
+    }
     npm run build --prefix $AppDir -- --base=$BasePath --outDir $OutDir --emptyOutDir
   }
 }

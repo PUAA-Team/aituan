@@ -105,7 +105,7 @@ PasswordAuthentication yes
 如果服务器开启了密码登录，那么人在终端里可以：
 
 ```bash
-ssh user@182.92.238.178
+ssh user@8.220.192.106
 ```
 
 然后输入密码。
@@ -131,7 +131,7 @@ ssh user@182.92.238.178
 
 ## 3. 如何配置 SSH 密钥？
 
-下面以服务器地址 `182.92.238.178` 为例。
+下面以服务器地址 `8.220.192.106` 为例。
 
 ### 3.1 在本机生成部署专用密钥
 
@@ -161,7 +161,7 @@ Get-Content "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519.pub"
 如果你当前还能用密码 SSH 登录服务器，可以先手动登录：
 
 ```bash
-ssh root@43.108.39.91
+ssh root@8.220.192.106
 ```
 
 在服务器上执行：
@@ -185,7 +185,7 @@ chmod 600 ~/.ssh/authorized_keys
 回到本机 PowerShell：
 
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" <部署用户>@182.92.238.178
+ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" <部署用户>@8.220.192.106
 ```
 
 如果无需输入服务器密码即可登录，说明密钥配置成功。
@@ -195,7 +195,7 @@ ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" <部署用户>@182.
 在本机执行：
 
 ```powershell
-ssh-keyscan -H 43.108.39.91
+ssh-keyscan -H 8.220.192.106
 ```
 
 把输出的全部内容复制到 GitHub Secret：
@@ -207,7 +207,7 @@ SERVER_KNOWN_HOSTS
 如果本机没有 `ssh-keyscan`，可用 Git 自带 OpenSSH：
 
 ```powershell
-& "C:\Program Files\Git\usr\bin\ssh-keyscan.exe" -H 182.92.238.178
+& "C:\Program Files\Git\usr\bin\ssh-keyscan.exe" -H 8.220.192.106
 ```
 
 ### 3.5 配置 GitHub Secrets
@@ -222,11 +222,11 @@ PUAA-Team/aituan -> Settings -> Environments -> production -> Environment secret
 
 | Secret | 内容 |
 | --- | --- |
-| `SERVER_HOST` | `182.92.238.178` |
+| `SERVER_HOST` | `8.220.192.106` |
 | `SERVER_USER` | 服务器部署用户名 |
 | `SERVER_PORT` | 通常是 `22` |
 | `SERVER_SSH_KEY` | 私钥文件 `aituan_github_actions_ed25519` 的完整内容 |
-| `SERVER_KNOWN_HOSTS` | `ssh-keyscan -H 182.92.238.178` 的输出 |
+| `SERVER_KNOWN_HOSTS` | `ssh-keyscan -H 8.220.192.106` 的输出 |
 
 查看私钥内容时，在 PowerShell 执行：
 
@@ -319,7 +319,7 @@ mkdir -p /opt/aituan/backups
 这样 Nginx 仍可通过：
 
 ```text
-http://182.92.238.178/downloads/aituan-user-server-debug.apk
+https://aituan.2b.gs/downloads/aituan-user-server-debug.apk
 ```
 
 提供下载。CI/CD 默认不重新构建 APK。

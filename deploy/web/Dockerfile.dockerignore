@@ -5,6 +5,10 @@
 !deploy/nginx/
 !deploy/nginx/conf.d/
 !deploy/nginx/conf.d/default.conf
+!deploy/nginx/conf.d/default.http.conf
+!deploy/nginx/conf.d/default.https.conf
+!deploy/nginx/templates/
+!deploy/nginx/templates/default.conf.template
 !deploy/artifacts/
 !deploy/artifacts/landing/
 !deploy/artifacts/landing/**

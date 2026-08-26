@@ -234,7 +234,10 @@ jobs:
              if grep -q '^AITUAN_IMAGE_REGISTRY=' deploy/.env; then sed -i 's|^AITUAN_IMAGE_REGISTRY=.*|AITUAN_IMAGE_REGISTRY=${IMAGE_REGISTRY}|' deploy/.env; else printf '\nAITUAN_IMAGE_REGISTRY=${IMAGE_REGISTRY}\n' >> deploy/.env; fi; \
              if grep -q '^AITUAN_IMAGE_TAG=' deploy/.env; then sed -i 's|^AITUAN_IMAGE_TAG=.*|AITUAN_IMAGE_TAG=${IMAGE_TAG}|' deploy/.env; else printf '\nAITUAN_IMAGE_TAG=${IMAGE_TAG}\n' >> deploy/.env; fi; \
              if ! grep -q '^AITUAN_DOWNLOADS_DIR=' deploy/.env; then printf '\nAITUAN_DOWNLOADS_DIR=/opt/aituan/data/downloads\n' >> deploy/.env; fi; \
-             mkdir -p /opt/aituan/data/downloads; \
+             if ! grep -q '^AITUAN_NGINX_SERVER_NAME=' deploy/.env; then printf '\nAITUAN_NGINX_SERVER_NAME=aituan.2b.gs\n' >> deploy/.env; fi; \
+             if ! grep -q '^AITUAN_LETSENCRYPT_DIR=' deploy/.env; then printf '\nAITUAN_LETSENCRYPT_DIR=/etc/letsencrypt\n' >> deploy/.env; fi; \
+             if ! grep -q '^AITUAN_CERTBOT_WEBROOT=' deploy/.env; then printf '\nAITUAN_CERTBOT_WEBROOT=/var/www/certbot\n' >> deploy/.env; fi; \
+             mkdir -p /opt/aituan/data/downloads /var/www/certbot/.well-known/acme-challenge /etc/letsencrypt; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans; \
              for i in \$(seq 1 24); do \

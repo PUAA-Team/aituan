@@ -1,8 +1,8 @@
 class AppBuildInfo {
   const AppBuildInfo._();
 
-  static const versionName = '1.1.5';
-  static const buildNumber = '22';
+  static const versionName = '1.1.7';
+  static const buildNumber = '24';
   static const fullVersion = '$versionName+$buildNumber';
   static const buildCommit = String.fromEnvironment(
     'AITUAN_BUILD_COMMIT',

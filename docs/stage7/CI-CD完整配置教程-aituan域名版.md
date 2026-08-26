@@ -1,6 +1,6 @@
 # Stage7 CI/CD 完整配置教程（aituan.2b.gs 域名版）
 
-> 本教程用于把当前爱团项目配置为 GitHub Actions + GHCR + Docker Compose 的自动化部署，并支持手动触发 Android APK 打包。本文使用服务器 IP `43.108.39.91`、访问域名 `aituan.2b.gs`。文档中不包含任何真实密码、SSH 私钥、GitHub Token、JWT secret 或数据库密码。
+> 本教程用于把当前爱团项目配置为 GitHub Actions + GHCR + Docker Compose 的自动化部署，并支持手动触发 Android APK 打包。本文使用服务器 IP `8.220.192.106`、访问域名 `aituan.2b.gs`。文档中不包含任何真实密码、SSH 私钥、GitHub Token、JWT secret 或数据库密码。
 
 ## 0. 当前目标
 
@@ -8,21 +8,21 @@
 
 | 类型 | 地址 / 值 |
 | --- | --- |
-| 服务器 IP | `43.108.39.91` |
+| 服务器 IP | `8.220.192.106` |
 | 用户访问域名 | `aituan.2b.gs` |
-| 对外 Origin | `http://aituan.2b.gs` |
-| 后端健康检查 | `http://aituan.2b.gs/actuator/health` |
-| 用户端 Web | `http://aituan.2b.gs/web/` |
-| 商家端 Web | `http://aituan.2b.gs/merchant/` |
-| 后台端 Web | `http://aituan.2b.gs/admin/` |
-| APK 下载 | `http://aituan.2b.gs/downloads/aituan-user-server-debug.apk` |
+| 对外 Origin | `https://aituan.2b.gs` |
+| 后端健康检查 | `https://aituan.2b.gs/actuator/health` |
+| 用户端 Web | `https://aituan.2b.gs/web/` |
+| 商家端 Web | `https://aituan.2b.gs/merchant/` |
+| 后台端 Web | `https://aituan.2b.gs/admin/` |
+| APK 下载 | `https://aituan.2b.gs/downloads/aituan-user-server-debug.apk` |
 | GHCR 镜像前缀 | `ghcr.io/puaa-team/aituan` |
 
 说明：
 
-- 当前教程先按 HTTP 配置，即 `http://aituan.2b.gs`。
-- 如果后续启用 HTTPS，再把 GitHub Variable `SERVER_ORIGIN` 改成 `https://aituan.2b.gs`，并补 Nginx 443 / 证书配置。
+- 当前教程按 HTTPS 域名配置，即 `https://aituan.2b.gs`。
 - `SERVER_ORIGIN` 不要写 `/api`，不要写末尾 `/`。
+- SSH 部署目标仍建议使用服务器 IP `8.220.192.106`，对外访问和前端/API Origin 使用域名。
 
 ## 1. 本地仓库已准备好的文件
 
@@ -38,14 +38,12 @@
 | `deploy/web/Dockerfile.dockerignore` | Web 镜像 build context 白名单。 |
 | `deploy/.env.example` | 增加了 CI/CD 镜像变量模板。 |
 
-没有改动：
+当前 HTTPS 部署需要注意：
 
-- `deploy/docker-compose.server.yml`
-- `scripts/build/*.ps1`
-- 真实 `.config`
-- 真实 `deploy/.env`
-
-因此旧的手动部署方式仍可作为回退方案。
+- `deploy/docker-compose.server.yml` 和 `deploy/docker-compose.cicd.yml` 需要暴露 80/443，并挂载证书目录与 ACME webroot。
+- `deploy/nginx/templates/default.conf.template` 是 CI/CD Web 镜像内使用的 Nginx 模板。
+- `deploy/nginx/conf.d/default.https.conf` 是服务器本地构建部署使用的正式 HTTPS 配置。
+- 真实 `.config`、真实 `deploy/.env`、SSH 私钥、数据库密码、证书私钥不得提交。
 
 ## 2. DNS 域名解析配置
 
@@ -55,7 +53,7 @@
 | --- | --- |
 | 主机记录 | `aituan` |
 | 记录类型 | `A` |
-| 记录值 | `43.108.39.91` |
+| 记录值 | `8.220.192.106` |
 | TTL | 默认即可 |
 
 配置后在本机验证：
@@ -67,7 +65,7 @@ nslookup aituan.2b.gs
 预期能看到：
 
 ```text
-43.108.39.91
+8.220.192.106
 ```
 
 如果 DNS 刚配置，可能需要等待几分钟到几十分钟。
@@ -79,18 +77,14 @@ nslookup aituan.2b.gs
 | 端口 | 协议 | 用途 |
 | --- | --- | --- |
 | `22` | TCP | SSH 部署。 |
-| `80` | TCP | HTTP 访问。 |
-
-如果后续要 HTTPS，再放行：
-
-| 端口 | 协议 | 用途 |
-| --- | --- | --- |
+| `80` | TCP | HTTP 访问、Let's Encrypt HTTP-01 验证、CI/CD 本机健康检查。 |
 | `443` | TCP | HTTPS 访问。 |
 
-服务器本机如启用了防火墙，也需要允许 80：
+服务器本机如启用了防火墙，也需要允许 80 和 443：
 
 ```bash
 sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
 ```
 
 如果没有使用 `ufw`，这条可以跳过。
@@ -157,11 +151,11 @@ PUAA-Team/aituan -> Settings -> Environments -> production -> Environment secret
 
 | Secret | 值 |
 | --- | --- |
-| `SERVER_HOST` | `43.108.39.91` |
+| `SERVER_HOST` | `8.220.192.106` |
 | `SERVER_PORT` | `22` |
 | `SERVER_USER` | 服务器部署用户名，例如 `root` 或后续创建的专用部署用户 |
 | `SERVER_SSH_KEY` | 部署专用 SSH 私钥完整内容 |
-| `SERVER_KNOWN_HOSTS` | `ssh-keyscan -H 43.108.39.91` 的输出 |
+| `SERVER_KNOWN_HOSTS` | `ssh-keyscan -H 8.220.192.106` 的输出 |
 
 注意：
 
@@ -181,15 +175,15 @@ PUAA-Team/aituan -> Settings -> Secrets and variables -> Actions -> Variables
 
 | Variable | 值 |
 | --- | --- |
-| `SERVER_ORIGIN` | `http://aituan.2b.gs` |
+| `SERVER_ORIGIN` | `https://aituan.2b.gs` |
 | `SERVER_APP_DIR` | `/opt/aituan/app` |
 | `AUTO_DEPLOY_PRODUCTION` | 可选；先不设置，或设置为 `false` |
 
 说明：
 
 - `SERVER_ORIGIN` 是前端和 APK 构建时写入的 API Origin。
-- 现在先使用 `http://aituan.2b.gs`。
-- 如果后续启用 HTTPS，再改成 `https://aituan.2b.gs` 并重新跑部署和 APK workflow。
+- 当前使用 `https://aituan.2b.gs`。
+- 修改该变量后必须重新跑部署和 APK workflow，否则旧 Web/APK 仍可能请求旧地址。
 - `SERVER_HOST` 是 SSH 连接服务器用的 IP；`SERVER_ORIGIN` 是用户访问和前端请求接口用的域名，两者可以不同。
 
 ## 5. 配置服务器 SSH 密钥
@@ -220,7 +214,7 @@ Get-Content "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519.pub"
 如果当前用 root 登录：
 
 ```powershell
-ssh root@43.108.39.91
+ssh root@8.220.192.106
 ```
 
 服务器上执行：
@@ -240,7 +234,7 @@ chmod 600 ~/.ssh/authorized_keys
 ### 5.3 本机测试密钥登录
 
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" root@43.108.39.91
+ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" root@8.220.192.106
 ```
 
 如果 GitHub Secret `SERVER_USER` 填的不是 root，就把命令中的 root 换成对应用户名。
@@ -250,13 +244,13 @@ ssh -i "$env:USERPROFILE\.ssh\aituan_github_actions_ed25519" root@43.108.39.91
 PowerShell：
 
 ```powershell
-ssh-keyscan -H 43.108.39.91
+ssh-keyscan -H 8.220.192.106
 ```
 
 如果没有 `ssh-keyscan`：
 
 ```powershell
-& "C:\Program Files\Git\usr\bin\ssh-keyscan.exe" -H 43.108.39.91
+& "C:\Program Files\Git\usr\bin\ssh-keyscan.exe" -H 8.220.192.106
 ```
 
 把输出完整复制到 GitHub Secret：
@@ -356,7 +350,7 @@ mkdir -p /opt/aituan/backups
 后续访问：
 
 ```text
-http://aituan.2b.gs/downloads/aituan-user-server-debug.apk
+https://aituan.2b.gs/downloads/aituan-user-server-debug.apk
 ```
 
 ## 7. GHCR 镜像权限和服务器登录
@@ -447,18 +441,18 @@ curl -fsS http://127.0.0.1/actuator/health
 本机或浏览器访问：
 
 ```text
-http://aituan.2b.gs/actuator/health
-http://aituan.2b.gs/
-http://aituan.2b.gs/web/
-http://aituan.2b.gs/merchant/
-http://aituan.2b.gs/admin/
+https://aituan.2b.gs/actuator/health
+https://aituan.2b.gs/
+https://aituan.2b.gs/web/
+https://aituan.2b.gs/merchant/
+https://aituan.2b.gs/admin/
 ```
 
 预期：
 
 - 健康检查返回 `200` 和 `{"status":"UP"}`。
 - 各 Web 页面能打开。
-- 浏览器 Network 中接口请求应为 `http://aituan.2b.gs/api/...`。
+- 浏览器 Network 中接口请求应为 `https://aituan.2b.gs/api/...`。
 - 不应出现旧 IP 或 `localhost:8080`。
 
 服务器查看状态：
@@ -489,7 +483,7 @@ Actions -> aituan-android-apk -> Run workflow
 
 | 输入项 | 建议 |
 | --- | --- |
-| `api_origin` | 留空，使用 `SERVER_ORIGIN=http://aituan.2b.gs` |
+| `api_origin` | 留空，使用 `SERVER_ORIGIN=https://aituan.2b.gs` |
 | `upload_to_server` | 需要发布下载时选 `true` |
 | `apk_name` | `aituan-user-server-debug.apk` |
 
@@ -505,7 +499,7 @@ workflow 会：
 如果上传服务器成功，访问：
 
 ```text
-http://aituan.2b.gs/downloads/aituan-user-server-debug.apk
+https://aituan.2b.gs/downloads/aituan-user-server-debug.apk
 ```
 
 ### 10.3 版本号要求
@@ -522,33 +516,35 @@ apps/user_app/pubspec.yaml
 version: 1.1.4+21
 ```
 
-## 11. 后续切换 HTTPS 的步骤提醒
+## 11. HTTPS 与证书配置
 
 当前教程使用：
 
 ```text
-http://aituan.2b.gs
+https://aituan.2b.gs
 ```
 
-如果后续启用 HTTPS，需要做：
+服务器侧需要已经完成：
 
-1. 服务器开放 443。
-2. 配置 Nginx 443 server。
-3. 配置证书，例如 Let's Encrypt。
-4. GitHub Variable 改为：
+1. DNS A 记录指向 `8.220.192.106`。
+2. 云安全组和本机防火墙开放 80/443。
+3. 使用独立的 `deploy/docker-compose.acme.yml` 暂时启动 HTTP/ACME 配置。
+4. 用 Let's Encrypt 申请 `aituan.2b.gs` 证书。
+5. 使用正式 `deploy/docker-compose.server.yml` 或 `deploy/docker-compose.cicd.yml` 启动 HTTPS Nginx。
+6. GitHub Variable 保持：
 
 ```text
 SERVER_ORIGIN=https://aituan.2b.gs
 ```
 
-5. 重新运行：
+然后重新运行：
 
 ```text
 Actions -> aituan-deploy -> Run workflow
 Actions -> aituan-android-apk -> Run workflow
 ```
 
-否则 Web / APK 仍会请求 HTTP 地址。
+否则 Web / APK 仍可能请求旧 HTTP/IP 地址。完整证书申请与续期步骤见 `docs/stage-new-1/域名HTTPS证书部署说明.md`。
 
 ## 12. 回滚方案
 
@@ -609,7 +605,7 @@ PUAA-Team -> Settings -> Actions -> General -> Workflow permissions
 检查 GitHub Variable：
 
 ```text
-SERVER_ORIGIN=http://aituan.2b.gs
+SERVER_ORIGIN=https://aituan.2b.gs
 ```
 
 然后重新运行 `aituan-deploy`。前端地址是在构建时写入的，改变量后必须重新构建镜像。
@@ -645,17 +641,17 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs -f 
 GitHub Secrets：
 
 ```text
-SERVER_HOST=43.108.39.91
+SERVER_HOST=8.220.192.106
 SERVER_PORT=22
 SERVER_USER=<服务器部署用户名>
 SERVER_SSH_KEY=<部署私钥完整内容>
-SERVER_KNOWN_HOSTS=<ssh-keyscan -H 43.108.39.91 输出>
+SERVER_KNOWN_HOSTS=<ssh-keyscan -H 8.220.192.106 输出>
 ```
 
 GitHub Variables：
 
 ```text
-SERVER_ORIGIN=http://aituan.2b.gs
+SERVER_ORIGIN=https://aituan.2b.gs
 SERVER_APP_DIR=/opt/aituan/app
 AUTO_DEPLOY_PRODUCTION=false 或不设置
 ```
@@ -666,6 +662,9 @@ AUTO_DEPLOY_PRODUCTION=false 或不设置
 AITUAN_IMAGE_REGISTRY=ghcr.io/puaa-team/aituan
 AITUAN_IMAGE_TAG=sha-example
 AITUAN_DOWNLOADS_DIR=/opt/aituan/data/downloads
+AITUAN_NGINX_SERVER_NAME=aituan.2b.gs
+AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
+AITUAN_CERTBOT_WEBROOT=/var/www/certbot
 ```
 
 服务器目录：

@@ -65,13 +65,15 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      NGINX_SERVER_NAME: ${AITUAN_NGINX_SERVER_NAME:-aituan.2b.gs}
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      - ${AITUAN_LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+      - ${AITUAN_CERTBOT_WEBROOT:-/var/www/certbot}:/var/www/certbot:ro
       - ${AITUAN_DOWNLOADS_DIR:-/opt/aituan/data/downloads}:/usr/share/nginx/html/downloads:ro
-      - ./certbot/www:/var/www/certbot:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
     networks:
       - aituan
 

@@ -1,5 +1,5 @@
 param(
-  [string]$ServerOrigin = 'http://182.92.238.178',
+  [string]$ServerOrigin = 'https://aituan.2b.gs',
   [switch]$SkipApk
 )
 

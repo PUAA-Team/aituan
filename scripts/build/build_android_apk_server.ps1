@@ -1,5 +1,5 @@
 param(
-  [string]$ServerOrigin = 'http://182.92.238.178'
+  [string]$ServerOrigin = 'https://aituan.2b.gs'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -61,6 +61,7 @@ $GradleHome = 'D:\aituan_cache\gradle'
 $AppVersion = (Select-String -Path (Join-Path $SourceDir 'pubspec.yaml') -Pattern '^version:\s*(.+)$').Matches.Groups[1].Value.Trim()
 $SafeAppVersion = $AppVersion.Replace('+', '-')
 $ApkName = "aituan-user-$SafeAppVersion-server-debug.apk"
+$StableApkName = 'aituan-user-server-debug.apk'
 $Origin = Normalize-Origin $ServerOrigin
 $BuildCommit = Get-GitCommit $RepoRoot
 
@@ -86,13 +87,19 @@ try {
 
 $BuiltApk = Join-Path $WorkDir 'build\app\outputs\flutter-apk\app-debug.apk'
 $TargetApk = Join-Path $ReleaseDir $ApkName
+$StableTargetApk = Join-Path $ReleaseDir $StableApkName
 $ArtifactApk = Join-Path $ArtifactDir $ApkName
+$StableArtifactApk = Join-Path $ArtifactDir $StableApkName
 Copy-Item $BuiltApk $TargetApk -Force
+Copy-Item $BuiltApk $StableTargetApk -Force
 Copy-Item $BuiltApk $ArtifactApk -Force
+Copy-Item $BuiltApk $StableArtifactApk -Force
 Remove-DirectoryIfExists $WorkDir
 
 Write-Host "Server API origin: $Origin"
 Write-Host "App version: $AppVersion"
 Write-Host "Build commit: $BuildCommit"
 Write-Host "APK server output: $TargetApk"
+Write-Host "APK stable output: $StableTargetApk"
 Write-Host "APK deploy artifact: $ArtifactApk"
+Write-Host "APK stable deploy artifact: $StableArtifactApk"

@@ -1,6 +1,6 @@
 # 爱团服务器 Docker Compose 部署完整说明
 
-> 本文汇总当前仓库可用的服务器部署口径，重点说明 `deploy/docker-compose.server.yml` 的 Docker Compose 部署方式。当前服务器口径为 `http://182.92.238.178`，真实密码、JWT secret、邮箱授权码、图床 Token 等敏感信息必须只保存在服务器本地，不得写入 Git、文档或聊天记录。
+> 历史说明：本文最初记录旧服务器 HTTP/IP 部署口径，旧地址仅作迁移参考。当前生产/演示部署以 `aituan-new`、`8.220.192.106`、`https://aituan.2b.gs` 和 `docs/stage-new-1/新服务器Docker部署与CICD说明.md` 为准。真实密码、JWT secret、邮箱授权码、图床 Token 等敏感信息必须只保存在服务器本地，不得写入 Git、文档或聊天记录。
 
 ## 1. 当前部署目标
 

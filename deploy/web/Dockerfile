@@ -1,6 +1,6 @@
 FROM nginx:1.27-alpine
 
-COPY deploy/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx/templates/default.conf.template /etc/nginx/templates/default.conf.template
 COPY deploy/artifacts/landing /usr/share/nginx/html/landing
 COPY deploy/artifacts/user-web /usr/share/nginx/html/web
 COPY deploy/artifacts/merchant-web /usr/share/nginx/html/merchant

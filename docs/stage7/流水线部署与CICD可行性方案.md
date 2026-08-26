@@ -260,7 +260,7 @@ CI 中先把 Maven 构建出的 JAR 复制到 `deploy/artifacts/backend/aituan-b
 
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
-| `SERVER_HOST` | Secret | 服务器 IP 或域名，如 `182.92.238.178`。 |
+| `SERVER_HOST` | Secret | SSH 连接用服务器 IP 或域名，如当前新服务器 `8.220.192.106`。 |
 | `SERVER_PORT` | Variable/Secret | SSH 端口，默认 `22`。 |
 | `SERVER_USER` | Secret | SSH 登录用户，建议不是 root。 |
 | `SERVER_SSH_KEY` | Secret | 只用于部署的私钥，建议设置最小权限。 |
