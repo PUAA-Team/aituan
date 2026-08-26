@@ -1,0 +1,44 @@
+# 复制为 .config 后按需填写；.config 已加入 .gitignore，不要提交真实密钥。
+# 公开部署必须设置强随机 JWT secret。
+aituan.security.jwt-secret=change-me-to-a-long-random-secret
+
+# AI 助手：复制到 .config 后填写真实 key；不要提交真实密钥。
+aituan.ai.enabled=false
+aituan.ai.api-url=http://cliapi.2b.gs
+aituan.ai.api-key=
+aituan.ai.model=pp/gpt-5.5
+aituan.ai.timeout-seconds=20
+aituan.ai.max-tokens=800
+aituan.ai.temperature=0.25
+
+# 邮箱验证码：服务器环境建议开启 SMTP，并关闭 debug 明文返回验证码。
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+spring.mail.host=smtp.qq.com
+spring.mail.port=465
+spring.mail.username=
+spring.mail.password=
+spring.mail.properties.mail.smtp.ssl.enable=true
+spring.mail.properties.mail.smtp.starttls.enable=false
+aituan.mail.from=
+aituan.mail.from-name=爱团
+
+# 图片上传：local=本地保存；lskypro=上传到 LskyPro 图床。
+aituan.upload.strategy=local
+aituan.upload.lskypro.api-url=https://p.2b.gs/api/v1
+# 二选一：已有 Token 就填 token；否则填 email/password 由后端自动调用 /tokens 获取。
+aituan.upload.lskypro.token=
+aituan.upload.lskypro.email=
+aituan.upload.lskypro.password=
+aituan.upload.lskypro.token-url=https://p.2b.gs/api/v1/tokens
+aituan.upload.lskypro.strategy-id=
+aituan.upload.lskypro.album-id=
+aituan.upload.lskypro.permission=1
+
+# 地图服务：local=本地直线距离估算；amap=调用高德 Web 服务。
+aituan.map.provider=local
+aituan.map.amap.web-api-key=
+aituan.map.amap.geocode-url=https://restapi.amap.com/v3/geocode/geo
+aituan.map.amap.distance-url=https://restapi.amap.com/v3/distance
+aituan.map.amap.regeo-url=https://restapi.amap.com/v3/geocode/regeo
+aituan.map.amap.route-url=https://restapi.amap.com/v5/direction/electrobike

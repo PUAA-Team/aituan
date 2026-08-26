@@ -1,0 +1,8 @@
+.env
+*.env
+secrets/
+*.log
+**/*.log
+artifacts/merchant-web/
+artifacts/admin-web/
+artifacts/downloads/

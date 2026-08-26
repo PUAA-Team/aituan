@@ -1,0 +1,43 @@
+class Routes {
+  const Routes._();
+
+  static const splash = '/splash';
+  static const login = '/login';
+  static const main = '/main';
+  static const home = '/home';
+  static const module = '/module';
+  static const search = '/search';
+  static const searchResult = '/search/result';
+  static const merchantDetail = '/merchant/detail';
+  static const itemDetail = '/item/detail';
+  static const checkout = '/checkout/confirm';
+  static const orders = '/orders';
+  static const orderDetail = '/order/detail';
+  static const deliveryTracking = '/order/delivery-tracking';
+  static const message = '/message/list';
+  static const favorite = '/favorite';
+  static const addressList = '/address/list';
+  static const addressEdit = '/address/edit';
+  static const profile = '/profile';
+  static const memberCenter = '/member/center';
+  static const coupons = '/coupon/list';
+  static const couponClaim = '/coupon/claim';
+  static const couponSelector = '/coupon/select';
+  static const settings = '/settings';
+  static const about = '/about';
+  static const userAgreement = '/about/user-agreement';
+  static const privacyPolicy = '/about/privacy-policy';
+  static const qualificationSupport = '/about/qualification-support';
+  static const profileEdit = '/profile/edit';
+  static const reviewPublish = '/review/publish';
+  static const myReviews = '/review/my';
+  static const reviewDetail = '/review/detail';
+  static const aiAssistant = '/ai/assistant';
+  static const supportSessions = '/support/sessions';
+  static const supportChat = '/support/chat';
+  static const complaintList = '/complaint/list';
+  static const complaintDetail = '/complaint/detail';
+  static const complaintSubmit = '/complaint/submit';
+  static const voucherDetail = '/order/voucher';
+  static const bookingDetail = '/order/booking';
+}

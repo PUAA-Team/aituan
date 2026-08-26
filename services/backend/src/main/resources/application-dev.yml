@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: ${AITUAN_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/aituan_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${AITUAN_DATASOURCE_USERNAME:aituan}
+    password: ${AITUAN_DATASOURCE_PASSWORD:aituan_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    baseline-on-migrate: true
+
+logging:
+  level:
+    com.aituan: INFO

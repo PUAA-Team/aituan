@@ -1,0 +1,78 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: aituan-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:demo}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+    clean-disabled: true
+  config:
+    import: optional:file:${AITUAN_CONFIG_FILE:.config}[.properties],optional:file:../../.config[.properties]
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
+      max-request-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
+
+  mail:
+    host: ${AITUAN_MAIL_HOST:smtp.qq.com}
+    port: ${AITUAN_MAIL_PORT:465}
+    username: ${AITUAN_MAIL_USERNAME:}
+    password: ${AITUAN_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: ${AITUAN_MAIL_SSL_ENABLE:true}
+      mail.smtp.starttls.enable: ${AITUAN_MAIL_STARTTLS_ENABLE:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+aituan:
+  security:
+    jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
+    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
+  upload:
+    strategy: ${AITUAN_UPLOAD_STRATEGY:local}
+    root-dir: ${AITUAN_UPLOAD_ROOT:${user.home}/.aituan/uploads}
+    public-prefix: ${AITUAN_UPLOAD_PUBLIC_PREFIX:/api/common/files}
+    max-size-bytes: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5242880}
+    lskypro:
+      api-url: ${AITUAN_UPLOAD_LSKYPRO_API_URL:https://p.2b.gs/api/v1}
+      token: ${AITUAN_UPLOAD_LSKYPRO_TOKEN:}
+      strategy-id: ${AITUAN_UPLOAD_LSKYPRO_STRATEGY_ID:}
+      album-id: ${AITUAN_UPLOAD_LSKYPRO_ALBUM_ID:}
+      permission: ${AITUAN_UPLOAD_LSKYPRO_PERMISSION:1}
+  mail:
+    enabled: ${AITUAN_MAIL_ENABLED:false}
+    debug-return-code: ${AITUAN_MAIL_DEBUG_RETURN_CODE:false}
+    from: ${AITUAN_MAIL_FROM:${AITUAN_MAIL_USERNAME:}}
+    from-name: ${AITUAN_MAIL_FROM_NAME:爱团}
+  map:
+    provider: ${AITUAN_MAP_PROVIDER:local}
+    amap:
+      web-api-key: ${AITUAN_MAP_AMAP_WEB_API_KEY:}
+      distance-url: ${AITUAN_MAP_AMAP_DISTANCE_URL:https://restapi.amap.com/v3/distance}
+      regeo-url: ${AITUAN_MAP_AMAP_REGEO_URL:https://restapi.amap.com/v3/geocode/regeo}
+  ai:
+    enabled: ${AITUAN_AI_ENABLED:false}
+    api-url: ${AITUAN_AI_API_URL:http://cliapi.2b.gs}
+    api-key: ${AITUAN_AI_API_KEY:}
+    model: ${AITUAN_AI_MODEL:pp/gpt-5.5}
+    timeout-seconds: ${AITUAN_AI_TIMEOUT_SECONDS:20}
+    max-tokens: ${AITUAN_AI_MAX_TOKENS:800}
+    temperature: ${AITUAN_AI_TEMPERATURE:0.25}
