@@ -167,3 +167,13 @@
 `./docs/后续阶段五人模块分工计划.md`
 
 `./docs/后续功能待办.md`
+
+### 12. Stage 8 对象级顺序图
+
+`./docs/stage8/对象级顺序图.md`
+
+### 13. Stage 9 端到端测试（UC01-UC07）
+
+`./docs/stage9-e2e/README.md`
+
+`./tests/e2e/README.md`
