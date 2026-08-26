@@ -222,11 +222,15 @@ jobs:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_PORT: ${{ secrets.SERVER_PORT }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           ssh_port="${SERVER_PORT:-22}"
-          ssh -i ~/.ssh/aituan_deploy_key -p "$ssh_port" "${SERVER_USER}@${SERVER_HOST}" \
+          printf '%s\n' "${GHCR_TOKEN}" | ssh -i ~/.ssh/aituan_deploy_key -p "$ssh_port" "${SERVER_USER}@${SERVER_HOST}" \
             "set -eu; \
+             docker login ghcr.io -u '${GHCR_USERNAME}' --password-stdin >/dev/null; \
+             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT; \
              cd '${SERVER_APP_DIR}'; \
              test -f deploy/.env; \
              mkdir -p /opt/aituan/backups; \
