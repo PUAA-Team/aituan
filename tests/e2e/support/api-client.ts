@@ -110,6 +110,7 @@ export interface OrderView {
   displayStatus?: string;
   fulfillmentStatus?: string;
   paymentStatus?: string;
+  refundStatus?: string;
   amount?: number;
   deliveryFee?: number;
   discountAmount?: number;
@@ -153,6 +154,63 @@ export interface StationMessage {
   content: string;
   unread: boolean;
   relatedOrderId?: number;
+}
+
+export interface MemberInfo {
+  currentLevelName?: string;
+  growthValue: number;
+  nextLevelName?: string;
+}
+
+export interface AvailableCoupon {
+  templateId: number;
+  name: string;
+  thresholdAmount?: number;
+  faceValue?: number;
+  status?: string;
+}
+
+export interface UserCoupon {
+  id: number;
+  templateId: number;
+  status: string;
+  name?: string;
+  faceValue?: number;
+}
+
+export interface ReviewView {
+  id: number;
+  orderId?: number;
+  orderNo?: string;
+  status?: string;
+  replied: boolean;
+  replyContent?: string;
+  content?: string;
+}
+
+export interface ComplaintView {
+  id: number;
+  ticketNo: string;
+  status?: string;
+  orderNo?: string;
+}
+
+export interface SupportMessage {
+  id: number;
+  sessionId?: number;
+  senderType: string;
+  content: string;
+}
+
+export interface SupportSessionDetail {
+  session: {
+    id: number;
+    sessionNo?: string;
+    status?: string;
+    assistantMode?: string;
+    platformInterventionStatus?: string;
+  };
+  messages: SupportMessage[];
 }
 
 export class E2EApi {
@@ -313,13 +371,20 @@ export class E2EApi {
     }).then((r) => r.data);
   }
 
-  preview(storeId: number, businessType: string, items: Array<{ itemId: number; quantity: number }>, addressId?: number) {
+  preview(
+    storeId: number,
+    businessType: string,
+    items: Array<{ itemId: number; quantity: number }>,
+    addressId?: number,
+    couponId?: number,
+  ) {
     return this.request<CheckoutPreview>('POST', '/api/app/trade/checkout/preview', {
       storeId,
       businessType,
       addressId,
       items,
       remark: '',
+      couponId,
     }).then((r) => r.data);
   }
 
@@ -328,6 +393,7 @@ export class E2EApi {
     businessType: string,
     items: Array<{ itemId: number; quantity: number }>,
     addressId?: number,
+    couponId?: number,
   ) {
     return this.request<OrderView>('POST', '/api/app/trade/orders', {
       storeId,
@@ -335,6 +401,7 @@ export class E2EApi {
       addressId,
       items,
       remark: '',
+      couponId,
       idempotencyKey: `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     }).then((r) => r.data);
   }
@@ -343,6 +410,12 @@ export class E2EApi {
     return this.request<OrderView>('POST', `/api/app/trade/orders/${orderId}/pay`, {
       paymentMode,
     }).then((r) => r.data);
+  }
+
+  cancelOrder(orderId: number) {
+    return this.request<OrderView>('POST', `/api/app/trade/orders/${orderId}/cancel`, {}).then(
+      (r) => r.data,
+    );
   }
 
   orders(displayStatus?: string) {
@@ -399,6 +472,127 @@ export class E2EApi {
 
   merchantAction(orderId: number, action: string) {
     return this.request<OrderView>('POST', `/api/merchant/trade/orders/${orderId}/${action}`, {}).then((r) => r.data);
+  }
+
+  async completeTakeawayOrder(orderId: number) {
+    for (const action of ['accept', 'prepare', 'ready', 'delivery/advance', 'delivery/advance', 'complete']) {
+      await this.merchantAction(orderId, action);
+    }
+    return this.request<OrderView>('GET', `/api/merchant/trade/orders/${orderId}`).then((r) => r.data);
+  }
+
+  memberInfo() {
+    return this.request<MemberInfo>('GET', '/api/app/account/member/info').then((r) => r.data);
+  }
+
+  availableCoupons() {
+    return this.request<AvailableCoupon[]>('GET', '/api/app/account/coupons/available').then((r) => r.data);
+  }
+
+  claimCoupon(templateId: number) {
+    return this.request<void>('POST', `/api/app/account/coupons/${templateId}/claim`);
+  }
+
+  myCoupons(status = 'usable') {
+    return this.request<UserCoupon[]>('GET', `/api/app/account/coupons?status=${status}`).then((r) => r.data);
+  }
+
+  createReview(orderId: number, body: Record<string, unknown>) {
+    return this.request<ReviewView>('POST', `/api/app/interaction/orders/${orderId}/review`, body).then(
+      (r) => r.data,
+    );
+  }
+
+  reviewDetail(reviewId: number) {
+    return this.request<ReviewView>('GET', `/api/app/interaction/reviews/${reviewId}`).then((r) => r.data);
+  }
+
+  createComplaint(body: Record<string, unknown>) {
+    return this.request<ComplaintView>('POST', '/api/app/complaints', body).then((r) => r.data);
+  }
+
+  complaintDetail(id: number) {
+    return this.request<{ complaint: ComplaintView }>('GET', `/api/app/complaints/${id}`).then(
+      (r) => r.data,
+    );
+  }
+
+  createSupportSession(storeId: number, topic: string) {
+    return this.request<{ id: number; sessionNo?: string; status?: string }>(
+      'POST',
+      '/api/app/support/sessions',
+      { storeId, topic, relatedOrderId: null },
+    ).then((r) => r.data);
+  }
+
+  sendSupportMessage(sessionId: number, content: string) {
+    return this.request<SupportMessage>('POST', `/api/app/support/sessions/${sessionId}/messages`, {
+      content,
+    }).then((r) => r.data);
+  }
+
+  requestPlatformIntervention(sessionId: number) {
+    return this.request('POST', `/api/app/support/sessions/${sessionId}/platform-intervention`);
+  }
+
+  supportSessionDetail(sessionId: number) {
+    return this.request<SupportSessionDetail>('GET', `/api/app/support/sessions/${sessionId}`).then(
+      (r) => r.data,
+    );
+  }
+
+  merchantCurrentStore() {
+    return this.request<{
+      id: number;
+      storeName?: string;
+      announcement?: string;
+      summary?: string;
+      status?: string;
+    }>('GET', '/api/merchant/stores/current').then((r) => r.data);
+  }
+
+  merchantStoreUpdate(body: Record<string, unknown>) {
+    return this.request('PUT', '/api/merchant/stores/current', body).then((r) => r.data);
+  }
+
+  updateTakeawaySetting(storeId: number, acceptMode: string) {
+    return this.request('POST', `/api/merchant/trade/stores/${storeId}/takeaway-setting`, {
+      acceptMode,
+    }).then((r) => r.data);
+  }
+
+  updateDeliveryRule(storeId: number, body: Record<string, unknown>) {
+    return this.request('POST', `/api/merchant/trade/stores/${storeId}/delivery-rule`, body).then(
+      (r) => r.data,
+    );
+  }
+
+  createCatalogItem(body: Record<string, unknown>) {
+    return this.request<{ id: number; title?: string; status?: string }>(
+      'POST',
+      '/api/merchant/catalog/items',
+      body,
+    ).then((r) => r.data);
+  }
+
+  catalogItems(filters = '') {
+    return this.request<Array<{ id: number; title?: string; status?: string }>>(
+      'GET',
+      `/api/merchant/catalog/items${filters}`,
+    ).then((r) => r.data);
+  }
+
+  catalogItem(itemId: number) {
+    return this.request<{ id: number; title?: string; status?: string }>(
+      'GET',
+      `/api/merchant/catalog/items/${itemId}`,
+    ).then((r) => r.data);
+  }
+
+  updateCatalogItemStatus(itemId: number, status: string) {
+    return this.request('POST', `/api/merchant/catalog/items/${itemId}/status`, { status }).then(
+      (r) => r.data,
+    );
   }
 
   lookupVoucher(code: string) {

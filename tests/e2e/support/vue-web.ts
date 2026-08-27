@@ -29,6 +29,14 @@ export async function clickMerchantNav(page: Page, label: string) {
   await button.click();
 }
 
+export async function clickAdminNav(page: Page, label: string) {
+  const button = page
+    .locator('button.nav-item')
+    .filter({ has: page.locator('strong', { hasText: label }) })
+    .first();
+  await button.click();
+}
+
 export async function merchantOrderRow(page: Page, orderNo: string) {
   const row = page.locator('tbody tr', { hasText: orderNo }).first();
   await expect(row).toBeVisible({ timeout: 30_000 });

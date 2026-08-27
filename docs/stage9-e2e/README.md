@@ -26,6 +26,12 @@
 | E2E-TC05 | 商家处理外卖订单并推进配送履约 | `specs/uc05-delivery-fulfillment-flow.spec.ts` | 商家 Vue Web + API 闭环 |
 | E2E-TC06 | 用户购买非外卖服务并获得券码凭证 | `specs/uc06-service-voucher-flow.spec.ts` | API 出券 + 用户展示 + 商家核销 |
 | E2E-TC07 | 用户预约到店/团购服务并由商家核销确认 | `specs/uc07-booking-redeem-flow.spec.ts` | API 预约 + 商家 Vue Web 确认 |
+| E2E-TC08 | 用户申请取消与退款，商家处理退款 | `specs/uc08-refund-flow.spec.ts` | API 取消/退款 + 商家 Vue Web 退款 |
+| E2E-TC09 | 用户完成订单后发布评价，商家回复，平台审核治理 | `specs/uc09-review-governance-flow.spec.ts` | 用户 API + 商家/后台 Vue Web |
+| E2E-TC10 | 用户提交投诉，平台受理、处理并关闭 | `specs/uc10-complaint-flow.spec.ts` | 用户 API + 后台 Vue Web 工单处理 |
+| E2E-TC11 | 用户联系客服，商家与平台客服回复 | `specs/uc11-support-ai-flow.spec.ts` | 用户 API + 商家/后台客服会话 |
+| E2E-TC12 | 用户查看会员成长值、领取并下单使用优惠券 | `specs/uc12-member-coupon-flow.spec.ts` | API 完整闭环（领券、抵扣、成长值） |
+| E2E-TC13 | 商家维护门店资料、履约规则和商品/服务目录 | `specs/uc13-merchant-catalog-flow.spec.ts` | API + 商家 Vue Web 商品管理 |
 
 ## 3. 本地运行
 
@@ -59,4 +65,8 @@ cd D:\aituan\tests\e2e
 ## 6. 验证结果口径
 
 E2E 报告包含：测试总数、通过数、失败数、失败原因、运行环境（浏览器、端口、数据库）、
-视频/截图/trace 产物。追溯编号 `E2E-TC01` 至 `E2E-TC07` 供追溯表使用。
+截图/trace 产物。追溯编号 `E2E-TC01` 至 `E2E-TC13` 供追溯表使用。
+
+说明：`e2e` profile 关闭外部 AI 调用，UC11 通过商家客服与平台人工介入覆盖客服回复链路；
+AI 自动回复降级由后端单测覆盖。商家端/后台端 Vue Web 界面操作覆盖
+UC05、UC06、UC07、UC08、UC09、UC10、UC11、UC13，满足从页面入口执行的要求。

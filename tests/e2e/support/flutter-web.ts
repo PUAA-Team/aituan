@@ -56,6 +56,11 @@ export async function expectFlutterText(page: Page, text: string, timeout = 30_0
   await expect(page.getByText(text, { exact: false }).first()).toBeVisible({ timeout });
 }
 
-export async function expectFlutterRole(page: Page, role: 'button' | 'group' | 'tab', name: string, timeout = 30_000) {
+export async function expectFlutterRole(
+  page: Page,
+  role: 'button' | 'group' | 'tab',
+  name: string | RegExp,
+  timeout = 30_000,
+) {
   await expect(page.getByRole(role, { name }).first()).toBeVisible({ timeout });
 }
