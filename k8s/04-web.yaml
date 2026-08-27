@@ -24,7 +24,8 @@ metadata:
     app.kubernetes.io/part-of: aituan
     app.kubernetes.io/component: frontend
 spec:
-  type: ClusterIP
+  # 单节点 k3s 通过内置 servicelb 直接接管服务器 80/443，避免额外安装 Ingress Controller。
+  type: LoadBalancer
   ports:
     - name: http
       port: 80

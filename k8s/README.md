@@ -12,8 +12,8 @@ Kubernetes 资源统一部署到 `aituan` namespace：
 | `01-configmap.yaml` | ConfigMap | 保存非敏感配置 |
 | `02-mysql.yaml` | StatefulSet / Service / PVC | 部署 MySQL 8 并持久化数据 |
 | `03-backend.yaml` | Deployment / Service / PVC | 部署 Spring Boot 后端和上传目录 |
-| `04-web.yaml` | Deployment / Service / PVC | 部署 Nginx/Web 入口和下载目录 |
-| `05-ingress.yaml` | Ingress | 通过 `aituan.2b.gs` 暴露 Web 入口 |
+| `04-web.yaml` | Deployment / Service / PVC | 部署 Nginx/Web 入口和下载目录；单节点 k3s 下通过 LoadBalancer 接管 80/443 |
+| `05-ingress.yaml` | Ingress | 如果后续安装 Ingress Controller，可通过 `aituan.2b.gs` 暴露 Web 入口 |
 | `secret.example.yaml` | Secret 示例 | 说明需要哪些 Secret，不保存真实值 |
 
 ## 2. 不能提交的敏感信息
@@ -140,6 +140,8 @@ kubectl apply -f k8s/03-backend.yaml
 kubectl apply -f k8s/04-web.yaml
 kubectl apply -f k8s/05-ingress.yaml
 ```
+
+当前服务器使用单节点 k3s，`04-web.yaml` 中的 `web` Service 类型为 `LoadBalancer`，由 k3s 内置 servicelb 直接接管公网 80/443。为了避免端口冲突，同机部署时不要同时运行 Docker Compose 的 `nginx` 服务。
 
 部署指定版本镜像，注意使用 sha tag：
 

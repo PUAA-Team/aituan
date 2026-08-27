@@ -38,8 +38,8 @@ k8s/*.yaml
 | `01-configmap.yaml` | ConfigMap | 保存非敏感配置 |
 | `02-mysql.yaml` | StatefulSet / Service / PVC | 运行 MySQL 8 并持久化数据 |
 | `03-backend.yaml` | Deployment / Service / PVC | 运行 Spring Boot 后端，配置健康检查 |
-| `04-web.yaml` | Deployment / Service / PVC | 运行 Nginx/Web 镜像，暴露 80/443 |
-| `05-ingress.yaml` | Ingress | 通过 `aituan.2b.gs` 访问 Web 入口 |
+| `04-web.yaml` | Deployment / Service / PVC | 运行 Nginx/Web 镜像，单节点 k3s 下通过 LoadBalancer 暴露 80/443 |
+| `05-ingress.yaml` | Ingress | 预留 Ingress Controller 场景，通过 `aituan.2b.gs` 访问 Web 入口 |
 | `secret.example.yaml` | Secret 示例 | 仅说明字段，不保存真实密钥 |
 | `README.md` | 操作说明 | 首次部署、Secrets、验证和回滚 |
 
@@ -184,6 +184,8 @@ kubectl apply -f k8s/03-backend.yaml
 kubectl apply -f k8s/04-web.yaml
 kubectl apply -f k8s/05-ingress.yaml
 ```
+
+当前 `aituan-new` 服务器采用单节点 k3s，未启用 Traefik，也未额外安装 nginx-ingress。为快速满足课程验收，`web` Service 使用 `LoadBalancer`，由 k3s 内置 servicelb 接管公网 80/443；因此同机不要同时运行 Docker Compose 的 Nginx。
 
 查看状态：
 

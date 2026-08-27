@@ -170,6 +170,8 @@
 
 `./docs/stage-new-1/Kubernetes部署与CICD说明.md`
 
+`./docs/stage-new-1/DockerCompose到K8s-CICD迁移简明说明.md`
+
 `./docs/stage-new-1/测试与CICD补齐总清单.md`
 
 `./docs/stage-new-1/详细设计说明书-小学期修订版.md`
