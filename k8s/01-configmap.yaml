@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aituan-config
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: aituan
+    app.kubernetes.io/part-of: aituan
+data:
+  MYSQL_DATABASE: aituan_dev
+  SPRING_PROFILES_ACTIVE: dev
+  SERVER_PORT: "8080"
+  AITUAN_UPLOAD_ROOT: /data/uploads
+  AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
+  MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+  JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
+  TZ: Asia/Shanghai
+  NGINX_SERVER_NAME: aituan.2b.gs

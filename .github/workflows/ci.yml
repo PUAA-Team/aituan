@@ -39,8 +39,18 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run Maven tests
-        run: mvn -B -f services/backend/pom.xml test
+      - name: Run Maven tests and coverage
+        run: mvn -B -f services/backend/pom.xml org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.12:report
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            services/backend/target/surefire-reports/
+            services/backend/target/site/jacoco/
+          if-no-files-found: warn
 
   web:
     name: Web build (${{ matrix.app.name }})
@@ -76,7 +86,18 @@ jobs:
       - name: Run ${{ matrix.app.name }} web tests
         env:
           VITE_API_BASE_URL: ${{ env.CI_API_BASE_URL }}
-        run: npm test --prefix ${{ matrix.app.path }}
+        run: |
+          set -euo pipefail
+          mkdir -p ${{ matrix.app.path }}/test-results
+          npm test --prefix ${{ matrix.app.path }} -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+
+      - name: Upload ${{ matrix.app.name }} web test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.name }}-web-test-reports
+          path: ${{ matrix.app.path }}/test-results/
+          if-no-files-found: warn
 
       - name: Build ${{ matrix.app.name }} web
         env:
@@ -111,9 +132,22 @@ jobs:
         working-directory: apps/user_app
         run: flutter analyze
 
-      - name: Run Flutter tests
+      - name: Run Flutter tests with coverage
         working-directory: apps/user_app
-        run: flutter test
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          flutter test --coverage --machine > test-results/flutter-test.json
+
+      - name: Upload Flutter test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-reports
+          path: |
+            apps/user_app/test-results/
+            apps/user_app/coverage/
+          if-no-files-found: warn
 
       - name: Build Flutter web
         working-directory: apps/user_app

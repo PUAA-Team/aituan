@@ -8,6 +8,8 @@ services/backend/bin/
 # Web build outputs
 apps/*/node_modules/
 apps/*/dist/
+apps/*/test-results/
+apps/*/coverage/
 tests/e2e/node_modules/
 tests/e2e/artifacts/
 

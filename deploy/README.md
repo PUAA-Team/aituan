@@ -22,6 +22,8 @@ Compose 服务包括：
 - `backend`：Spring Boot 后端，仅在 Compose 内部网络暴露 8080。
 - `nginx`：公网入口，托管根路径下载展示页、用户端 Web、商家端/后台端静态产物，并反向代理后端。
 
+> 说明：当前仓库已新增 `k8s/` Kubernetes 部署链路，课程标准下 `aituan-deploy` 可通过 `deploy_target=k8s` 执行 `kubectl apply`、`kubectl set image` 和 `kubectl rollout status`。本文保留 Docker Compose 部署说明，作为单服务器部署和 K8s 故障时的回退链路。
+
 ## 2. 敏感信息
 
 不要把以下内容提交到 Git：

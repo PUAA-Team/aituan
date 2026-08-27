@@ -17,10 +17,10 @@
 | 端到端测试 | 未发现 `integration_test`、Playwright、Cypress、Selenium 等 E2E 工程 | 缺失 |
 | CI 测试门禁 | `aituan-ci` 覆盖后端、Web、Flutter、静态回归 | 基本具备 |
 | CD 镜像部署 | `aituan-deploy` 能构建 backend/web 镜像并用 Docker Compose 部署 | 基本具备 |
-| Kubernetes 部署 | 未发现 `k8s/` 部署文件，也未发现 `kubectl apply/rollout` | 缺失 |
+| Kubernetes 部署 | 已新增 `k8s/` 部署文件，`aituan-deploy` 支持 `deploy_target=k8s` 并执行 `kubectl apply/rollout` | 基本具备，需配置真实集群 Secrets 后验收 |
 | 新服务器配置 | 文档和本地脚本已切到 `8.220.192.106`，服务器当前健康 | 需要确认 GitHub Secrets / Variables 已同步 |
 
-一句话总结：**现在有单元 / API 层自动化测试和 Docker Compose 版 CI/CD，但端到端业务场景自动化、覆盖率报告、真实 MySQL 集成验证、Kubernetes 部署链路还需要补齐。**
+一句话总结：**现在有单元 / API 层自动化测试、覆盖率报告、Docker Compose 回退链路和 Kubernetes 版 CI/CD 部署链路；端到端业务场景自动化、真实 MySQL 集成验证仍需继续补齐。**
 
 ## 2. 当前已有测试
 
@@ -352,10 +352,10 @@ Kubernetes 部署
 | 数据库官方镜像 | `mysql:8.0` 已满足 | K8s 中还没有 MySQL StatefulSet | 新增 MySQL `StatefulSet` 和 `Service` |
 | 前后端提交 Dockerfile | 已有 `deploy/backend/Dockerfile`、`deploy/web/Dockerfile` | 无 | 保留 |
 | push 后自动测试、构建镜像 | `deploy.yml` 基本具备 | 缺 Web `npm test`、MySQL service container 测试 | 修改 `deploy.yml` |
-| 部署到 Kubernetes | 当前是 Docker Compose | 缺 `kubectl apply`、`kubectl set image`、`kubectl rollout status` | 新增 k8s deploy job |
-| 成功和失败记录保留 | GitHub Actions 会保留日志 | 缺部署版本摘要和测试报告 artifact | 上传测试报告、部署摘要和 kubectl 输出 |
-| 镜像有版本号，不只用 latest | 已使用 `sha-短提交号` 和 `main` | K8s manifest 需要默认占位 tag，部署时替换 | K8s Deployment 使用 GHCR image，workflow set image 到 sha tag |
-| Kubernetes 部署文件、测试脚本、部署脚本提交 | 当前缺 K8s 文件 | 缺目录和说明文档 | 新增 `k8s/`、`scripts/verify` 或 `scripts/deploy` 说明 |
+| 部署到 Kubernetes | 已新增 `k8s/` manifests，`aituan-deploy` 支持 `deploy_target=k8s` | 真实集群需配置 `KUBE_CONFIG`、K8s Secrets 和 Ingress/TLS | 在课程或测试集群运行 K8s 部署验收 |
+| 成功和失败记录保留 | GitHub Actions 会保留日志，K8s job 失败时输出 `kubectl describe/logs` | 可继续补部署摘要 artifact | 上传测试报告、部署摘要和 kubectl 输出 |
+| 镜像有版本号，不只用 latest | 已使用 `sha-短提交号` 和 `main`，K8s 通过 `kubectl set image` 使用 sha tag | 无 | 保留 sha tag 部署规则 |
+| Kubernetes 部署文件、测试脚本、部署脚本提交 | 已新增 `k8s/` 和说明文档 | 真实集群 Secrets 不入仓库 | 按 `k8s/README.md` 准备集群配置 |
 
 ## 6. 建议新增文件清单
 
@@ -508,8 +508,8 @@ apps/user_app/integration_test/
 2. 后端自动化测试覆盖认证、权限、交易、优惠券、投诉、客服、评价、文件上传等核心模块。
 3. 当前不足是端到端业务场景尚未全部自动化，后续需要用 Playwright、API E2E 或 Flutter `integration_test` 覆盖全部业务场景清单。
 4. 最终汇报可以从 `UC04` 外卖点单支付、`UC07` 预约核销、`UC10` 投诉处理等 13 个 E2E 用例中挑 3 条代表链路重点说明。
-5. CI/CD 当前已能构建 GHCR 镜像并通过 Docker Compose 部署新服务器，但 Kubernetes 部署文件和 `kubectl rollout` 链路还需要补齐。
-6. 新服务器已经完成 Docker Compose 部署并通过健康检查，后续会先保留 Compose 回退，再新增 K8s 部署链路。
+5. CI/CD 当前已能构建 GHCR 镜像，支持 Docker Compose 回退，并新增 Kubernetes 部署文件和 `kubectl rollout` 链路。
+6. 新服务器已经完成 Docker Compose 部署并通过健康检查；K8s 链路作为课程标准部署路径，需在真实集群配置 `KUBE_CONFIG`、Secret 和 Ingress/TLS 后验收。
 
 ## 10. 五人分工建议
 
@@ -576,9 +576,9 @@ apps/user_app/integration_test/
 | T02 | 集成 / API 测试 | 模块调用、数据库访问、外部接口 | 后端 MockMvc + H2 MySQL mode | 部分满足 | 缺真实 MySQL 8 service container；缺外部接口 mock contract | `.github/workflows/ci.yml` 增加 MySQL 服务和迁移验证 |
 | T03 | Web 页面测试 | 商家端 / 后台端页面交互 | 仅有 `src/api.test.ts` | 不满足 | 缺页面级组件测试或浏览器 E2E | Vitest component tests 或 Playwright |
 | T04 | Flutter 端到端 | APP 页面完整流程 | `apps/user_app/test` 有单测和 Widget 测试 | 不满足 | 缺 `integration_test` | `apps/user_app/integration_test/` |
-| C01 | CI 测试门禁 | PR 自动测试失败即停 | `aituan-ci` 已覆盖后端、Web、Flutter、静态回归 | 基本满足 | 缺覆盖率 artifact | 上传测试报告和覆盖率 |
-| C02 | CD 测试门禁 | push 部署前完整测试 | `aituan-deploy` 跑后端和 Flutter 测试 | 部分满足 | 缺 merchant/admin `npm test` | 在 `deploy.yml` 构建 Web 前补 `npm test` |
-| C03 | Kubernetes 部署 | push 后部署到 K8s 并健康检查 | 当前 Docker Compose 部署 | 不满足 | 缺 `k8s/` 和 `kubectl rollout` | 新增 K8s manifests 和 K8s deploy job |
-| C04 | 镜像版本 | 镜像不能只用 latest | `sha-短提交号` 和 `main` tag | 满足 | K8s 部署需要同步使用 sha tag | `kubectl set image` 使用 `${IMAGE_TAG}` |
+| C01 | CI 测试门禁 | PR 自动测试失败即停 | `aituan-ci` 已覆盖后端、Web、Flutter、静态回归，并上传后端 Surefire/JaCoCo、Web Vitest、Flutter coverage artifact | 满足 | 后续可继续补覆盖率阈值 | 现已上传测试报告和覆盖率 artifact |
+| C02 | CD 测试门禁 | push 部署前完整测试 | `aituan-deploy` 跑后端、merchant/admin Web、Flutter 测试 | 满足 | 后续可继续补部署流水线报告归档 | 已在 `deploy.yml` 构建 Web 前补 `npm test` |
+| C03 | Kubernetes 部署 | push 后部署到 K8s 并健康检查 | 已新增 `k8s/` manifests，`aituan-deploy` 支持 `deploy_target=k8s` 并执行 `kubectl rollout status` | 满足 | 真实集群需配置 `KUBE_CONFIG` 和 K8s Secrets | 配置 GitHub Secrets 后运行 K8s 部署验证 |
+| C04 | 镜像版本 | 镜像不能只用 latest | Compose 与 K8s 均使用 `sha-短提交号`，`main` 仅作辅助标签 | 满足 | 无 | K8s 通过 `kubectl set image` 使用 `${IMAGE_TAG}` |
 | C05 | 测试报告产物 | 测试总数、通过数、失败数、失败原因、环境 | 文档有历史材料 | 不满足当前自动化口径 | 缺最新 CI 原始报告 artifact | 上传 Surefire、Vitest、Flutter test、coverage artifact |
 | D01 | 新服务器配置 | 新服务器变量、密钥、known_hosts | 文档写到 `8.220.192.106`，服务器健康 | 部分满足 | GitHub Secrets / Variables 需在网页端确认 | 核对 `SERVER_ORIGIN`、`SERVER_HOST`、`SERVER_KNOWN_HOSTS` |

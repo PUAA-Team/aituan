@@ -7,10 +7,19 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: Deploy to the production server after images are pushed
+        description: Deploy after images are pushed
         required: true
         type: boolean
         default: true
+      deploy_target:
+        description: Deployment target
+        required: true
+        type: choice
+        options:
+          - k8s
+          - compose
+          - none
+        default: k8s
 
 permissions:
   contents: read
@@ -24,6 +33,7 @@ env:
   REGISTRY: ghcr.io
   SERVER_ORIGIN: ${{ vars.SERVER_ORIGIN }}
   SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR || '/opt/aituan/app' }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'aituan' }}
 
 jobs:
   build_and_push:
@@ -33,6 +43,7 @@ jobs:
       image_registry: ${{ steps.meta.outputs.image_registry }}
       image_tag: ${{ steps.meta.outputs.image_tag }}
       should_deploy: ${{ steps.meta.outputs.should_deploy }}
+      deploy_target: ${{ steps.meta.outputs.deploy_target }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,15 +74,30 @@ jobs:
           image_registry="${REGISTRY}/${image_namespace}"
           image_tag="sha-${GITHUB_SHA::7}"
           should_deploy="false"
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ inputs.deploy }}" == "true" ]]; then
-            should_deploy="true"
+          deploy_target="k8s"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            deploy_target="${{ inputs.deploy_target }}"
+            if [[ "${{ inputs.deploy }}" == "true" && "${deploy_target}" != "none" ]]; then
+              should_deploy="true"
+            fi
           elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${{ vars.AUTO_DEPLOY_PRODUCTION }}" == "true" ]]; then
-            should_deploy="true"
+            deploy_target="${{ vars.DEPLOY_TARGET || 'k8s' }}"
+            if [[ "${deploy_target}" != "none" ]]; then
+              should_deploy="true"
+            fi
           fi
+          case "${deploy_target}" in
+            k8s|compose|none) ;;
+            *)
+              echo "::error::Unsupported deploy target: ${deploy_target}. Use k8s, compose, or none."
+              exit 1
+              ;;
+          esac
           {
             echo "image_registry=${image_registry}"
             echo "image_tag=${image_tag}"
             echo "should_deploy=${should_deploy}"
+            echo "deploy_target=${deploy_target}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Java 17
@@ -106,6 +132,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --prefix apps/merchant_web
+          npm test --prefix apps/merchant_web
           npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/merchant-web" --emptyOutDir
 
       - name: Build admin web
@@ -114,6 +141,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --prefix apps/admin_web
+          npm test --prefix apps/admin_web
           npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/admin-web" --emptyOutDir
 
       - name: Set up Flutter
@@ -178,11 +206,121 @@ jobs:
             ${{ steps.meta.outputs.image_registry }}/web:${{ steps.meta.outputs.image_tag }}
             ${{ steps.meta.outputs.image_registry }}/web:main
 
-  deploy:
-    name: Deploy to production
+  deploy_k8s:
+    name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     needs: build_and_push
-    if: needs.build_and_push.outputs.should_deploy == 'true'
+    if: needs.build_and_push.outputs.should_deploy == 'true' && needs.build_and_push.outputs.deploy_target == 'k8s'
+    environment: production
+    steps:
+      - name: Checkout Kubernetes manifests
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            k8s
+          sparse-checkout-cone-mode: true
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up kubeconfig
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.kube
+          printf '%s' "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl config current-context
+
+      - name: Prepare Kubernetes secrets
+        shell: bash
+        env:
+          K8S_MYSQL_USER: ${{ secrets.K8S_MYSQL_USER }}
+          K8S_MYSQL_PASSWORD: ${{ secrets.K8S_MYSQL_PASSWORD }}
+          K8S_MYSQL_ROOT_PASSWORD: ${{ secrets.K8S_MYSQL_ROOT_PASSWORD }}
+          K8S_APP_CONFIG: ${{ secrets.K8S_APP_CONFIG }}
+          GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl apply -f k8s/00-namespace.yaml
+          if [[ -n "${K8S_MYSQL_USER}" && -n "${K8S_MYSQL_PASSWORD}" && -n "${K8S_MYSQL_ROOT_PASSWORD}" ]]; then
+            kubectl -n "${namespace}" create secret generic aituan-db-secret \
+              --from-literal=MYSQL_USER="${K8S_MYSQL_USER}" \
+              --from-literal=MYSQL_PASSWORD="${K8S_MYSQL_PASSWORD}" \
+              --from-literal=MYSQL_ROOT_PASSWORD="${K8S_MYSQL_ROOT_PASSWORD}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "Using existing Kubernetes Secret aituan-db-secret."
+          fi
+          if [[ -n "${K8S_APP_CONFIG}" ]]; then
+            printf '%s' "${K8S_APP_CONFIG}" > /tmp/aituan-app.config
+            kubectl -n "${namespace}" create secret generic aituan-app-config \
+              --from-file=.config=/tmp/aituan-app.config \
+              --dry-run=client -o yaml | kubectl apply -f -
+            rm -f /tmp/aituan-app.config
+          else
+            echo "Using existing Kubernetes Secret aituan-app-config."
+          fi
+          if [[ -n "${GHCR_PULL_USERNAME}" && -n "${GHCR_PULL_TOKEN}" ]]; then
+            kubectl -n "${namespace}" create secret docker-registry ghcr-pull-secret \
+              --docker-server=ghcr.io \
+              --docker-username="${GHCR_PULL_USERNAME}" \
+              --docker-password="${GHCR_PULL_TOKEN}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "Using existing Kubernetes imagePullSecret ghcr-pull-secret, or public GHCR images."
+          fi
+
+      - name: Apply Kubernetes manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/01-configmap.yaml
+          kubectl apply -f k8s/02-mysql.yaml
+          kubectl apply -f k8s/03-backend.yaml
+          kubectl apply -f k8s/04-web.yaml
+          kubectl apply -f k8s/05-ingress.yaml
+
+      - name: Deploy sha-tagged images
+        shell: bash
+        env:
+          IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+          IMAGE_TAG: ${{ needs.build_and_push.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" set image deployment/aituan-backend backend="${IMAGE_REGISTRY}/backend:${IMAGE_TAG}"
+          kubectl -n "${namespace}" set image deployment/aituan-web web="${IMAGE_REGISTRY}/web:${IMAGE_TAG}"
+
+      - name: Wait for Kubernetes rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" rollout status statefulset/mysql --timeout=300s
+          kubectl -n "${namespace}" rollout status deployment/aituan-backend --timeout=300s
+          kubectl -n "${namespace}" rollout status deployment/aituan-web --timeout=300s
+          kubectl -n "${namespace}" get pods,svc,ingress
+
+      - name: Dump Kubernetes diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" get pods,svc,ingress,events || true
+          kubectl -n "${namespace}" describe deployment/aituan-backend || true
+          kubectl -n "${namespace}" describe deployment/aituan-web || true
+          kubectl -n "${namespace}" logs deployment/aituan-backend --tail=120 || true
+          kubectl -n "${namespace}" logs deployment/aituan-web --tail=120 || true
+
+  deploy_compose:
+    name: Deploy to production with Docker Compose
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    if: needs.build_and_push.outputs.should_deploy == 'true' && needs.build_and_push.outputs.deploy_target == 'compose'
     environment: production
     steps:
       - name: Checkout compose file
