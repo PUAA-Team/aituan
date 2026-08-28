@@ -2,22 +2,20 @@ $ErrorActionPreference = "Stop"
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..\")
 $E2eRoot = Join-Path $RepoRoot "tests\e2e"
-$LocalRoot = Join-Path $RepoRoot ".aituan-local\e2e"
+$LocalRoot = $env:AITUAN_E2E_ROOT
+if (-not $LocalRoot) { $LocalRoot = "D:\aituan_runtime\e2e" }
 $BuildRoot = Join-Path $LocalRoot "web"
 $BackendDir = Join-Path $LocalRoot "backend"
 $JarPath = Join-Path $BackendDir "aituan-backend-e2e.jar"
 $MavenRepo = $env:AITUAN_M2_REPO
-if (-not $MavenRepo) { $MavenRepo = Join-Path $RepoRoot ".aituan-local\m2" }
+if (-not $MavenRepo) { $MavenRepo = "D:\aituan_cache\m2" }
 $JavaHome = $env:AITUAN_JAVA_HOME
-if (-not $JavaHome) { $JavaHome = "C:\Users\12263\.jdks\ms-17.0.19" }
-if (-not (Test-Path $JavaHome)) {
-  $JavaHome = "C:\Program Files\Java\jdk-17"
-}
+if (-not $JavaHome) { $JavaHome = "D:\tools\jdk-17.0.18+8" }
 if (-not (Test-Path (Join-Path $JavaHome "bin\java.exe"))) {
   throw "未找到 JDK 17，请设置 AITUAN_JAVA_HOME。当前: $JavaHome"
 }
 $Maven = $env:AITUAN_MAVEN
-if (-not $Maven) { $Maven = "D:\apache-maven-3.9.12-bin\apache-maven-3.9.12\bin\mvn.cmd" }
+if (-not $Maven) { $Maven = "D:\tools\apache-maven-3.9.14\bin\mvn.cmd" }
 if (-not (Test-Path $Maven)) {
   throw "未找到 mvn.cmd，请设置 AITUAN_MAVEN。当前: $Maven"
 }
