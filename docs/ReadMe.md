@@ -182,6 +182,8 @@
 
 `./docs/stage-new-1/业务场景用例追溯表.md`
 
+`./docs/配置与脚本位置清单.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`
