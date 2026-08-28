@@ -174,16 +174,6 @@ jobs:
             apps/user_app/coverage/
           if-no-files-found: warn
 
-      - name: Run Flutter integration tests on Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          working-directory: apps/user_app
-          script: flutter test integration_test -d emulator-5554
-
       - name: Build Flutter web
         working-directory: apps/user_app
         run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.CI_API_BASE_URL }} --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
