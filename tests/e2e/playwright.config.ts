@@ -37,6 +37,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
         launchOptions: browserExecutable
           ? {
               executablePath: browserExecutable,

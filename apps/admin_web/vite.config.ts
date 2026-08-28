@@ -9,5 +9,17 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/main.ts', 'src/env.d.ts', 'src/types.ts'],
+      thresholds: {
+        lines: 3,
+        branches: 2,
+        functions: 2,
+        statements: 4,
+      },
+    },
   },
 });

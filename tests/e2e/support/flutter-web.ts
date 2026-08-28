@@ -6,12 +6,9 @@ export async function openUserWeb(page: Page, path = '/web/') {
 }
 
 export async function enableFlutterSemantics(page: Page) {
-  await page.waitForSelector('flt-semantics-placeholder', { timeout: 90_000 });
   const placeholder = page.locator('flt-semantics-placeholder');
-  if (await placeholder.count()) {
-    await placeholder.focus();
-    await page.keyboard.press('Enter');
-  }
+  await placeholder.waitFor({ state: 'attached', timeout: 90_000 });
+  await placeholder.dispatchEvent('click');
   await page.waitForSelector('flt-semantics', { timeout: 30_000 });
 }
 

@@ -215,13 +215,7 @@ jobs:
 
       - name: Build Flutter web
         working-directory: apps/user_app
-        run: >
-          flutter build web
-          --base-href /web/
-          --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }}
-          --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
-          --dart-define=AITUAN_BUILD_SOURCE=github-actions
-          --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }} --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
 
       - name: Build E2E web artifacts
         env:
@@ -232,12 +226,7 @@ jobs:
           npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/merchant" --emptyOutDir
           npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/admin" --emptyOutDir
           pushd apps/user_app
-          flutter build web \
-            --base-href /web/ \
-            --dart-define=API_BASE_URL=http://127.0.0.1:8090 \
-            --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} \
-            --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e \
-            --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
+          flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1:8090 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
           popd
 
       - name: Install E2E dependencies and browsers
