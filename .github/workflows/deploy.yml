@@ -39,6 +39,21 @@ jobs:
   build_and_push:
     name: Test, build, and push images
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: aituan_e2e
+          MYSQL_USER: aituan_e2e
+          MYSQL_PASSWORD: aituan_e2e
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uaituan_e2e -paituan_e2e --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     outputs:
       image_registry: ${{ steps.meta.outputs.image_registry }}
       image_tag: ${{ steps.meta.outputs.image_tag }}
@@ -110,12 +125,21 @@ jobs:
       - name: Run backend tests
         run: mvn -B -f services/backend/pom.xml test
 
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-backend-test-reports
+          path: services/backend/target/surefire-reports/
+          if-no-files-found: warn
+
       - name: Package backend jar
         run: |
           set -euo pipefail
           mvn -B -f services/backend/pom.xml -DskipTests package
-          mkdir -p deploy/artifacts/backend
+          mkdir -p deploy/artifacts/backend .aituan-local/e2e/backend
           cp services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar deploy/artifacts/backend/aituan-backend.jar
+          cp deploy/artifacts/backend/aituan-backend.jar .aituan-local/e2e/backend/aituan-backend-e2e.jar
 
       - name: Set up Node.js 24
         uses: actions/setup-node@v4
@@ -125,6 +149,7 @@ jobs:
           cache-dependency-path: |
             apps/merchant_web/package-lock.json
             apps/admin_web/package-lock.json
+            tests/e2e/package-lock.json
 
       - name: Build merchant web
         env:
@@ -132,8 +157,17 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --prefix apps/merchant_web
-          npm test --prefix apps/merchant_web
+          mkdir -p apps/merchant_web/test-results
+          npm test --prefix apps/merchant_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
           npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/merchant-web" --emptyOutDir
+
+      - name: Upload merchant web test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-merchant-web-test-reports
+          path: apps/merchant_web/test-results/
+          if-no-files-found: warn
 
       - name: Build admin web
         env:
@@ -141,8 +175,17 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --prefix apps/admin_web
-          npm test --prefix apps/admin_web
+          mkdir -p apps/admin_web/test-results
+          npm test --prefix apps/admin_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
           npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/admin-web" --emptyOutDir
+
+      - name: Upload admin web test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-admin-web-test-reports
+          path: apps/admin_web/test-results/
+          if-no-files-found: warn
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -157,7 +200,18 @@ jobs:
           set -euo pipefail
           flutter pub get
           flutter analyze
-          flutter test
+          mkdir -p test-results
+          flutter test --coverage --machine > test-results/flutter-test.json
+
+      - name: Upload Flutter test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-flutter-test-reports
+          path: |
+            apps/user_app/test-results/
+            apps/user_app/coverage/
+          if-no-files-found: warn
 
       - name: Build Flutter web
         working-directory: apps/user_app
@@ -168,6 +222,85 @@ jobs:
           --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
           --dart-define=AITUAN_BUILD_SOURCE=github-actions
           --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+
+      - name: Build E2E web artifacts
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8090
+        run: |
+          set -euo pipefail
+          mkdir -p .aituan-local/e2e/web
+          npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/merchant" --emptyOutDir
+          npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/admin" --emptyOutDir
+          pushd apps/user_app
+          flutter build web \
+            --base-href /web/ \
+            --dart-define=API_BASE_URL=http://127.0.0.1:8090 \
+            --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} \
+            --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e \
+            --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
+          popd
+
+      - name: Install E2E dependencies and browsers
+        working-directory: tests/e2e
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Start backend for E2E
+        env:
+          AITUAN_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_e2e?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_DATASOURCE_USERNAME: aituan_e2e
+          AITUAN_DATASOURCE_PASSWORD: aituan_e2e
+          AITUAN_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+        run: |
+          set -euo pipefail
+          nohup java -jar .aituan-local/e2e/backend/aituan-backend-e2e.jar \
+            --spring.profiles.active=e2e \
+            --server.port=8080 > .aituan-local/e2e/backend.out.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/api/open/auth/token/check; then
+              exit 0
+            fi
+            echo "waiting for backend... $i/60"
+            sleep 3
+          done
+          cat .aituan-local/e2e/backend.out.log
+          exit 1
+
+      - name: Start E2E static server
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:8080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+          E2E_ARTIFACTS_ROOT: ${{ github.workspace }}/.aituan-local/e2e/web
+        run: |
+          set -euo pipefail
+          nohup node scripts/static-server.mjs > "$GITHUB_WORKSPACE/.aituan-local/e2e/server.out.log" 2>&1 &
+          sleep 3
+          curl -fsS http://127.0.0.1:8090/web/ > /dev/null
+          curl -fsS http://127.0.0.1:8090/merchant/ > /dev/null
+          curl -fsS http://127.0.0.1:8090/admin/ > /dev/null
+
+      - name: Run UC01-UC13 E2E tests
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:8080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+          E2E_ARTIFACTS_ROOT: ${{ github.workspace }}/.aituan-local/e2e/web
+        run: npx playwright test
+
+      - name: Upload deploy E2E reports and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-e2e-report-uc01-uc13
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+            .aituan-local/e2e/backend.out.log
+            .aituan-local/e2e/server.out.log
+          if-no-files-found: warn
 
       - name: Sync landing page
         run: |
