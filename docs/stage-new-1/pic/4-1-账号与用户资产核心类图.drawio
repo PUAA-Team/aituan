@@ -1,0 +1,97 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="class-account" name="4.1 账号与用户资产核心类图">
+    <mxGraphModel dx="1265" dy="775" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="layer_controller" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="接口层" vertex="1">
+          <mxGeometry height="150" width="1200" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="auth_controller" parent="layer_controller" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;AuthController&#xa;----------------------&#xa;+ register()&#xa;+ login()&#xa;+ checkToken()" vertex="1">
+          <mxGeometry height="80" width="190" x="35" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="account_controller" parent="layer_controller" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;AccountController&#xa;----------------------&#xa;+ getProfile()&#xa;+ saveAddress()&#xa;+ updateFavorite()" vertex="1">
+          <mxGeometry height="80" width="190" x="270" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="member_controller" parent="layer_controller" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;MemberController&#xa;----------------------&#xa;+ getMemberInfo()" vertex="1">
+          <mxGeometry height="80" width="190" x="505" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="coupon_controller" parent="layer_controller" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;CouponController&#xa;----------------------&#xa;+ listCoupons()&#xa;+ claimCoupon()&#xa;+ usableForOrder()" vertex="1">
+          <mxGeometry height="80" width="190" x="740" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="message_controller" parent="layer_controller" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;MessageController&#xa;----------------------&#xa;+ listMessages()&#xa;+ markRead()" vertex="1">
+          <mxGeometry height="80" width="190" x="975" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_service" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="业务层" vertex="1">
+          <mxGeometry height="170" width="1200" x="50" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="auth_service" parent="layer_service" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;AuthService&#xa;----------------------&#xa;+ validateAccount()&#xa;+ verifyPassword()&#xa;+ issueLoginState()" vertex="1">
+          <mxGeometry height="90" width="190" x="35" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="account_service" parent="layer_service" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;AccountService&#xa;----------------------&#xa;+ updateProfile()&#xa;+ maintainAddress()&#xa;+ maintainFavorite()" vertex="1">
+          <mxGeometry height="90" width="190" x="270" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="member_service" parent="layer_service" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;MemberService&#xa;----------------------&#xa;+ calculateLevel()&#xa;+ queryGrowth()" vertex="1">
+          <mxGeometry height="90" width="190" x="505" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="coupon_service" parent="layer_service" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;CouponService&#xa;----------------------&#xa;+ claim()&#xa;+ validateUsable()&#xa;+ markUsedOrRelease()" vertex="1">
+          <mxGeometry height="90" width="190" x="740" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="message_service" parent="layer_service" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;MessageService&#xa;----------------------&#xa;+ queryStationMessage()&#xa;+ markRead()" vertex="1">
+          <mxGeometry height="90" width="190" x="975" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_data" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="数据访问与支撑对象" vertex="1">
+          <mxGeometry height="190" width="1200" x="50" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="auth_repo" parent="layer_data" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;AuthRepository&#xa;----------------------&#xa;account&#xa;user_profile&#xa;email_verification_code" vertex="1">
+          <mxGeometry height="95" width="190" x="35" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="account_repo" parent="layer_data" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;AccountRepository&#xa;----------------------&#xa;user_profile&#xa;user_address&#xa;user_favorite" vertex="1">
+          <mxGeometry height="95" width="190" x="270" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="coupon_repo" parent="layer_data" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;CouponRepository&#xa;----------------------&#xa;coupon_template&#xa;user_coupon" vertex="1">
+          <mxGeometry height="95" width="190" x="505" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="message_repo" parent="layer_data" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;MessageRepository&#xa;----------------------&#xa;station_message" vertex="1">
+          <mxGeometry height="95" width="190" x="740" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="jwt_service" parent="layer_data" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«support»&#xa;JwtTokenService&#xa;----------------------&#xa;+ generateToken()&#xa;+ parseToken()" vertex="1">
+          <mxGeometry height="95" width="190" x="975" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="auth_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="auth_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="account_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="account_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="member_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="member_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="coupon_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="coupon_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="message_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="message_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="auth_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="auth_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="auth_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="jwt_service" value="issues">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="account_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="account_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="member_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="account_repo" value="reads">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="coupon_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="coupon_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="message_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="message_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

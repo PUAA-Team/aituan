@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="class-catalog" name="4.2 商家与商品核心类图">
+    <mxGraphModel dx="1186" dy="726" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="controller_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="接口层" vertex="1">
+          <mxGeometry height="150" width="1180" x="60" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="discovery_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;DiscoveryController&#xa;----------------------&#xa;+ searchStores()&#xa;+ getStoreDetail()&#xa;+ getItemDetail()" vertex="1">
+          <mxGeometry height="85" width="230" x="70" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="merchant_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;MerchantController&#xa;----------------------&#xa;+ getProfile()&#xa;+ updateStore()&#xa;+ uploadQualification()" vertex="1">
+          <mxGeometry height="85" width="230" x="475" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="catalog_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;CatalogController&#xa;----------------------&#xa;+ listItems()&#xa;+ saveItem()&#xa;+ changeStatus()" vertex="1">
+          <mxGeometry height="85" width="230" x="880" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="service_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="业务层" vertex="1">
+          <mxGeometry height="170" width="1180" x="60" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="discovery_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;DiscoveryService&#xa;----------------------&#xa;+ buildHomeView()&#xa;+ buildSearchResult()&#xa;+ buildDetailView()" vertex="1">
+          <mxGeometry height="90" width="230" x="70" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="merchant_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;MerchantService&#xa;----------------------&#xa;+ maintainMerchant()&#xa;+ maintainStore()&#xa;+ checkOwnership()" vertex="1">
+          <mxGeometry height="90" width="230" x="475" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="catalog_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;CatalogService&#xa;----------------------&#xa;+ maintainCategory()&#xa;+ maintainItem()&#xa;+ validateSaleStatus()" vertex="1">
+          <mxGeometry height="90" width="230" x="880" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="data_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="数据访问与领域枚举" vertex="1">
+          <mxGeometry height="190" width="1180" x="60" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="discovery_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;DiscoveryRepository&#xa;----------------------&#xa;store&#xa;item&#xa;review_summary" vertex="1">
+          <mxGeometry height="95" width="200" x="50" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="merchant_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;MerchantRepository&#xa;----------------------&#xa;merchant&#xa;store&#xa;qualification_file" vertex="1">
+          <mxGeometry height="95" width="200" x="310" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="catalog_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;CatalogRepository&#xa;----------------------&#xa;item&#xa;item_category&#xa;store_catalog" vertex="1">
+          <mxGeometry height="95" width="200" x="570" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="business_type" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«enum»&#xa;BusinessType&#xa;----------------------&#xa;TAKEAWAY&#xa;GROUP_BUY&#xa;HOTEL / ENTERTAINMENT&#xa;TICKET / LIFE_SERVICE" vertex="1">
+          <mxGeometry height="95" width="250" x="830" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="discovery_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="discovery_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="merchant_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="merchant_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="catalog_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="catalog_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="discovery_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="discovery_repo" value="reads">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="merchant_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="merchant_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="catalog_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="catalog_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="catalog_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="business_type" value="checks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="discovery_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="catalog_service" value="uses store/item snapshot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="catalog_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="merchant_service" value="checks ownership">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
