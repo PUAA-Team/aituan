@@ -26,7 +26,9 @@ class MysqlMigrationSmokeTest {
         "select count(*) from flyway_schema_history where success = 1",
         Integer.class);
     Integer accountCount = jdbcTemplate.queryForObject(
-        "select count(*) from auth_account where account_name in ('demo_user', 'demo_merchant', 'demo_admin')",
+        "select count(*) from iam_account "
+            + "where login_name in ('demo_user', 'demo_merchant', 'demo_admin') "
+            + "and account_type in ('USER', 'MERCHANT', 'ADMIN')",
         Integer.class);
 
     assertThat(migrationCount).isNotNull().isGreaterThan(0);
