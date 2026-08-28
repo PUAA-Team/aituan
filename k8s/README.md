@@ -176,6 +176,8 @@ kubectl -n aituan run curl-smoke --rm -i --restart=Never \
 curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
+GitHub Actions 的 K8s 部署流程会在 `kubectl rollout status` 之后继续执行应用健康检查：先在集群内用临时 `curlimages/curl` Pod 请求 `http://backend:8080/actuator/health`，再从 Actions Runner 请求 `${SERVER_ORIGIN}/actuator/health`。两个检查都带 24 次重试和 5 秒等待，避免 Pod、Service 或 Ingress 刚发布完成但应用还未完全稳定时误判失败。
+
 ## 7. GitHub Actions 部署
 
 手动运行 `aituan-deploy`：
@@ -191,6 +193,7 @@ Actions 会执行：
 4. `kubectl apply` 所有 manifest。
 5. `kubectl set image` 切换到本次 sha tag。
 6. `kubectl rollout status` 等待发布成功。
+7. 执行集群内后端健康检查和公网 `/actuator/health` 重试检查。
 
 ## 8. 回滚
 

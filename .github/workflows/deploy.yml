@@ -427,6 +427,44 @@ jobs:
           kubectl -n "${namespace}" rollout status deployment/aituan-web --timeout=300s
           kubectl -n "${namespace}" get pods,svc,ingress
 
+      - name: Verify Kubernetes application health
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          health_url="${SERVER_ORIGIN%/}/actuator/health"
+
+          echo "Checking backend health inside Kubernetes cluster..."
+          for i in $(seq 1 24); do
+            pod_name="aituan-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${i}"
+            if kubectl -n "${namespace}" run "${pod_name}" --rm -i --restart=Never \
+              --image=curlimages/curl:8.10.1 -- \
+              curl -fsS --max-time 10 http://backend:8080/actuator/health; then
+              echo "Backend service health check passed."
+              break
+            fi
+            if [[ "${i}" == "24" ]]; then
+              echo "::error::Backend service health check failed after 24 attempts."
+              exit 1
+            fi
+            echo "Backend service is not ready yet, retrying ${i}/24..."
+            sleep 5
+          done
+
+          echo "Checking public health endpoint: ${health_url}"
+          for i in $(seq 1 24); do
+            if curl -fsS --max-time 10 "${health_url}"; then
+              echo "Public health check passed."
+              exit 0
+            fi
+            if [[ "${i}" == "24" ]]; then
+              echo "::error::Public health check failed after 24 attempts: ${health_url}"
+              exit 1
+            fi
+            echo "Public endpoint is not ready yet, retrying ${i}/24..."
+            sleep 5
+          done
+
       - name: Dump Kubernetes diagnostics on failure
         if: failure()
         shell: bash
