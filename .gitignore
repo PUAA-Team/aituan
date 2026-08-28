@@ -27,6 +27,11 @@ apps/user_app/android/app/src/main/java/
 apps/user_app/android/local.properties
 apps/user_app/build/
 
+# E2E test outputs
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
 # Local runtime/build handoff directories
 .aituan-local/
 .config

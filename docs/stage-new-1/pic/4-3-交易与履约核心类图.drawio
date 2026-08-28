@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="class-trade" name="4.3 交易与履约核心类图">
+    <mxGraphModel dx="1265" dy="775" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="controller_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="接口层" vertex="1">
+          <mxGeometry height="140" width="1180" x="60" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="trade_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;TradeController&#xa;----------------------&#xa;+ previewCheckout()&#xa;+ createOrder()&#xa;+ payOrder()&#xa;+ getOrderDetail()" vertex="1">
+          <mxGeometry height="85" width="250" x="220" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="trade_ops_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;TradeOpsController&#xa;----------------------&#xa;+ acceptOrder()&#xa;+ advanceDelivery()&#xa;+ redeemVoucher()&#xa;+ confirmBooking()" vertex="1">
+          <mxGeometry height="85" width="250" x="710" y="45" as="geometry" />
+        </mxCell>
+        <mxCell id="service_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="业务层" vertex="1">
+          <mxGeometry height="180" width="1180" x="60" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="trade_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;fontStyle=1;labelBackgroundColor=none;" value="«service»&#xa;TradeService&#xa;----------------------&#xa;+ createOrder()&#xa;+ payOrder()&#xa;+ changeStatus()&#xa;+ handleRefund()" vertex="1">
+          <mxGeometry height="95" width="260" x="460" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="coupon_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;CouponService&#xa;----------------------&#xa;+ validateUsable()&#xa;+ lockCoupon()&#xa;+ markUsedOrRelease()" vertex="1">
+          <mxGeometry height="90" width="220" x="125" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="message_publisher" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«publisher»&#xa;StationMessagePublisher&#xa;----------------------&#xa;+ publishOrderStatus()" vertex="1">
+          <mxGeometry height="90" width="230" x="840" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="data_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="数据访问、DTO 与状态枚举" vertex="1">
+          <mxGeometry height="210" width="1180" x="60" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="trade_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;TradeRepository&#xa;----------------------&#xa;cart&#xa;trade_order / item&#xa;payment_record&#xa;delivery_task / timeline" vertex="1">
+          <mxGeometry height="110" width="230" x="55" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="order_request" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«dto»&#xa;OrderCreateRequest&#xa;----------------------&#xa;storeId&#xa;items&#xa;addressId&#xa;couponId" vertex="1">
+          <mxGeometry height="110" width="185" x="335" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="order_view" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«view»&#xa;OrderDetailView&#xa;----------------------&#xa;orderNo&#xa;amount&#xa;status&#xa;timeline" vertex="1">
+          <mxGeometry height="110" width="185" x="560" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="display_status" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«enum»&#xa;DisplayOrderStatus&#xa;----------------------&#xa;待支付&#xa;待接单&#xa;配送中&#xa;已完成" vertex="1">
+          <mxGeometry height="110" width="170" x="785" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="payment_status" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«enum»&#xa;PaymentStatus&#xa;----------------------&#xa;UNPAID&#xa;PAID&#xa;FAILED&#xa;REFUNDED" vertex="1">
+          <mxGeometry height="110" width="150" x="995" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="trade_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="trade_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="trade_ops_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="trade_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="coupon_service" value="validates">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="message_publisher" value="publishes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="trade_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="trade_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="order_request" value="input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="order_view" value="output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="display_status" value="maps">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="trade_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="payment_status" value="checks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

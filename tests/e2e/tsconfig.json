@@ -5,6 +5,8 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
     "types": ["node", "@playwright/test"]
   },
   "include": ["playwright.config.ts", "specs/**/*.ts", "support/**/*.ts"]

@@ -101,5 +101,5 @@ test('UC12 查看会员、领取优惠券、下单抵扣并获得成长值', asy
   expect(completed.voucher?.status).toBe('used');
 
   const memberAfter = await api.get<MemberInfo>('/api/app/account/member/info', { token: user.token });
-  expect(memberAfter.growthValue).toBe(memberBefore.growthValue + Math.floor(paid.payableAmount));
+  expect(memberAfter.growthValue).toBe(memberBefore.growthValue + Math.floor(paid.payableAmount!));
 });

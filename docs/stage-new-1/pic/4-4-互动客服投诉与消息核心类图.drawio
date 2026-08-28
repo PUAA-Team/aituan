@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="class-interaction" name="4.4 互动客服投诉与消息核心类图">
+    <mxGraphModel dx="1356" dy="830" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="controller_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="接口层" vertex="1">
+          <mxGeometry height="175" width="1300" x="50" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="interaction_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;InteractionController&#xa;----------------------&#xa;+ publishReview()&#xa;+ listMyReviews()&#xa;+ reportReview()" vertex="1">
+          <mxGeometry height="90" width="205" x="25" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="interaction_merchant_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;InteractionMerchantController&#xa;----------------------&#xa;+ listReviews()&#xa;+ replyReview()" vertex="1">
+          <mxGeometry height="90" width="220" x="255" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="interaction_admin_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;InteractionAdminController&#xa;----------------------&#xa;+ auditReview()&#xa;+ hideReview()" vertex="1">
+          <mxGeometry height="90" width="220" x="500" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="complaint_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;ComplaintController&#xa;----------------------&#xa;+ submit()&#xa;+ detail()&#xa;+ supplement()" vertex="1">
+          <mxGeometry height="90" width="180" x="745" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="complaint_admin_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;ComplaintAdminController&#xa;----------------------&#xa;+ accept()&#xa;+ resolve()&#xa;+ close()" vertex="1">
+          <mxGeometry height="90" width="190" x="950" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="support_ai_controller" parent="controller_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«controller»&#xa;Support / AI Controller&#xa;----------------------&#xa;+ createSession()&#xa;+ sendMessage()&#xa;+ askAssistant()" vertex="1">
+          <mxGeometry height="90" width="115" x="1165" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="service_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="业务层" vertex="1">
+          <mxGeometry height="175" width="1300" x="50" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="interaction_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;InteractionService&#xa;----------------------&#xa;+ createReview()&#xa;+ replyReview()&#xa;+ auditReview()" vertex="1">
+          <mxGeometry height="90" width="230" x="120" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="complaint_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;ComplaintService&#xa;----------------------&#xa;+ submitTicket()&#xa;+ changeStatus()&#xa;+ appendLog()" vertex="1">
+          <mxGeometry height="90" width="230" x="530" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="support_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;SupportService&#xa;----------------------&#xa;+ createSession()&#xa;+ sendMessage()&#xa;+ transferManual()" vertex="1">
+          <mxGeometry height="90" width="220" x="850" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_service" parent="service_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«service»&#xa;AiAgentService&#xa;----------------------&#xa;+ ask()&#xa;+ callSkill()&#xa;+ fallbackReply()" vertex="1">
+          <mxGeometry height="90" width="170" x="1100" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="data_layer" parent="1" style="swimlane;html=1;startSize=30;rounded=0;whiteSpace=wrap;fontStyle=1;labelBackgroundColor=none;" value="数据访问与治理记录" vertex="1">
+          <mxGeometry height="205" width="1300" x="50" y="565" as="geometry" />
+        </mxCell>
+        <mxCell id="review_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;ReviewRepository&#xa;----------------------&#xa;review_record&#xa;review_report_evidence" vertex="1">
+          <mxGeometry height="105" width="210" x="65" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="complaint_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;ComplaintRepository&#xa;----------------------&#xa;complaint_ticket&#xa;complaint_log" vertex="1">
+          <mxGeometry height="105" width="210" x="325" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="support_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;SupportRepository&#xa;----------------------&#xa;support_session&#xa;support_message" vertex="1">
+          <mxGeometry height="105" width="210" x="585" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_repo" parent="data_layer" style="shape=cylinder3d;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=15;html=1;labelBackgroundColor=none;" value="«repository»&#xa;AiConversationRepository&#xa;----------------------&#xa;ai_conversation&#xa;ai_message" vertex="1">
+          <mxGeometry height="105" width="210" x="845" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_log" parent="data_layer" style="rounded=0;whiteSpace=wrap;html=1;labelBackgroundColor=none;" value="«record»&#xa;AuditLog&#xa;----------------------&#xa;operator&#xa;action&#xa;target&#xa;result" vertex="1">
+          <mxGeometry height="105" width="150" x="1105" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="interaction_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="interaction_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="interaction_merchant_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="interaction_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="interaction_admin_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="interaction_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="complaint_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="complaint_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="complaint_admin_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="complaint_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="support_ai_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="support_service" value="uses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="support_ai_controller" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="ai_service" value="asks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="interaction_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="review_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="complaint_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="complaint_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="support_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="support_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="ai_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="ai_repo" value="accesses">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="ai_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="support_service" value="manual fallback">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="complaint_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="audit_log" value="records governance action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="interaction_service" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;labelBackgroundColor=none;fontColor=default;" target="audit_log" value="records review audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
