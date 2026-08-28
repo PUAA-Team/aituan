@@ -28,6 +28,21 @@ jobs:
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: aituan_test
+          MYSQL_USER: aituan
+          MYSQL_PASSWORD: aituan_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +55,7 @@ jobs:
           cache: maven
 
       - name: Run Maven tests and coverage
-        run: mvn -B -f services/backend/pom.xml org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.12:report
+        run: mvn -B -f services/backend/pom.xml verify
 
       - name: Upload backend test reports
         if: always()
@@ -51,6 +66,14 @@ jobs:
             services/backend/target/surefire-reports/
             services/backend/target/site/jacoco/
           if-no-files-found: warn
+
+      - name: Verify Flyway migrations on MySQL 8
+        env:
+          AITUAN_MYSQL_CI_ENABLED: 'true'
+          AITUAN_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_DATASOURCE_USERNAME: aituan
+          AITUAN_DATASOURCE_PASSWORD: aituan_password
+        run: mvn -B -f services/backend/pom.xml -Dtest=MysqlMigrationSmokeTest test
 
   web:
     name: Web build (${{ matrix.app.name }})
@@ -83,20 +106,22 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefix ${{ matrix.app.path }}
 
-      - name: Run ${{ matrix.app.name }} web tests
+      - name: Run ${{ matrix.app.name }} web tests with coverage
         env:
           VITE_API_BASE_URL: ${{ env.CI_API_BASE_URL }}
         run: |
           set -euo pipefail
           mkdir -p ${{ matrix.app.path }}/test-results
-          npm test --prefix ${{ matrix.app.path }} -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+          npm run test:coverage --prefix ${{ matrix.app.path }} -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
 
       - name: Upload ${{ matrix.app.name }} web test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.app.name }}-web-test-reports
-          path: ${{ matrix.app.path }}/test-results/
+          path: |
+            ${{ matrix.app.path }}/test-results/
+            ${{ matrix.app.path }}/coverage/
           if-no-files-found: warn
 
       - name: Build ${{ matrix.app.name }} web
@@ -148,6 +173,16 @@ jobs:
             apps/user_app/test-results/
             apps/user_app/coverage/
           if-no-files-found: warn
+
+      - name: Run Flutter integration tests on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          working-directory: apps/user_app
+          script: flutter test integration_test -d emulator-5554
 
       - name: Build Flutter web
         working-directory: apps/user_app

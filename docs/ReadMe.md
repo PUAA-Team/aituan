@@ -174,6 +174,8 @@
 
 `./docs/stage-new-1/测试与CICD补齐总清单.md`
 
+`./docs/stage-new-1/T01-T04测试体系补齐说明.md`
+
 `./docs/stage-new-1/详细设计说明书-小学期修订版.md`
 
 `./docs/stage-new-1/UC04-UC05用例图文档.md`
