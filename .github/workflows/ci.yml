@@ -186,13 +186,7 @@ jobs:
 
       - name: Build Flutter web
         working-directory: apps/user_app
-        run: >
-          flutter build web
-          --base-href /web/
-          --dart-define=API_BASE_URL=${{ env.CI_API_BASE_URL }}
-          --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
-          --dart-define=AITUAN_BUILD_SOURCE=github-actions
-          --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.CI_API_BASE_URL }} --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
 
   e2e:
     name: E2E business scenarios (UC01-UC13)
@@ -270,12 +264,7 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          flutter build web
-            --base-href /web/
-            --dart-define=API_BASE_URL=http://127.0.0.1:8090
-            --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
-            --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e
-            --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
+          flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1:8090 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
 
       - name: Install E2E dependencies and browsers
         working-directory: tests/e2e
