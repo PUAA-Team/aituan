@@ -1,5 +1,11 @@
 $ErrorActionPreference = "Stop"
 
+try {
+  $Utf8NoBom = New-Object System.Text.UTF8Encoding $false
+  [Console]::OutputEncoding = $Utf8NoBom
+  $OutputEncoding = $Utf8NoBom
+} catch {}
+
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..\..\")
 $E2eRoot = Join-Path $RepoRoot "tests\e2e"
 $LocalRoot = $env:AITUAN_E2E_ROOT
@@ -12,12 +18,12 @@ if (-not $MavenRepo) { $MavenRepo = "D:\aituan_cache\m2" }
 $JavaHome = $env:AITUAN_JAVA_HOME
 if (-not $JavaHome) { $JavaHome = "D:\tools\jdk-17.0.18+8" }
 if (-not (Test-Path (Join-Path $JavaHome "bin\java.exe"))) {
-  throw "未找到 JDK 17，请设置 AITUAN_JAVA_HOME。当前: $JavaHome"
+  throw "JDK 17 not found. Set AITUAN_JAVA_HOME. Current: $JavaHome"
 }
 $Maven = $env:AITUAN_MAVEN
 if (-not $Maven) { $Maven = "D:\tools\apache-maven-3.9.14\bin\mvn.cmd" }
 if (-not (Test-Path $Maven)) {
-  throw "未找到 mvn.cmd，请设置 AITUAN_MAVEN。当前: $Maven"
+  throw "mvn.cmd not found. Set AITUAN_MAVEN. Current: $Maven"
 }
 
 $ApiOrigin = "http://127.0.0.1:8080"
@@ -35,7 +41,7 @@ function Invoke-Native {
     }
     $process = Start-Process -FilePath $FilePath -ArgumentList $quoted -WorkingDirectory $WorkingDirectory -NoNewWindow -Wait -PassThru
     if ($process.ExitCode -ne 0) {
-      throw "命令失败 ($($process.ExitCode)): $FilePath $($Arguments -join ' ')"
+      throw "Command failed ($($process.ExitCode)): $FilePath $($Arguments -join ' ')"
     }
   }
   finally {
@@ -43,19 +49,19 @@ function Invoke-Native {
   }
 }
 
-Write-Host "[e2e] 构建后端 JAR..."
+Write-Host "[e2e] Building backend JAR..."
 $env:JAVA_HOME = $JavaHome
 $env:Path = "$JavaHome\bin;$env:Path"
 Invoke-Native $Maven @("-B", "-Dmaven.repo.local=$MavenRepo", "-Dbackend.build.directory=$BackendDir", "-DskipTests", "package", "-f", (Join-Path $RepoRoot "services\backend\pom.xml")) $RepoRoot
 $BuiltJar = Get-ChildItem -LiteralPath $BackendDir -Filter "aituan-backend-*.jar" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $BuiltJar) { throw "后端 JAR 构建失败" }
+if (-not $BuiltJar) { throw "Backend JAR build failed" }
 Copy-Item -LiteralPath $BuiltJar.FullName -Destination $JarPath -Force
 
-Write-Host "[e2e] 构建用户端 Flutter Web..."
+Write-Host "[e2e] Building Flutter user web..."
 $env:PUB_CACHE = $env:PUB_CACHE
 Invoke-Native "flutter.bat" @("build", "web", "--base-href", "/web/", "--dart-define=API_BASE_URL=$WebOrigin", "--dart-define=AITUAN_BUILD_COMMIT=local-e2e", "--dart-define=AITUAN_BUILD_SOURCE=e2e-local", "--output", (Join-Path $BuildRoot "web")) (Join-Path $RepoRoot "apps\user_app")
 
-Write-Host "[e2e] 构建商家端/后台端 Web..."
+Write-Host "[e2e] Building merchant/admin web..."
 foreach ($app in @("merchant_web", "admin_web")) {
   Push-Location (Join-Path $RepoRoot "apps\$app")
   try {
@@ -76,7 +82,7 @@ $env:E2E_WEB_ORIGIN = $WebOrigin
 $env:E2E_ARTIFACTS_ROOT = $BuildRoot
 $env:PLAYWRIGHT_BROWSER_PATH = $EdgePath
 
-Write-Host "[e2e] 启动后端..."
+Write-Host "[e2e] Starting backend..."
 $backend = Start-Process -FilePath (Join-Path $JavaHome "bin\java.exe") -ArgumentList @(
   "-jar", $JarPath,
   "--spring.profiles.active=e2e",
@@ -94,19 +100,19 @@ try {
     catch { Start-Sleep -Seconds 2 }
   }
   if (-not $ready) {
-    throw "后端未在 120 秒内就绪，请查看 $($LocalRoot)\backend.err.log"
+    throw "Backend was not ready within 120 seconds. Check log: $($LocalRoot)\backend.err.log"
   }
-  Write-Host "[e2e] 后端已就绪，启动静态服务 $WebOrigin ..."
+  Write-Host "[e2e] Backend is ready. Starting static server at $WebOrigin ..."
   Push-Location $E2eRoot
   $server = Start-Process -FilePath "node.exe" -ArgumentList @("scripts/static-server.mjs") -PassThru -WindowStyle Hidden -WorkingDirectory $E2eRoot -RedirectStandardOutput (Join-Path $LocalRoot "server.out.log") -RedirectStandardError (Join-Path $LocalRoot "server.err.log")
   Start-Sleep -Seconds 2
 
-  Write-Host "[e2e] 运行 Playwright E2E..."
+  Write-Host "[e2e] Running Playwright E2E..."
   if (-not (Test-Path (Join-Path $E2eRoot "node_modules"))) {
     Invoke-Native "npm.cmd" @("ci") $E2eRoot
   }
   Invoke-Native "npx.cmd" @("playwright", "test") $E2eRoot
-  Write-Host "[e2e] 全部 E2E 用例通过。报告: $E2eRoot\playwright-report"
+  Write-Host "[e2e] All E2E tests passed. Report: $E2eRoot\playwright-report"
 }
 finally {
   if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
