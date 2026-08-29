@@ -2,14 +2,31 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
   adminRedeemVoucher,
+  auditGovernanceReview,
   clearToken,
+  complaintAction,
+  confirmBooking,
+  createCatalogCategory,
+  createCatalogItem,
+  createCouponTemplate,
+  createMemberLevel,
+  fetchBookings,
   fetchCatalogItems,
+  fetchCouponTemplates,
   fetchGovernanceComplaints,
+  fetchGovernanceReviews,
+  fetchMemberLevels,
+  fetchMerchants,
   fetchOrders,
+  fetchPlatformSupportSessions,
+  fetchStores,
   getToken,
   login,
+  refundOrder,
   resolveAssetUrl,
+  sendPlatformSupportMessage,
   setToken,
+  updateCatalogItemStatus,
   updateConfig,
   uploadStoreCover,
 } from './api';
@@ -118,5 +135,162 @@ describe('admin api', () => {
     expect(resolveAssetUrl()).toBe('');
     expect(resolveAssetUrl('http://example.com/a.png')).toBe('http://example.com/a.png');
     expect(resolveAssetUrl('/uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
+  });
+
+  test('后台交易退款、券码预约和确认接口稳定', async () => {
+    mockApiResponse({ id: 8001 });
+    await refundOrder(8001);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/trade/orders/8001/refund'),
+      options: { method: 'POST', body: JSON.stringify({ reason: '平台人工退款' }) },
+    });
+
+    mockApiResponse({ list: [] });
+    await fetchBookings({ status: 'pending', businessType: 'group_buy', page: 2, pageSize: 12 });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/admin/trade/bookings?page=2&pageSize=12&status=pending&businessType=group_buy'),
+    );
+
+    mockApiResponse({ id: 8002 });
+    await confirmBooking(8002);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/trade/orders/8002/booking/confirm'),
+      options: { method: 'POST', body: JSON.stringify({}) },
+    });
+  });
+
+  test('评价治理、投诉处理和平台客服接口稳定', async () => {
+    mockApiResponse({ list: [] });
+    await fetchGovernanceReviews({ status: 'reported', reported: true, page: 2, pageSize: 8 });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/admin/governance/reviews?page=2&pageSize=8&status=reported&reported=true'),
+    );
+
+    mockApiResponse({ id: 3 });
+    await auditGovernanceReview(3, 'hide', '虚假评价');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/governance/reviews/3/audit'),
+      options: { method: 'POST', body: JSON.stringify({ action: 'hide', remark: '虚假评价' }) },
+    });
+
+    mockApiResponse({ id: 5 });
+    await complaintAction(5, 'accept', '已受理');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/governance/complaints/5/accept'),
+      options: { method: 'POST', body: JSON.stringify({ remark: '已受理' }) },
+    });
+
+    mockApiResponse({ list: [] });
+    await fetchPlatformSupportSessions({ status: 'open', page: 3, pageSize: 6 });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/admin/governance/support/sessions?page=3&pageSize=6&status=open'),
+    );
+
+    mockApiResponse({ id: 9 });
+    await sendPlatformSupportMessage(9, '平台已介入');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/governance/support/sessions/9/messages'),
+      options: { method: 'POST', body: JSON.stringify({ content: '平台已介入' }) },
+    });
+  });
+
+  test('会员等级和优惠券模板配置接口稳定', async () => {
+    mockApiResponse([]);
+    await fetchMemberLevels();
+    expect(lastRequest().url).toBe(expectedUrl('/api/admin/operation/member-levels'));
+
+    const level = {
+      levelCode: 'gold',
+      levelName: '黄金会员',
+      minGrowthValue: 1000,
+      benefits: [{ title: '专属优惠券', desc: '每月一张' }],
+      color: '#d4a017',
+      sortOrder: 2,
+      status: 'enabled',
+    };
+    mockApiResponse({ id: 2 });
+    await createMemberLevel(level);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/operation/member-levels'),
+      options: { method: 'POST', body: JSON.stringify(level) },
+    });
+
+    mockApiResponse([]);
+    await fetchCouponTemplates();
+    expect(lastRequest().url).toBe(expectedUrl('/api/admin/operation/coupon-templates'));
+
+    const coupon = {
+      name: '满50减10',
+      type: 'amount_off',
+      faceValue: 10,
+      thresholdAmount: 50,
+      businessScope: 'all',
+      validKind: 'relative',
+      validDays: 30,
+      totalQty: 100,
+      perUserLimit: 1,
+      status: 'enabled',
+    };
+    mockApiResponse({ id: 4 });
+    await createCouponTemplate(coupon);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/operation/coupon-templates'),
+      options: { method: 'POST', body: JSON.stringify(coupon) },
+    });
+  });
+
+  test('商家、门店和目录维护接口稳定', async () => {
+    mockApiResponse({ list: [] });
+    await fetchMerchants('塔斯汀');
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/admin/merchants?page=1&pageSize=50&keyword=%E5%A1%94%E6%96%AF%E6%B1%80'),
+    );
+
+    mockApiResponse({ list: [] });
+    await fetchStores({ merchantId: 2, businessType: 'takeaway', status: 'active' });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/admin/stores?page=1&pageSize=80&merchantId=2&businessType=takeaway&status=active'),
+    );
+
+    const item = {
+      storeId: 3,
+      businessType: 'takeaway',
+      categoryId: 5,
+      title: '双人汉堡套餐',
+      subtitle: '含饮料',
+      price: 39.9,
+      originalPrice: 49.9,
+      stock: 30,
+      status: 'on_sale' as const,
+      coverUrl: '/uploads/item.png',
+      tagText: '热销',
+    };
+    mockApiResponse({ id: 6 });
+    await createCatalogItem(item);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/catalog/items'),
+      options: { method: 'POST', body: JSON.stringify(item) },
+    });
+
+    mockApiResponse({ id: 6 });
+    await updateCatalogItemStatus(6, 'off_sale');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/catalog/items/6/status'),
+      options: { method: 'POST', body: JSON.stringify({ status: 'off_sale' }) },
+    });
+
+    const category = {
+      storeId: 3,
+      businessType: 'takeaway',
+      categoryName: '套餐',
+      sortOrder: 1,
+      status: 'enabled',
+    };
+    mockApiResponse({ id: 7 });
+    await createCatalogCategory(category);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/admin/catalog/categories'),
+      options: { method: 'POST', body: JSON.stringify(category) },
+    });
   });
 });

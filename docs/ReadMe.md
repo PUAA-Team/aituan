@@ -176,11 +176,15 @@
 
 `./docs/stage-new-1/T01-T04测试体系补齐说明.md`
 
+`./docs/stage-new-1/单元与集成测试分类运行说明.md`
+
 `./docs/stage-new-1/详细设计说明书-小学期修订版.md`
 
 `./docs/stage-new-1/UC04-UC05用例图文档.md`
 
 `./docs/stage-new-1/业务场景用例追溯表.md`
+
+`./docs/stage-new-1/UML建模与测试追溯检查版.md`
 
 `./docs/stage-new-1/GitHubActions流水线原始报告说明.md`
 

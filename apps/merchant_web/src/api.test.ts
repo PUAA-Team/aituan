@@ -2,15 +2,24 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
   clearToken,
+  confirmBooking,
+  createCatalogItem,
+  fetchBookings,
+  fetchCatalogItems,
   fetchMerchantReviews,
+  fetchOrders,
   fetchVouchers,
   getToken,
   login,
   lookupVoucher,
   redeemVoucher,
+  refundOrder,
   replyMerchantReview,
   resolveAssetUrl,
+  runOrderAction,
   setToken,
+  updateCatalogItemStatus,
+  updateDeliveryRule,
   uploadStoreCover,
 } from './api';
 
@@ -127,5 +136,123 @@ describe('merchant api', () => {
     expect(resolveAssetUrl('https://example.com/a.png')).toBe('https://example.com/a.png');
     expect(resolveAssetUrl('/uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
     expect(resolveAssetUrl('uploads/a.png')).toBe(expectedUrl('/uploads/a.png'));
+  });
+
+  test('订单列表和履约动作使用商家交易接口', async () => {
+    setToken('merchant-token');
+    mockApiResponse({ list: [] });
+
+    await fetchOrders({ displayStatus: 'pending', fulfillmentStatus: 'paid', page: 2, pageSize: 15 });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/merchant/trade/orders?page=2&pageSize=15&displayStatus=pending&fulfillmentStatus=paid'),
+    );
+
+    mockApiResponse({ id: 7001 });
+    await runOrderAction(7001, 'accept', '开始备餐');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/trade/orders/7001/accept'),
+      options: { method: 'POST', body: JSON.stringify({ remark: '开始备餐' }) },
+    });
+
+    mockApiResponse({ id: 7001 });
+    await runOrderAction(7001, 'ready');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/trade/orders/7001/ready'),
+      options: { method: 'POST', body: JSON.stringify({}) },
+    });
+  });
+
+  test('退款、预约查询和预约确认接口 body 稳定', async () => {
+    mockApiResponse({ id: 7002 });
+    await refundOrder(7002);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/trade/orders/7002/refund'),
+      options: { method: 'POST', body: JSON.stringify({ reason: '商家人工退款' }) },
+    });
+
+    mockApiResponse({ id: 7003 });
+    await refundOrder(7003, '用户申请退款');
+    expect(lastRequest().options.body).toBe(JSON.stringify({ reason: '用户申请退款' }));
+
+    mockApiResponse({ list: [] });
+    await fetchBookings({ status: 'pending', businessType: 'group_buy', page: 2, pageSize: 10 });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/merchant/trade/bookings?page=2&pageSize=10&status=pending&businessType=group_buy'),
+    );
+
+    mockApiResponse({ id: 7004 });
+    await confirmBooking(7004, '已确认到店时间');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/trade/orders/7004/booking/confirm'),
+      options: { method: 'POST', body: JSON.stringify({ remark: '已确认到店时间' }) },
+    });
+  });
+
+  test('目录维护和配送规则接口路径与 body 稳定', async () => {
+    mockApiResponse([]);
+    await fetchCatalogItems({ businessType: 'takeaway', status: 'on_sale', keyword: '汉堡' });
+    expect(lastRequest().url).toBe(
+      expectedUrl('/api/merchant/catalog/items?businessType=takeaway&status=on_sale&keyword=%E6%B1%89%E5%A0%A1'),
+    );
+
+    const item = {
+      businessType: 'takeaway',
+      categoryId: 3,
+      title: '双人汉堡套餐',
+      subtitle: '含饮料',
+      price: 39.9,
+      originalPrice: 49.9,
+      stock: 20,
+      status: 'on_sale' as const,
+      coverUrl: '/uploads/item.png',
+      tagText: '热销',
+    };
+    mockApiResponse({ id: 1 });
+    await createCatalogItem(item);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/catalog/items'),
+      options: { method: 'POST', body: JSON.stringify(item) },
+    });
+
+    mockApiResponse({ id: 1 });
+    await updateCatalogItemStatus(1, 'off_sale');
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/catalog/items/1/status'),
+      options: { method: 'POST', body: JSON.stringify({ status: 'off_sale' }) },
+    });
+
+    const rule = {
+      storeId: 2,
+      deliveryFee: 3,
+      startPrice: 20,
+      estimatedMinutes: 35,
+      maxDeliveryDistanceKm: 5,
+      packageFeeMode: 'fixed',
+      packageFeeFixed: 1,
+      packageFeePerItem: 0,
+      distanceExtraThresholdKm: 3,
+      distanceExtraFee: 2,
+      distanceExtraStepKm: 1,
+      deliveryText: '35分钟送达',
+    };
+    const ruleBody = {
+      deliveryFee: rule.deliveryFee,
+      startPrice: rule.startPrice,
+      estimatedMinutes: rule.estimatedMinutes,
+      maxDeliveryDistanceKm: rule.maxDeliveryDistanceKm,
+      packageFeeMode: rule.packageFeeMode,
+      packageFeeFixed: rule.packageFeeFixed,
+      packageFeePerItem: rule.packageFeePerItem,
+      distanceExtraThresholdKm: rule.distanceExtraThresholdKm,
+      distanceExtraFee: rule.distanceExtraFee,
+      distanceExtraStepKm: rule.distanceExtraStepKm,
+      deliveryText: rule.deliveryText,
+    };
+    mockApiResponse(rule);
+    await updateDeliveryRule(2, rule);
+    expect(lastRequest()).toMatchObject({
+      url: expectedUrl('/api/merchant/trade/stores/2/delivery-rule'),
+      options: { method: 'POST', body: JSON.stringify(ruleBody) },
+    });
   });
 });

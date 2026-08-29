@@ -1,23 +1,22 @@
 # 爱团本地生活服务综合平台
 
-爱团是一个面向本地生活服务场景的综合平台，覆盖用户消费、商家经营、平台治理和 AI 辅助。项目围绕“生活助手平台”课程题目设计，实现了用户端 APP / Web、商家端 Web、后台端 Web、Spring Boot 后端、MySQL 数据库、自动化测试、Docker Compose 回退部署和 Kubernetes CI/CD 主部署链路。
+爱团是一个生活助手平台。系统面向本地生活服务场景，覆盖用户消费、商家经营、平台治理和 AI 辅助，包含用户端 Flutter APP / Web、商家端 Web、后台端 Web、Spring Boot 后端、MySQL / H2 数据库、自动化测试、Docker Compose 回退部署、Kubernetes 生产部署和 GitHub Actions CI/CD。
 
-项目目标是一套可以运行、可以联调、可以部署、可以测试、可以展示的课程级完整软件工程项目。
-
-## 1. 项目概览
+## 1. 项目说明
 
 ### 1.1 核心定位
 
-- 面向用户：提供本地商家搜索、外卖点餐、团购预约、优惠券、会员、评价、客服、投诉和 AI 助手。
-- 面向商家：提供门店资料、商品/服务管理、订单履约、券码核销、评价回复和客服会话。
-- 面向平台：提供商户治理、商品治理、订单治理、会员优惠券配置、评价审核、投诉处理、平台客服、审计日志和系统配置。
+- 用户端：商家浏览、外卖点餐、团购/预约/票券购买、订单、券码、评价、客服、投诉、会员、优惠券和 AI 助手。
+- 商家端：门店资料、商品/服务管理、外卖履约、券码核销、评价回复、客服会话和经营概览。
+- 后台端：商户治理、商品治理、订单治理、用户治理、会员优惠券、评价审核、投诉处理、平台客服、公告、审计日志和系统配置。
+- 后端：统一 REST API、JWT 鉴权、Flyway 迁移、幂等 seed、模拟支付、配送状态推进、券码核销、文件上传和 AI 降级回复。
 
-### 1.2 八大服务模块
+### 1.2 服务模块
 
-| 服务模块 | 用户侧能力 | 履约方式 |
+| 模块 | 用户侧能力 | 履约方式 |
 | --- | --- | --- |
-| 外卖 | 商家浏览、商品点单、购物车、地址选择、模拟支付、配送时间线 | 点单 + 配送模拟 |
-| 团购 | 套餐浏览、购买、券码展示、到店使用 | 券码核销 |
+| 外卖 | 商家浏览、商品点单、购物车、模拟支付、配送时间线 | 点单 + 配送模拟 |
+| 团购 | 套餐浏览、购买、券码展示 | 到店券码核销 |
 | 酒店 | 房型/服务展示、预约信息、凭证展示 | 预约 / 凭证使用 |
 | 休闲娱乐 | 项目、套餐、时段和到店须知展示 | 预约 / 券码 |
 | 电影演出 | 场次、票档、入场规则展示 | 票券核销 |
@@ -25,298 +24,224 @@
 | 景点门票 | 票种、入园日期、开放时间展示 | 电子票核销 |
 | 洗脚按摩 | 项目时长、到店/上门说明、预约时间展示 | 预约 / 服务完成 |
 
-### 1.3 当前交付形态
+## 2. 环境版本
 
-| 交付项 | 说明 |
+### 2.1 生产环境：`ssh aituan-new`
+
+生产环境以 `aituan-new` 服务器为准。当前主部署链路是单节点 k3s，Docker Compose 保留为回退部署方案。服务器只需要容器运行与集群管理工具，Java / Maven / Node / npm 不在服务器上直接构建使用，构建由 GitHub Actions 或本地脚本完成。
+
+| 项目 | 当前环境 |
 | --- | --- |
-| 用户端 APP | Flutter Android APK，支持用户主流程演示。 |
-| 用户端 Web | Flutter Web 预览版，由 Nginx 托管在 `/web/`，用于移动宽度下的用户端 E2E 与演示。 |
-| 商家端 Web | Vue 3 + TypeScript 商家经营控制台，由 Nginx 托管在 `/merchant/`。 |
-| 后台端 Web | Vue 3 + TypeScript 平台管理后台，由 Nginx 托管在 `/admin/`。 |
-| 后端服务 | Spring Boot 3 + Java 17，提供统一 REST API。 |
-| 数据库 | MySQL 8，使用 Flyway 管理 V001-V019 迁移和 repeatable seed 数据。 |
-| 部署 | Kubernetes/k3s 为当前课程主部署链路；Docker Compose 保留为单机/回退部署；常规 JAR + Nginx 可用于手动安装。 |
-| 测试 | 后端 JUnit/MockMvc/JaCoCo、MySQL 迁移 smoke test、Flutter analyze/test/coverage、Vitest coverage、Bash 静态回归、Playwright UC01-UC13 E2E。 |
+| 操作系统 | Debian GNU/Linux 11 bullseye |
+| 内核 | Linux 5.10.0-15-amd64 x86_64 |
+| Docker | 20.10.5+dfsg1 |
+| Docker Compose | v5.5.0 |
+| k3s | v1.36.3+k3s1 |
+| kubectl | v1.36.3+k3s1 |
+| containerd | 2.3.2-k3s2 |
+| Java / Maven | 服务器未安装；由 CI 或本地构建镜像 / JAR |
+| Node / npm | 服务器未安装；由 CI 或本地构建 Web 产物 |
+| MySQL | Kubernetes / Compose 中使用 `mysql:8.0` 容器 |
+| Nginx | Web 镜像内提供，不使用宿主机 Nginx |
 
-线上演示地址已部署，可访问：
+### 2.2 本地开发环境
 
-```text
-https://aituan.2b.gs
-```
+本地开发仍以 Windows 11 + PowerShell 为主。
 
-## 2. 技术栈
+| 工具 | 推荐 / 当前版本 | 说明 |
+| --- | --- | --- |
+| Windows | Windows 11 | 本地优先使用 PowerShell 脚本 |
+| Java | 17 | 后端编译目标 Java 17 |
+| Maven | 3.9.14 |  |
+| Flutter | 3.41.6 stable | 用户端 APP / Web |
+| Dart | 3.11.4 | `apps/user_app` SDK 约束为 `^3.11.4` |
+| Node.js | 24.11.1 | 商家端、后台端、E2E |
+| npm | 11.6.2 |  |
+| MySQL | 8.x | dev / CI / 部署数据库 |
+| H2 | MySQL mode | demo、test、默认本地 E2E 可使用内存库 |
+| Android SDK / Gradle | 由 Flutter / Android Studio 提供 |  |
 
-| 层级 | 技术 |
+### 2.3 项目关键依赖版本
+
+| 端 / 层 | 关键版本 |
 | --- | --- |
-| 用户端 | Flutter、Dart、Android APK、Flutter Web |
-| 商家端 / 后台端 | Vue 3、TypeScript、Vite、Vitest、happy-dom |
-| 后端 | Java 17、Spring Boot 3、Spring Security、JWT、JdbcTemplate、Flyway |
-| 数据库 | MySQL 8；测试环境使用 H2 `MODE=MySQL`；CI 使用真实 MySQL 做迁移 smoke test |
-| 文件与资源 | 本地文件存储或外部图床配置，可通过 `.config` 切换 |
-| AI 能力 | 后端 AI Assistant + Skills，支持外部模型调用和本地降级 |
-| 部署 | Docker Compose、Nginx、GHCR、GitHub Actions、Kubernetes/k3s、kubectl、Let's Encrypt HTTPS |
-| 测试 | JUnit 5、Spring Boot Test、MockMvc、JaCoCo、flutter_test、Vitest、Playwright、Bash 静态回归 |
+| 后端 | Spring Boot 3.4.6、Springdoc 2.8.8、JaCoCo 0.8.12、Java 17 |
+| 用户端 | Flutter 3.41.6、Dart 3.11.4、http 1.5.0、flutter_lints 6.0.0 |
+| 商家端 Web | Vue 3.5.34、Vite 7.2.7、Vitest 4.1.8、happy-dom 20.10.2 |
+| 后台端 Web | Vue 3.5.34、Vite 7.2.7、Vitest 4.1.8、happy-dom 20.10.2 |
+| E2E | Playwright 1.62.1、TypeScript 5.9.3 |
 
-## 3. 目录结构
+## 3. 目录与端口
+
+### 3.1 主要目录
 
 ```text
 .
-├─ .github/
-│  └─ workflows/                # CI、部署、Android APK 构建 workflow
-├─ apps/
-│  ├─ user_app/                 # Flutter 用户端 APP / Web
-│  ├─ merchant_web/             # 商家端 Vue Web
-│  └─ admin_web/                # 后台端 Vue Web
-├─ services/
-│  └─ backend/                  # Spring Boot 后端服务
-├─ database/
-│  ├─ migrations/               # Flyway 版本迁移脚本
-│  └─ seeds/                    # Flyway repeatable 演示 seed
-├─ deploy/                      # Docker Compose、Nginx、Dockerfile、部署示例配置
-├─ k8s/                         # Kubernetes manifests 与部署说明
-├─ scripts/
-│  ├─ build/                    # 本地和服务器版构建脚本
-│  ├─ dev/                      # 本地启动脚本
-│  ├─ release/                  # 构建产物清理脚本
-│  └─ verify/                   # 静态回归验证脚本
-├─ tests/
-│  └─ e2e/                      # Playwright UC01-UC13 端到端测试
-├─ docs/                        # 需求、设计、测试、部署、阶段交付文档
-└─ README.md                    # 项目总览
+├─ apps/user_app          Flutter 用户端 APP / Web
+├─ apps/merchant_web      Vue 商家端 Web
+├─ apps/admin_web         Vue 后台端 Web
+├─ services/backend       Spring Boot 后端
+├─ database/migrations    Flyway 版本迁移脚本
+├─ database/seeds         Flyway repeatable 初始演示数据
+├─ scripts/build          本地与服务器版构建脚本
+├─ scripts/dev            本地启动脚本
+├─ scripts/verify         静态回归验证脚本
+├─ tests/e2e              Playwright 端到端测试工程
+├─ deploy                 Docker Compose、Nginx、镜像构建和静态产物目录
+└─ k8s                    Kubernetes manifests
 ```
 
-说明：`deploy/artifacts/`、测试报告、APK、压缩包等属于构建/部署产物，默认不提交到仓库。
+### 3.2 本地端口
 
-## 4. 功能清单
+| 服务 | 默认地址 | 说明 |
+| --- | --- | --- |
+| 后端 API | `http://localhost:8080` | `SERVER_PORT` 可覆盖，默认 profile 为 `demo` |
+| 后端健康检查 | `http://localhost:8080/actuator/health` | Actuator health |
+| 后端接口文档 | `http://localhost:8080/swagger-ui.html` | Swagger UI |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | OpenAPI 描述 |
+| H2 Console | `http://localhost:8080/h2-console` | 仅 demo profile 开启 |
+| 用户端 Flutter APP | Android 模拟器 / 桌面 / 浏览器 | Android 模拟器默认使用 `10.0.2.2:8080` 访问宿主机 |
+| 商家端 Web 开发服务 | `http://localhost:5174` | Vite dev server |
+| 后台端 Web 开发服务 | `http://localhost:5175` | Vite dev server |
+| 本地 E2E 静态站点 | `http://127.0.0.1:8090` | E2E 脚本启动，包含 `/web/`、`/merchant/`、`/admin/` |
+| MySQL dev | `127.0.0.1:3306` | dev profile 默认库名 `aituan_dev` |
 
-### 4.1 用户端
+### 3.3 生产端口与路径
 
-- 登录注册：账号密码登录、邮箱验证码、找回密码、Token 校验。
-- 首页发现：八大服务模块、推荐商品、附近商家、搜索入口。
-- 搜索浏览：关键词搜索、模块筛选、商家详情、商品/服务详情。
-- 外卖点单：购物车、起送价、配送费、地址选择、确认订单、模拟支付、履约状态。
-- 非外卖服务：团购、门票、预约类服务的订单、券码、二维码、核销状态。
-- 订单中心：外卖订单、服务订单、预约详情、券码详情、配送跟踪。
-- 用户资产：个人资料、地址、收藏、消息、会员等级、成长值、优惠券。
-- 互动售后：发布评价、我的评价、评价详情、客服会话、投诉提交与查看。
-- AI 助手：基于订单、优惠券、投诉、评价和客服上下文提供智能回复与快捷入口。
+| 服务 | 地址 / 端口 | 说明 |
+| --- | --- | --- |
+| k3s API | `:6443` | Kubernetes API server |
+| Web HTTP | `http://aituan.2b.gs` / `80` | Web Service LoadBalancer |
+| Web HTTPS | `https://aituan.2b.gs` / `443` | Web Service LoadBalancer + TLS Secret |
+| 用户端 Web | `/web/` | Flutter Web |
+| 商家端 Web | `/merchant/` | Vue 商家端 |
+| 后台端 Web | `/admin/` | Vue 后台端 |
+| APK 下载目录 | `/downloads/` | Web 容器挂载下载目录 |
+| 后端 API | `/api/` | Web 容器反向代理到 `backend:8080` |
+| 生产健康检查 | `/actuator/health` | Web 容器反向代理到 `backend:8080/actuator/health` |
+| 集群内后端 | `backend.aituan.svc.cluster.local:8080` | ClusterIP Service |
+| 集群内 MySQL | `mysql.aituan.svc.cluster.local:3306` | ClusterIP Service |
 
-### 4.2 商家端
+## 4. 本地启动教程
 
-- 商家登录和 Token 管理。
-- 经营总览：订单、交易额、待处理评价、客服咨询等指标。
-- 门店资料：门店信息、营业状态、图片上传。
-- 商品/服务管理：外卖商品、非外卖服务、套餐与服务项目维护。
-- 订单履约：外卖接单、备餐、出餐、配送推进。
-- 券码核销：查询券码、核销券码、避免重复核销。
-- 互动售后：评价管理、评价回复、客服会话处理。
+### 4.1 准备 D 盘缓存和产物目录
 
-### 4.3 后台端
-
-- 管理员登录和后台权限边界。
-- 平台总览和治理看板。
-- 商户门店治理、商品服务治理。
-- 用户管理、会员等级、优惠券模板配置。
-- 订单治理、预约治理、券码治理。
-- 评价审核、投诉工单、平台客服。
-- 管理员资料、系统配置、审计日志。
-
-### 4.4 后端与基础能力
-
-- 统一 API 前缀：`/api/open`、`/api/app`、`/api/merchant`、`/api/admin`、`/api/common`。
-- JWT 鉴权与 USER / MERCHANT / ADMIN 角色隔离。
-- 统一响应结构和统一异常处理。
-- Flyway 迁移和幂等 seed 数据。
-- 文件上传和访问。
-- 模拟支付、配送状态推进、券码核销。
-- 会员成长值、优惠券领取、下单抵扣、退款释放。
-- AI 助手配置、模型调用、Skill 编排和降级回复。
-
-## 5. 配置说明
-
-项目通过 `.config`、`deploy/.env`、GitHub Actions Variables / Secrets 与 Kubernetes Secret 区分业务配置、部署配置和敏感配置。真实密钥、数据库密码、JWT secret、AI key、邮箱授权码、图床 Token、kubeconfig、证书私钥不应提交到 Git。
-
-### 5.1 `.config`
-
-模板文件：
+常用目录如下，脚本会自动创建，手动执行命令时也建议沿用：
 
 ```text
-.config.example
+D:/aituan_cache/m2/              Maven 缓存
+D:/aituan_cache/pub/             Flutter Pub 缓存
+D:/aituan_cache/gradle/          Gradle 缓存
+D:/aituan_cache/npm/             npm 缓存
+D:/aituan_release/backend/       后端 jar 输出
+D:/aituan_release/apk/           APK 输出
+D:/aituan_runtime/backend/       后端运行日志
+D:/aituan_runtime/uploads/       本地上传文件
+D:/aituan_runtime/e2e/           E2E 临时构建和日志
 ```
 
-常见配置项：
+### 4.2 启动后端 Demo 环境
 
-```properties
-aituan.security.jwt-secret=<LONG_RANDOM_SECRET>
+Demo 环境默认使用 H2 内存数据库，会自动执行 Flyway 迁移和 seed 初始数据，适合本地演示和接口联调。
 
-aituan.ai.enabled=false
-aituan.ai.api-url=<AI_API_BASE_URL>
-aituan.ai.api-key=<AI_API_KEY>
-aituan.ai.model=<MODEL_NAME>
-aituan.ai.timeout-seconds=20
-aituan.ai.max-tokens=800
-aituan.ai.temperature=0.25
-
-aituan.mail.enabled=false
-aituan.mail.debug-return-code=false
-
-aituan.upload.strategy=local
-aituan.map.provider=local
-```
-
-说明：
-
-- `aituan.security.jwt-secret` 公开部署时必须改为强随机字符串。
-- `aituan.ai.enabled=false` 时 AI 助手会走本地降级回复。
-- `aituan.mail.debug-return-code=false` 用于避免验证码直接返回到前端。
-- 图片上传和地图服务均可通过 `.config` 切换为外部服务。
-
-### 5.2 `deploy/.env`
-
-模板文件：
-
-```text
-deploy/.env.example
-```
-
-常见配置项：
-
-```dotenv
-MYSQL_DATABASE=<DB_NAME>
-MYSQL_USER=<DB_USER>
-MYSQL_PASSWORD=<DB_PASSWORD>
-MYSQL_ROOT_PASSWORD=<DB_ROOT_PASSWORD>
-AITUAN_DATA_DIR=<DATA_DIR>
-AITUAN_CONFIG_HOST_FILE=<CONFIG_FILE>
-
-AITUAN_IMAGE_REGISTRY=<IMAGE_REGISTRY>/<OWNER>/<REPO>
-AITUAN_IMAGE_TAG=sha-<SHORT_COMMIT>
-AITUAN_DOWNLOADS_DIR=<DOWNLOADS_DIR>
-AITUAN_NGINX_SERVER_NAME=<DOMAIN>
-AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
-AITUAN_CERTBOT_WEBROOT=/var/www/certbot
-```
-
-`deploy/.env` 只保存在部署机器，不提交到仓库。
-
-### 5.3 GitHub Actions / Kubernetes 配置
-
-自动化部署通常需要 Repository Variables：
-
-```text
-SERVER_ORIGIN=https://<DOMAIN>
-AUTO_DEPLOY_PRODUCTION=true
-DEPLOY_TARGET=k8s
-K8S_NAMESPACE=aituan
-```
-
-Kubernetes 主部署链路需要 Production Secrets：
-
-```text
-KUBE_CONFIG=<Kubernetes 集群 kubeconfig 内容>
-K8S_MYSQL_USER=<MySQL 用户名>
-K8S_MYSQL_PASSWORD=<MySQL 密码>
-K8S_MYSQL_ROOT_PASSWORD=<MySQL root 密码>
-K8S_APP_CONFIG=<后端 .config 完整内容>
-```
-
-如果 GHCR 镜像保持私有，还需要：
-
-```text
-GHCR_PULL_USERNAME=<GitHub 用户名或机器人账号>
-GHCR_PULL_TOKEN=<具备 read:packages 权限的 PAT>
-```
-
-这些值只放在 GitHub Secrets 或 Kubernetes Secret 中，不写入 README、脚本、YAML 或提交记录。
-
-## 6. 快速启动与常用脚本
-
-本仓库当前开发机以 Windows 11 / PowerShell 为主。后端 Maven 缓存、Flutter Pub 缓存、Gradle 缓存、运行日志和构建产物优先放在 D 盘，避免占用 C 盘空间。
-
-### 6.1 后端 Demo 环境
-
-Demo 环境适合本地开发和接口体验。默认会使用 H2 内存数据库，并自动执行 Flyway 迁移和演示数据。
-
-推荐使用项目脚本：
+一键脚本：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/start_backend.ps1
 ```
 
-也可以手动构建和启动：
+如果脚本里的本机 Java 路径不可用，使用下面的手动命令：
 
 ```powershell
-mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" test
-mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" -DskipTests package
+$env:JAVA_HOME = "D:/tools/jdk-17.0.18+8"
+$env:Path = "$env:JAVA_HOME/bin;$env:Path"
+$env:SPRING_PROFILES_ACTIVE = "demo"
+$env:AITUAN_UPLOAD_ROOT = "D:/aituan_runtime/uploads"
+
+mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" clean package
 java -jar services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar
 ```
 
-验证：
+启动成功后检查：
 
-```text
-http://localhost:8080/actuator/health
-http://localhost:8080/swagger-ui.html
+```powershell
+Invoke-RestMethod http://localhost:8080/actuator/health
+Invoke-RestMethod http://localhost:8080/api/open/auth/token/check
 ```
 
-### 6.2 MySQL 开发环境与迁移
+浏览器可打开：
 
-MySQL 环境只需要先创建库和用户；表结构、索引和演示 seed 由后端启动时通过 Flyway 自动执行。
+```text
+http://localhost:8080/swagger-ui.html
+http://localhost:8080/h2-console
+```
+
+H2 Console 常用连接信息：
+
+```text
+JDBC URL: jdbc:h2:mem:aituan_demo
+User Name: sa
+Password: 留空
+```
+
+### 4.3 使用 MySQL 启动后端 dev 环境
+
+如果要验证真实 MySQL 8，请先创建库和用户：
 
 ```sql
-CREATE DATABASE <DB_NAME>
+CREATE DATABASE aituan_dev
   DEFAULT CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
 
-CREATE USER '<DB_USER>'@'%' IDENTIFIED BY '<DB_PASSWORD>';
-GRANT ALL PRIVILEGES ON <DB_NAME>.* TO '<DB_USER>'@'%';
+CREATE USER 'aituan'@'%' IDENTIFIED BY 'aituan_password';
+GRANT ALL PRIVILEGES ON aituan_dev.* TO 'aituan'@'%';
 FLUSH PRIVILEGES;
 ```
 
-启动后端时配置环境变量：
+然后启动后端：
 
 ```powershell
+$env:JAVA_HOME = "D:/tools/jdk-17.0.18+8"
+$env:Path = "$env:JAVA_HOME/bin;$env:Path"
 $env:SPRING_PROFILES_ACTIVE = "dev"
-$env:AITUAN_DATASOURCE_URL = "jdbc:mysql://<DB_HOST>:<DB_PORT>/<DB_NAME>?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
-$env:AITUAN_DATASOURCE_USERNAME = "<DB_USER>"
-$env:AITUAN_DATASOURCE_PASSWORD = "<DB_PASSWORD>"
-$env:AITUAN_CONFIG_FILE = "<CONFIG_FILE>"
+$env:AITUAN_DATASOURCE_URL = "jdbc:mysql://127.0.0.1:3306/aituan_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
+$env:AITUAN_DATASOURCE_USERNAME = "aituan"
+$env:AITUAN_DATASOURCE_PASSWORD = "aituan_password"
+$env:AITUAN_UPLOAD_ROOT = "D:/aituan_runtime/uploads"
 
+mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" clean package
 java -jar services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar
 ```
 
-迁移口径：
+表结构和初始演示数据由 Flyway 自动初始化，不需要手工建表。
 
-- 迁移脚本目录：`database/migrations/`。
-- 演示 seed 目录：`database/seeds/R__seed_demo_data.sql`。
-- Maven 会把上述目录复制到后端 classpath 的 `db/migration` 和 `db/seed`。
-- 当前最新迁移为 `V019__ai_assistant_conversation.sql`，后续新增迁移应从 `V020__...sql` 开始。
-- Flyway 迁移脚本必须兼容 MySQL 8 和 H2 `MODE=MySQL` 空库迁移。
-- CI 中 `MysqlMigrationSmokeTest` 会连接真实 MySQL 验证迁移记录和 `demo_user`、`demo_merchant`、`demo_admin` 演示账号 seed。
+### 4.4 启动用户端 Flutter APP
 
-### 6.3 用户端 APP / Web
-
-推荐使用项目脚本启动用户端：
+脚本启动：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/start_user_app.ps1
 ```
 
-也可以手动运行：
+手动启动前先取依赖和检查：
 
 ```powershell
+$env:PUB_CACHE = "D:/aituan_cache/pub"
+$env:GRADLE_USER_HOME = "D:/aituan_cache/gradle"
+
 cd apps/user_app
 flutter pub get
 flutter analyze
 flutter test
 ```
 
-Android 模拟器访问宿主机后端时：
+Android 模拟器连接宿主机后端：
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-桌面或浏览器调试：
+Windows 桌面或浏览器连接本机后端：
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://localhost:8080
@@ -328,368 +253,776 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8080
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_android_apk.ps1
 ```
 
-本地 APK 文件名会按 `apps/user_app/pubspec.yaml` 的 `version` 生成版本化产物，例如：
+当前版本来自 `apps/user_app/pubspec.yaml`：`1.1.7+24`。脚本会输出版本化 APK，例如：
 
 ```text
-D:/aituan_release/apk/aituan-user-<version>-<build>-debug.apk
+D:/aituan_release/apk/aituan-user-1.1.7-24-debug.apk
 ```
 
-服务器 API 版 APK 可使用：
+### 4.5 启动商家端 Web
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_android_apk_server.ps1 -ServerOrigin "https://aituan.2b.gs"
-```
-
-服务器版脚本会同时维护下载入口使用的稳定文件名：
-
-```text
-D:/aituan_release/apk/aituan-user-server-debug.apk
-deploy/artifacts/downloads/aituan-user-server-debug.apk
-```
-
-### 6.4 商家端 Web
-
-```powershell
-npm ci --prefix apps/merchant_web
-npm run test:coverage --prefix apps/merchant_web
-npm run build --prefix apps/merchant_web
-```
-
-本地开发：
-
-```powershell
+npm ci --prefix apps/merchant_web --cache D:/aituan_cache/npm
+$env:VITE_API_BASE_URL = "http://localhost:8080"
 npm run dev --prefix apps/merchant_web
 ```
 
-默认开发端口由 Vite 配置维护，当前商家端为 `5174`。
+访问：
 
-### 6.5 后台端 Web
-
-```powershell
-npm ci --prefix apps/admin_web
-npm run test:coverage --prefix apps/admin_web
-npm run build --prefix apps/admin_web
+```text
+http://localhost:5174
 ```
 
-本地开发：
+### 4.6 启动后台端 Web
 
 ```powershell
+npm ci --prefix apps/admin_web --cache D:/aituan_cache/npm
+$env:VITE_API_BASE_URL = "http://localhost:8080"
 npm run dev --prefix apps/admin_web
 ```
 
-默认开发端口由 Vite 配置维护，当前后台端为 `5175`。
+访问：
 
-### 6.6 服务器版产物构建
-
-服务器版手动构建总入口：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_all_server_artifacts.ps1 -ServerOrigin "https://aituan.2b.gs"
+```text
+http://localhost:5175
 ```
 
-如只需要后端和 Web，不构建 APK：
+## 5. 健康检查与登录验证
+
+### 5.1 本地后端健康检查
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_all_server_artifacts.ps1 -ServerOrigin "https://aituan.2b.gs" -SkipApk
+Invoke-RestMethod http://localhost:8080/actuator/health
 ```
 
-该脚本会调用服务器版后端、前端和 APK 构建脚本，将产物放入 `deploy/artifacts/` 及 D 盘发布目录。注意：GitHub Actions CI/CD 不直接调用这些 Windows PowerShell 脚本，而是在 Linux runner 中按 workflow 内命令执行 Maven、npm、Flutter 构建。
+期望返回类似：
 
-### 6.7 本地完整 E2E
+```json
+{"status":"UP"}
+```
 
-Playwright E2E 工程位于 `tests/e2e/`，当前覆盖 UC01-UC13。推荐本地一键运行：
+Open API 探活：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tests/e2e/scripts/run-e2e-local.ps1
+Invoke-RestMethod http://localhost:8080/api/open/auth/token/check
 ```
 
-或通过 npm 脚本：
+该接口不要求登录，能返回统一响应结构即可说明后端 API 已可访问。
+
+### 5.2 生产健康检查
+
+在本机直接检查公网：
 
 ```powershell
-npm --prefix tests/e2e run stack:local
+Invoke-RestMethod http://aituan.2b.gs/actuator/health
+Invoke-RestMethod https://aituan.2b.gs/actuator/health
 ```
 
-脚本会构建后端 JAR、用户端 Flutter Web、商家端 Web、后台端 Web，启动后端和本地静态服务后运行 `npx playwright test`。默认本地运行目录在 D 盘，避免把临时构建和日志写入 C 盘。
+在服务器上检查集群外入口：
 
-## 7. 测试
+```bash
+ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
+```
 
-### 7.1 测试类型
+在服务器上检查集群内后端 Service：
 
-| 端 / 层级 | 测试内容 | 工具 |
-| --- | --- | --- |
-| 静态回归 | 关键入口、文案和代码形态检查 | Bash + grep |
-| 后端 | 服务层集成测试、API 集成测试、权限边界测试、覆盖率门禁 | JUnit 5、Spring Boot Test、MockMvc、H2、Flyway、JaCoCo |
-| MySQL 迁移 | 空库迁移、Flyway 历史记录、演示账号 seed | MySQL 8、`MysqlMigrationSmokeTest` |
-| 用户端 | 纯逻辑单测、Repository 测试、Widget 测试、静态分析、Web 构建 | flutter_test、flutter analyze、Flutter Web |
-| 商家端 Web | API 层测试、覆盖率、类型检查、构建校验 | Vitest、happy-dom、vue-tsc、Vite |
-| 后台端 Web | API 层测试、覆盖率、类型检查、构建校验 | Vitest、happy-dom、vue-tsc、Vite |
-| 跨端 E2E | UC01-UC13 业务闭环 | Playwright、Chromium、后端 e2e profile、MySQL |
+```bash
+ssh aituan-new "kubectl -n aituan run aituan-health-check --rm -i --restart=Never --image=curlimages/curl:8.10.1 -- curl -fsS http://backend:8080/actuator/health"
+```
 
-### 7.2 常用测试命令
+查看生产资源状态：
 
-静态回归：
+```bash
+ssh aituan-new "kubectl -n aituan get pods,svc,ingress,deploy,statefulset"
+ssh aituan-new "kubectl get nodes -o wide"
+```
+
+### 5.3 Web 入口检查
+
+本地开发：
+
+```text
+http://localhost:5174
+http://localhost:5175
+```
+
+本地 E2E 静态服务启动后：
+
+```text
+http://127.0.0.1:8090/web/
+http://127.0.0.1:8090/merchant/
+http://127.0.0.1:8090/admin/
+```
+
+生产环境：
+
+```text
+https://aituan.2b.gs/
+https://aituan.2b.gs/web/
+https://aituan.2b.gs/merchant/
+https://aituan.2b.gs/admin/
+https://aituan.2b.gs/downloads/
+```
+
+## 6. 测试教程
+
+如需按测试类型统一运行，优先使用分类脚本：
 
 ```powershell
-bash scripts/verify/member_e_regression_checks.sh
+# 单元测试：后端服务层/工具类、Flutter、商家端 Web、后台端 Web
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_unit.ps1
+
+# 集成/API 测试：后端 MockMvc、Controller、契约测试；默认跳过 MySQL smoke
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_integration_api.ps1
+
+# 分类总入口：默认运行 unit + integration/API；需要 E2E 时追加 -IncludeE2E
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_all_classified.ps1
 ```
 
-后端完整验证：
+详细清单见 `docs/stage-new-1/单元与集成测试分类运行说明.md`。
+
+### 6.1 后端测试
+
+运行后端测试和覆盖率门禁：
 
 ```powershell
 mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" verify
 ```
 
-用户端：
+只跑测试：
+
+```powershell
+mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" test
+```
+
+只验证 MySQL 迁移 smoke test 时，需要先启动 MySQL 8 并配置连接：
+
+```powershell
+$env:AITUAN_MYSQL_CI_ENABLED = "true"
+$env:AITUAN_DATASOURCE_URL = "jdbc:mysql://127.0.0.1:3306/aituan_dev?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
+$env:AITUAN_DATASOURCE_USERNAME = "aituan"
+$env:AITUAN_DATASOURCE_PASSWORD = "aituan_password"
+
+mvn -B -f services/backend/pom.xml "-Dmaven.repo.local=D:/aituan_cache/m2" -Dtest=MysqlMigrationSmokeTest test
+```
+
+### 6.2 用户端 Flutter 测试
 
 ```powershell
 cd apps/user_app
+$env:PUB_CACHE = "D:/aituan_cache/pub"
+$env:GRADLE_USER_HOME = "D:/aituan_cache/gradle"
+
+flutter pub get
 flutter analyze
 flutter test --coverage
-flutter build web --base-href /web/
+flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://localhost:8080
 ```
 
-商家端：
+### 6.3 商家端 Web 测试
 
 ```powershell
+npm ci --prefix apps/merchant_web --cache D:/aituan_cache/npm
+$env:VITE_API_BASE_URL = "http://localhost:8080"
 npm run test:coverage --prefix apps/merchant_web
 npm run build --prefix apps/merchant_web
 ```
 
-后台端：
+### 6.4 后台端 Web 测试
 
 ```powershell
+npm ci --prefix apps/admin_web --cache D:/aituan_cache/npm
+$env:VITE_API_BASE_URL = "http://localhost:8080"
 npm run test:coverage --prefix apps/admin_web
 npm run build --prefix apps/admin_web
 ```
 
-E2E：
+### 6.6 本地完整 E2E 测试
+
+一键运行 UC01-UC13 端到端场景：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/e2e/scripts/run-e2e-local.ps1
 ```
 
-### 7.3 CI 测试门禁
+也可以从 E2E 工程执行 npm 脚本：
 
-`.github/workflows/ci.yml` 当前在 PR 和手动触发时运行：
-
-1. `static-regression`：执行 `scripts/verify/member_e_regression_checks.sh`。
-2. `backend`：执行 `mvn verify`，上传 surefire / JaCoCo 报告，并通过 MySQL 8 service 运行 `MysqlMigrationSmokeTest`。
-3. `web`：对 `apps/merchant_web`、`apps/admin_web` 矩阵执行依赖安装、`test:coverage` 和构建。
-4. `flutter`：执行 `flutter pub get`、`flutter analyze`、`flutter test --coverage`、`flutter build web --base-href /web/`。
-5. `e2e`：构建后端和三端 Web，启动 MySQL 与本地服务，运行 Playwright UC01-UC13。
-
-默认 CI 已移除 Android emulator integration test，避免 GitHub Actions 模拟器启动不稳定导致主门禁长时间卡住；移动端真机/模拟器 `integration_test` 保留为手动或后续专项验证，不作为当前默认 CI 门禁。
-
-### 7.4 当前测试覆盖
-
-项目当前覆盖：
-
-- 后端认证、权限、交易、优惠券、投诉、文件上传、评价、客服、会员成长值等高风险接口和服务。
-- Flyway 在 H2 MySQL mode 和真实 MySQL service 下的迁移验证。
-- Flutter 输入校验、JSON 解析、业务枚举、金额计算、Repository 请求路径和部分 Widget。
-- 商家端 / 后台端集中式 API 层测试与覆盖率报告。
-- Playwright UC01-UC13 跨端业务流程，包括登录、发现、个人资产、外卖下单、履约、券码、预约、退款、评价、投诉、客服、会员优惠券和商家目录维护。
-- CI 中的 static-regression、backend、web、flutter、e2e 门禁。
-
-详细报告见：
-
-```text
-docs/爱团测试报告.md
-tests/e2e/README.md
-docs/stage-new-1/测试与CICD补齐总清单.md
+```powershell
+cd tests/e2e
+npm ci
+npm run stack:local
 ```
 
-## 8. 部署
+脚本会自动完成：
 
-项目当前支持三类部署方式：
+1. 构建后端 JAR；
+2. 构建用户端 Flutter Web；
+3. 构建商家端 Web；
+4. 构建后台端 Web；
+5. 启动后端 `http://127.0.0.1:8080`；
+6. 启动静态站点 `http://127.0.0.1:8090`；
+7. 运行 Playwright UC01-UC13；
+8. 结束后关闭脚本启动的后端和静态服务。
 
-1. Kubernetes 主部署链路：当前课程 CI/CD 标准链路。
-2. Docker Compose 单机/回退链路：适合快速恢复或无 K8s 环境。
-3. 常规 JAR + MySQL + Nginx 手动安装：适合已有传统运维环境。
+E2E 常用环境变量：
 
-详细部署说明见：
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `AITUAN_E2E_ROOT` | `D:/aituan_runtime/e2e` | E2E 临时构建与日志根目录 |
+| `AITUAN_M2_REPO` | `D:/aituan_cache/m2` | Maven 本地仓库 |
+| `AITUAN_JAVA_HOME` | `D:/tools/jdk-17.0.18+8` | JDK 17 路径 |
+| `AITUAN_MAVEN` | `D:/tools/apache-maven-3.9.14/bin/mvn.cmd` | Maven 命令路径 |
+| `E2E_API_ORIGIN` | `http://127.0.0.1:8080` | E2E API 地址 |
+| `E2E_WEB_ORIGIN` | `http://127.0.0.1:8090` | E2E Web 地址 |
+| `PLAYWRIGHT_BROWSER_PATH` | Microsoft Edge 路径 | 本地默认使用 Edge 可执行文件 |
+
+### 6.6 常用构建脚本汇总
+
+| 目标 | 命令 |
+| --- | --- |
+| 后端本地 JAR | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_backend.ps1` |
+| 启动后端 demo | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/start_backend.ps1` |
+| 启动用户端 APP | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/start_user_app.ps1` |
+| 本地 Android APK | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_android_apk.ps1` |
+| 分类单元测试 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_unit.ps1` |
+| 分类集成/API 测试 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_integration_api.ps1` |
+| 分类测试总入口 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify/test_all_classified.ps1` |
+| 服务器版后端 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_backend_server.ps1` |
+| 服务器版前端 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_frontends_server.ps1 -ServerOrigin "https://aituan.2b.gs"` |
+| 服务器版 APK | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_android_apk_server.ps1 -ServerOrigin "https://aituan.2b.gs"` |
+| 服务器版全部产物 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build/build_all_server_artifacts.ps1 -ServerOrigin "https://aituan.2b.gs"` |
+| 本地 E2E | `powershell -NoProfile -ExecutionPolicy Bypass -File tests/e2e/scripts/run-e2e-local.ps1` |
+
+## 7. 测试账号
+
+所有演示账号密码均为：`123456`。账号由 seed 初始化，demo / test / e2e / dev profile 启动时会通过 Flyway 自动写入。
+
+### 7.1 常用登录账号
+
+| 端 | 账号 | 密码 | 说明 |
+| --- | --- | --- | --- |
+| 用户端 | `demo_user` | `123456` | 演示消费者账号 |
+| 商家端 | `demo_merchant` | `123456` | 基础商家账号，对应塔斯汀中国汉堡 |
+| 后台端 | `demo_admin` | `123456` | 平台管理员账号 |
+
+### 7.2 分业务商家账号
+
+| 账号 | 门店 / 业务 | 密码 |
+| --- | --- | --- |
+| `demo_takeaway_merchant` | 松记炸鸡饭 / 外卖 | `123456` |
+| `demo_groupbuy_merchant` | 江南小馆 / 团购 | `123456` |
+| `demo_hotel_merchant` | 云栖酒店 / 酒店 | `123456` |
+| `demo_entertainment_merchant` | 星盒密室 / 休闲娱乐 | `123456` |
+| `demo_movie_merchant` | 光影剧场 / 电影演出 | `123456` |
+| `demo_beauty_merchant` | 轻颜护理 / 丽人医美 | `123456` |
+| `demo_ticket_merchant` | 城市观景 / 景点门票 | `123456` |
+| `demo_massage_merchant` | 雅境足道 / 洗脚按摩 | `123456` |
+| `demo_bibimbap_merchant` | 米村拌饭 / 外卖 | `123456` |
+| `demo_bbq_merchant` | 琥珀烤肉 / 团购 | `123456` |
+| `demo_hotel_room_merchant` | 曼居影院酒店 / 酒店 | `123456` |
+| `demo_arcade_merchant` | 趣动电玩城 / 休闲娱乐 | `123456` |
+| `demo_spa_merchant` | 悦己SPA / 丽人医美 | `123456` |
+
+## 8. 初始数据说明
+
+初始数据由 Flyway repeatable seed 自动写入，重复启动或重复迁移时会按幂等逻辑更新，不需要清库。
+
+### 8.1 账号与角色
+
+- 角色：`USER`、`MERCHANT`、`ADMIN`。
+- 用户：`demo_user`，昵称“爱团用户”，白银会员，成长值 128。
+- 用户地址：公司地址“城市广场 A 座 1208”和家庭地址“湖畔花园 3 号楼 1801”。
+- 商家：基础商家账号和 13 个分业务商家账号。
+- 管理员：`demo_admin`。
+
+### 8.2 门店与商品
+
+初始门店覆盖八类业务：
+
+| 门店 | 类型 | 示例商品 / 服务 |
+| --- | --- | --- |
+| 塔斯汀中国汉堡 | 外卖 | 藤椒鸡腿堡、黑椒牛肉堡、双人汉堡套餐 |
+| 松记炸鸡饭 | 外卖 | 招牌炸鸡饭、鸡排饭双拼套餐 |
+| 米村拌饭 | 外卖 | 招牌石锅拌饭、肥牛泡菜拌饭、双人拌饭套餐 |
+| 江南小馆 | 团购 | 3-4 人餐、双人餐 |
+| 琥珀烤肉 | 团购 | 烤肉双人餐、家庭 4 人餐 |
+| 云栖酒店 | 酒店 | 舒适大床房券 |
+| 曼居影院酒店 | 酒店 | 影音大床房券、商旅双床房券 |
+| 星盒密室 | 休闲娱乐 | 4 人套票 |
+| 趣动电玩城 | 休闲娱乐 | 120 币套餐、VR 双人畅玩票 |
+| 光影剧场 | 电影演出 | 电影通兑票 |
+| 轻颜护理 | 丽人医美 | 基础皮肤护理 |
+| 悦己SPA | 丽人医美 | 全身舒缓 SPA、肩颈放松 |
+| 城市观景 | 景点门票 | 成人票 |
+| 雅境足道 | 洗脚按摩 | 经典足疗、肩颈舒缓 |
+
+### 8.3 业务闭环数据
+
+seed 同时初始化以下演示数据：
+
+- 商品分类、商品 SKU、推荐位；
+- 外卖配送规则、商家接单模式、客服自动回复规则；
+- 用户订单、订单明细、模拟支付记录；
+- 券码、二维码 payload、核销状态；
+- 外卖配送任务和配送轨迹节点；
+- 预约记录；
+- 评价、商家回复、评价点赞、评价举报和审核日志；
+- 用户客服会话和消息；
+- 投诉工单和处理日志；
+- 用户收藏、站内消息、平台公告；
+- 系统配置、会员等级、优惠券模板、用户优惠券；
+- 系统审计日志。
+
+## 9. 生产环境启动教程
+
+### 9.1 生产部署总览
+
+生产服务器 `aituan-new` 当前推荐使用 Kubernetes / k3s：
 
 ```text
-docs/爱团通用部署文档.md
-deploy/README.md
-k8s/README.md
-docs/stage-new-1/Kubernetes部署与CICD说明.md
-docs/stage-new-1/DockerCompose到K8s-CICD迁移简明说明.md
+GitHub Actions
+  -> 测试后端、Web、Flutter、E2E
+  -> 构建 backend / web 镜像
+  -> 推送 GHCR：ghcr.io/puaa-team/aituan/backend:sha-xxxxxxx
+              ghcr.io/puaa-team/aituan/web:sha-xxxxxxx
+  -> 写入或复用 K8s Secret
+  -> apply k8s manifests
+  -> set image 到本次 sha tag
+  -> rollout status 等待发布完成
+  -> 检查 /actuator/health
 ```
 
-### 8.1 Kubernetes 主链路
+Docker Compose 用于回退部署或没有 k3s 时的部署。注意：同一台服务器上不要同时让 K8s Web Service 和 Docker Compose Nginx 占用 80/443。
 
-Kubernetes manifests 位于：
+### 9.2 Kubernetes 首次启动
 
-```text
-k8s/00-namespace.yaml
-k8s/01-configmap.yaml
-k8s/02-mysql.yaml
-k8s/03-backend.yaml
-k8s/04-web.yaml
-k8s/05-ingress.yaml
-k8s/secret.example.yaml
-```
+以下命令在 `aituan-new` 上执行。真实 secret 值需要在服务器上手动创建，不能提交到仓库。
 
-主流程：
-
-```text
-push main / 手动触发 aituan-deploy
-  -> 测试、构建、E2E
-  -> 构建 backend/web 镜像
-  -> 推送 GHCR，tag 为 sha-短提交号
-  -> kubectl apply K8s manifests
-  -> kubectl set image 使用本次 sha tag
-  -> kubectl rollout status 等待 MySQL/backend/web 发布成功
-```
-
-常用验收命令：
+1. 登录服务器并进入部署目录：
 
 ```bash
-kubectl -n aituan get pods,svc,ingress
+ssh aituan-new
+cd /opt/aituan/app
+```
+
+2. 创建命名空间：
+
+```bash
+kubectl apply -f k8s/00-namespace.yaml
+```
+
+3. 创建数据库 Secret。把示例值替换成真实值：
+
+```bash
+kubectl -n aituan create secret generic aituan-db-secret \
+  --from-literal=MYSQL_USER='<真实 MySQL 用户>' \
+  --from-literal=MYSQL_PASSWORD='<真实 MySQL 密码>' \
+  --from-literal=MYSQL_ROOT_PASSWORD='<真实 MySQL root 密码>' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+4. 创建后端 `.config` Secret。先在服务器临时写入配置文件，再生成 Secret，最后删除临时文件：
+
+```bash
+cat > /tmp/aituan-app.config <<'EOF'
+aituan.security.jwt-secret=<生产强随机 JWT secret>
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+aituan.ai.enabled=false
+aituan.upload.strategy=local
+aituan.map.provider=local
+EOF
+
+kubectl -n aituan create secret generic aituan-app-config \
+  --from-file=.config=/tmp/aituan-app.config \
+  --dry-run=client -o yaml | kubectl apply -f -
+rm -f /tmp/aituan-app.config
+```
+
+5. 如果 GHCR 镜像是私有包，创建镜像拉取 Secret；如果镜像公开，可以跳过：
+
+```bash
+kubectl -n aituan create secret docker-registry ghcr-pull-secret \
+  --docker-server=ghcr.io \
+  --docker-username='<GitHub 用户名或机器人账号>' \
+  --docker-password='<具备 read:packages 权限的 PAT>' \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+6. 创建 TLS Secret。证书文件来自服务器 `/etc/letsencrypt/live/aituan.2b.gs/`：
+
+```bash
+kubectl -n aituan create secret tls aituan-tls \
+  --cert=/etc/letsencrypt/live/aituan.2b.gs/fullchain.pem \
+  --key=/etc/letsencrypt/live/aituan.2b.gs/privkey.pem \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+7. 应用资源：
+
+```bash
+kubectl apply -f k8s/01-configmap.yaml
+kubectl apply -f k8s/02-mysql.yaml
+kubectl apply -f k8s/03-backend.yaml
+kubectl apply -f k8s/04-web.yaml
+kubectl apply -f k8s/05-ingress.yaml
+```
+
+8. 指定实际镜像 tag。把 `sha-a7e2145` 换成本次 GitHub Actions 生成的 tag：
+
+```bash
+kubectl -n aituan set image deployment/aituan-backend backend=ghcr.io/puaa-team/aituan/backend:sha-a7e2145
+kubectl -n aituan set image deployment/aituan-web web=ghcr.io/puaa-team/aituan/web:sha-a7e2145
+```
+
+9. 等待发布完成并检查：
+
+```bash
 kubectl -n aituan rollout status statefulset/mysql --timeout=300s
 kubectl -n aituan rollout status deployment/aituan-backend --timeout=300s
 kubectl -n aituan rollout status deployment/aituan-web --timeout=300s
+kubectl -n aituan get pods,svc,ingress
+curl -fsS http://127.0.0.1/actuator/health
 ```
 
-当前单节点 k3s 方案中，`k8s/04-web.yaml` 的 `web` Service 使用 `LoadBalancer` 接管 80/443；`k8s/05-ingress.yaml` 是安装 Ingress Controller 后的预留入口。K8s 模式下不要同机同时运行 Docker Compose Nginx，避免 80/443 端口冲突。
+### 9.3 Kubernetes 日常启动、停止、重启和排查
 
-### 8.2 Docker Compose 回退部署
-
-Compose 文件：
-
-```text
-deploy/docker-compose.server.yml
-deploy/docker-compose.cicd.yml
-deploy/docker-compose.acme.yml
-```
-
-手动产物部署通常使用：
+查看状态：
 
 ```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml config
-docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml up -d --build
+ssh aituan-new "kubectl -n aituan get pods,svc,ingress,deploy,statefulset"
 ```
 
-CI/CD 镜像化回退部署通常使用：
+重启后端：
+
+```bash
+ssh aituan-new "kubectl -n aituan rollout restart deployment/aituan-backend && kubectl -n aituan rollout status deployment/aituan-backend --timeout=300s"
+```
+
+重启 Web：
+
+```bash
+ssh aituan-new "kubectl -n aituan rollout restart deployment/aituan-web && kubectl -n aituan rollout status deployment/aituan-web --timeout=300s"
+```
+
+更新镜像：
+
+```bash
+ssh aituan-new "kubectl -n aituan set image deployment/aituan-backend backend=ghcr.io/puaa-team/aituan/backend:sha-xxxxxxx"
+ssh aituan-new "kubectl -n aituan set image deployment/aituan-web web=ghcr.io/puaa-team/aituan/web:sha-xxxxxxx"
+```
+
+查看日志：
+
+```bash
+ssh aituan-new "kubectl -n aituan logs deployment/aituan-backend --tail=200"
+ssh aituan-new "kubectl -n aituan logs deployment/aituan-web --tail=200"
+ssh aituan-new "kubectl -n aituan describe pod -l app.kubernetes.io/name=aituan-backend"
+```
+
+回滚到上一个 ReplicaSet：
+
+```bash
+ssh aituan-new "kubectl -n aituan rollout undo deployment/aituan-backend"
+ssh aituan-new "kubectl -n aituan rollout undo deployment/aituan-web"
+```
+
+临时停止业务副本：
+
+```bash
+ssh aituan-new "kubectl -n aituan scale deployment/aituan-backend --replicas=0"
+ssh aituan-new "kubectl -n aituan scale deployment/aituan-web --replicas=0"
+```
+
+恢复业务副本：
+
+```bash
+ssh aituan-new "kubectl -n aituan scale deployment/aituan-backend --replicas=1"
+ssh aituan-new "kubectl -n aituan scale deployment/aituan-web --replicas=1"
+```
+
+数据库通常不要随意缩容或删除 PVC。MySQL StatefulSet 的数据在 PVC 中保存，删除 PVC 会丢失数据库数据。
+
+### 9.4 Docker Compose 生产回退启动
+
+Docker Compose 回退方案适合暂时不用 k3s 的情况。执行前先确认 K8s 没有占用 80/443，或先停掉 K8s Web：
+
+```bash
+ssh aituan-new "kubectl -n aituan scale deployment/aituan-web --replicas=0"
+```
+
+1. 登录服务器并进入部署目录：
+
+```bash
+ssh aituan-new
+cd /opt/aituan/app
+```
+
+2. 准备 `deploy/.env`。不要把真实 `.env` 提交到 Git：
+
+```bash
+cat > deploy/.env <<'EOF'
+MYSQL_DATABASE=aituan_dev
+MYSQL_USER=<真实 MySQL 用户>
+MYSQL_PASSWORD=<真实 MySQL 密码>
+MYSQL_ROOT_PASSWORD=<真实 MySQL root 密码>
+AITUAN_DATA_DIR=/opt/aituan/data
+AITUAN_CONFIG_HOST_FILE=../.config
+AITUAN_IMAGE_REGISTRY=ghcr.io/puaa-team/aituan
+AITUAN_IMAGE_TAG=sha-xxxxxxx
+AITUAN_DOWNLOADS_DIR=/opt/aituan/data/downloads
+AITUAN_NGINX_SERVER_NAME=aituan.2b.gs
+AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
+AITUAN_CERTBOT_WEBROOT=/var/www/certbot
+EOF
+```
+
+3. 准备后端 `.config`。不要把真实 `.config` 提交到 Git：
+
+```bash
+cat > .config <<'EOF'
+aituan.security.jwt-secret=<生产强随机 JWT secret>
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+aituan.ai.enabled=false
+aituan.upload.strategy=local
+aituan.map.provider=local
+EOF
+```
+
+4. 创建数据和下载目录：
+
+```bash
+mkdir -p /opt/aituan/data/mysql /opt/aituan/data/uploads /opt/aituan/data/downloads /var/www/certbot/.well-known/acme-challenge /etc/letsencrypt
+```
+
+5. 启动 CI/CD 镜像化 Compose：
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull
 docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans
 ```
 
-`docker-compose.cicd.yml` 依赖 GHCR 镜像和 `AITUAN_IMAGE_REGISTRY`、`AITUAN_IMAGE_TAG`，部署 tag 与 GitHub Actions 计算出的 `sha-短提交号` 保持一致。
+6. 检查状态和健康：
 
-### 8.3 HTTPS
-
-Nginx / K8s Web 镜像默认读取 Let's Encrypt 证书路径：
-
-```text
-/etc/letsencrypt/live/aituan.2b.gs/fullchain.pem
-/etc/letsencrypt/live/aituan.2b.gs/privkey.pem
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml ps
+curl -fsS http://127.0.0.1/actuator/health
 ```
 
-Compose 模式下证书目录通常通过宿主机 `/etc/letsencrypt` 和 `/var/www/certbot` 挂载。K8s 模式下证书内容通过 `aituan-tls` Secret 挂载，仓库不保存证书内容。
+7. 查看日志：
 
-如部署到其他域名，需要同步调整：
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 backend
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 nginx
+```
 
-- GitHub Actions Variable `SERVER_ORIGIN`；
-- Nginx server name / K8s ConfigMap 中的域名；
-- 前端构建时的 `API_BASE_URL` / `VITE_API_BASE_URL`；
-- TLS 证书和 Secret。
+停止 Compose：
 
-### 8.4 常规安装
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml down
+```
 
-常规安装方式适合已有 Java、MySQL、Nginx 运维环境的服务器：
+如果只是首次申请证书前的 HTTP 临时站点，可用 ACME Compose，仅占用 80：
 
-1. 安装 Java 17、MySQL 8、Nginx；
-2. 创建数据库和用户；
-3. 构建后端 JAR；
-4. 使用 systemd 或等价工具托管后端；
-5. 将用户端 Web、商家端 Web、后台端 Web 静态产物交给 Nginx；
-6. 配置 `/api/` 反向代理到后端端口；
-7. 配置 HTTPS 和健康检查。
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.acme.yml up -d
+```
 
-## 9. CI/CD
+如果使用服务器本地静态产物和本地构建镜像，可用 `deploy/docker-compose.server.yml`：
 
-项目包含 GitHub Actions workflow：
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml config
+docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml up -d --build
+```
 
-| Workflow | 文件 | 作用 |
+### 9.5 GitHub Actions 配置和发布
+
+仓库有三个主要 workflow：
+
+| Workflow | 触发方式 | 作用 |
 | --- | --- | --- |
-| `aituan-ci` | `.github/workflows/ci.yml` | PR / 手动触发，运行静态回归、后端 verify + MySQL 迁移 smoke、Web coverage/build、Flutter analyze/test/build、Playwright UC01-UC13 E2E。 |
-| `aituan-deploy` | `.github/workflows/deploy.yml` | main push / 手动触发，先跑测试与 E2E，再构建 backend/web 镜像，推送 GHCR，并按 `k8s`、`compose` 或 `none` 执行后续动作。 |
-| `aituan-android-apk` | `.github/workflows/android-apk.yml` | 手动触发，构建用户端 Android debug APK，可选上传到服务器下载目录。 |
+| `aituan-ci` | Pull Request / 手动触发 | 静态回归、后端测试、MySQL 迁移 smoke、Web 测试构建、Flutter 测试构建、E2E |
+| `aituan-deploy` | push main / 手动触发 | 测试、构建镜像、推送 GHCR，并按 k8s / compose / none 发布 |
+| `aituan-android-apk` | 手动触发 | 构建用户端 Android debug APK，可选上传到服务器下载目录 |
 
-`aituan-deploy` 的部署目标：
+生产环境 Variables 建议：
 
-```text
-k8s     部署到 Kubernetes，当前默认目标
-compose 回退到 Docker Compose
-none    只测试、构建并推送镜像，不部署
+| Variable | 建议值 | 说明 |
+| --- | --- | --- |
+| `SERVER_ORIGIN` | `https://aituan.2b.gs` | 站点 origin，不要带 `/api` |
+| `AUTO_DEPLOY_PRODUCTION` | `true` | main push 是否自动生产部署 |
+| `DEPLOY_TARGET` | `k8s` | 默认生产部署目标，可选 `k8s`、`compose`、`none` |
+| `K8S_NAMESPACE` | `aituan` | Kubernetes 命名空间 |
+| `SERVER_APP_DIR` | `/opt/aituan/app` | Compose / APK 上传使用的服务器目录 |
+
+Kubernetes 发布需要的 Production Secrets：
+
+| Secret | 用途 |
+| --- | --- |
+| `KUBE_CONFIG` | 连接 `aituan-new` k3s 集群的 kubeconfig 内容 |
+| `K8S_MYSQL_USER` | 创建或更新 `aituan-db-secret` 的 MySQL 用户 |
+| `K8S_MYSQL_PASSWORD` | 创建或更新 `aituan-db-secret` 的 MySQL 密码 |
+| `K8S_MYSQL_ROOT_PASSWORD` | 创建或更新 `aituan-db-secret` 的 root 密码 |
+| `K8S_APP_CONFIG` | 创建或更新 `aituan-app-config` 的完整 `.config` 内容 |
+| `GHCR_PULL_USERNAME` | 私有 GHCR 镜像拉取账号，公开镜像可不填 |
+| `GHCR_PULL_TOKEN` | 私有 GHCR 镜像拉取 token，公开镜像可不填 |
+
+Compose 发布和 APK 上传还需要：
+
+| Secret | 用途 |
+| --- | --- |
+| `SERVER_HOST` | 服务器 IP 或域名 |
+| `SERVER_PORT` | SSH 端口，默认 22 |
+| `SERVER_USER` | SSH 用户 |
+| `SERVER_SSH_KEY` | GitHub Actions 连接服务器的私钥 |
+| `SERVER_KNOWN_HOSTS` | known_hosts 内容，避免 SSH 交互确认 |
+
+手动触发 `aituan-deploy`：
+
+1. 打开 GitHub Actions；
+2. 选择 `aituan-deploy`；
+3. 点击 `Run workflow`；
+4. `deploy=true`；
+5. `deploy_target=k8s` 表示部署到当前生产 k3s；
+6. `deploy_target=compose` 表示走 Docker Compose 回退部署；
+7. `deploy_target=none` 表示只测试、构建、推送镜像，不发布。
+
+发布后在服务器检查：
+
+```bash
+ssh aituan-new "kubectl -n aituan get pods,svc,ingress,deploy,statefulset"
+ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
 ```
 
-镜像策略：
+### 9.6 GitHub Actions 构建 APK 并上传服务器
 
-- Registry：`ghcr.io/<owner>/<repo>`。
-- 镜像：`backend`、`web`。
-- 部署 tag：`sha-${GITHUB_SHA::7}`。
-- 同时推送 `main` tag 作为辅助标签，但部署以 sha tag 为准，不依赖 `latest`。
+手动触发 `aituan-android-apk`：
 
-push main 自动部署需要同时满足：
+| 输入 | 建议值 | 说明 |
+| --- | --- | --- |
+| `api_origin` | 留空或 `https://aituan.2b.gs` | 留空时使用 `SERVER_ORIGIN` |
+| `upload_to_server` | `true` | 是否上传到服务器下载目录 |
+| `apk_name` | `aituan-user-server-debug.apk` 或留默认 | 默认会按版本号生成 `aituan-user-版本-server-debug.apk` |
+
+流程会执行：
+
+1. 设置 Java 17；
+2. 设置 Flutter 3.41.6；
+3. 校验 API origin；
+4. `flutter pub get`；
+5. `flutter analyze`；
+6. `flutter test`；
+7. `flutter build apk --debug --dart-define=API_BASE_URL=<生产域名>`；
+8. 上传 APK artifact；
+9. 如果 `upload_to_server=true`，通过 SSH 上传到 `/opt/aituan/data/downloads` 或 `deploy/.env` 中的 `AITUAN_DOWNLOADS_DIR`。
+
+生产下载入口：
 
 ```text
-AUTO_DEPLOY_PRODUCTION=true
-DEPLOY_TARGET=k8s 或 compose
+https://aituan.2b.gs/downloads/<APK 文件名>
 ```
 
-如果 `DEPLOY_TARGET=none`，workflow 仍会完成测试、构建和镜像推送，但不会执行 K8s 或 Compose 部署。
+### 9.7 生产发布失败处理
 
-## 10. 演示账号
+1. 先看 GitHub Actions 的失败 job 和上传的原始报告 artifact。
+2. 如果失败发生在 K8s rollout：
 
-演示账号由 seed 数据初始化，通常用于本地开发和课程展示。公开部署前应根据需要修改默认密码或禁用公开演示账号。
+```bash
+ssh aituan-new "kubectl -n aituan get pods,svc,ingress,events"
+ssh aituan-new "kubectl -n aituan describe deployment/aituan-backend"
+ssh aituan-new "kubectl -n aituan logs deployment/aituan-backend --tail=200"
+```
 
-| 端 | 账号 | 密码 | 说明 |
-| --- | --- | --- | --- |
-| 用户端 | `demo_user` | `123456` | 演示用户 |
-| 商家端 | `demo_merchant` | `123456` | 基础商家演示账号 |
-| 后台端 | `demo_admin` | `123456` | 平台管理员演示账号 |
+3. 如果新镜像启动失败，回滚：
 
-## 11. 文档索引
+```bash
+ssh aituan-new "kubectl -n aituan rollout undo deployment/aituan-backend"
+ssh aituan-new "kubectl -n aituan rollout undo deployment/aituan-web"
+```
 
-- `docs/ReadMe.md`：完整文档索引。
-- `docs/爱团通用部署文档.md`：通用部署说明。
-- `deploy/README.md`：Docker Compose 部署与回退链路说明。
-- `k8s/README.md`：Kubernetes manifests、Secret、rollout 和回滚说明。
-- `tests/e2e/README.md`：Playwright UC01-UC13 端到端测试工程说明。
-- `docs/stage-new-1/Kubernetes部署与CICD说明.md`：K8s 部署和 CI/CD 补齐说明。
-- `docs/stage-new-1/DockerCompose到K8s-CICD迁移简明说明.md`：从 Compose 切换到 K8s 的课程验收说明。
-- `docs/stage-new-1/测试与CICD补齐总清单.md`：测试与 CI/CD 补齐盘点。
-- `docs/stage-new-2/微服务/微服务接口清单.md`：后续微服务拆分接口基线。
-- `docs/爱团测试报告.md`：项目测试报告。
-- `docs/stage-final/期末展示PPT大纲.md`：期末展示 PPT 大纲。
-- `docs/stage6-memberE/AI助手交付说明.md`：AI 助手说明。
-- `docs/stage1/API 分组设计.md`：API 分组设计。
-- `docs/stage1/数据库表设计.md`：数据库设计。
+4. 如果 Compose 发布失败：
 
-## 12. 安全注意事项
+```bash
+ssh aituan-new "cd /opt/aituan/app && docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml ps"
+ssh aituan-new "cd /opt/aituan/app && docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=200 backend"
+```
 
-1. 不要提交真实 `.config`、`deploy/.env`、数据库密码、JWT secret、AI key、邮箱授权码、SSH 私钥、kubeconfig、证书私钥或第三方 Token。
-2. 公开部署必须设置强随机 `aituan.security.jwt-secret`。
-3. 邮箱验证码调试返回默认应关闭，不应在公开环境直接向前端返回验证码。
-4. 服务器部署前建议备份 `.config`、`deploy/.env`、数据库、K8s Secret 和旧产物。
-5. 数据库结构更新统一通过 Flyway 迁移，不建议手动改表后不留脚本。
-6. Flyway 迁移脚本必须兼容 MySQL 8 与 H2 `MODE=MySQL`，已执行过的迁移版本不要回改。
-7. Docker Compose 与 K8s 镜像部署都建议使用 `sha-<短提交号>` 标签，便于追踪和回滚。
-8. K8s `aituan-tls`、数据库 Secret、应用 `.config` Secret 必须预先在集群或 GitHub Secrets 中配置，不应写入仓库。
-9. HTTPS 证书需要定期续期，续期后 reload Nginx 或滚动更新 Web Pod。
-10. APK、部署压缩包、Playwright 报告、coverage、`deploy/artifacts/` 等构建产物默认不入仓库。
+5. 数据库结构问题统一通过新的 Flyway 迁移解决。已执行过的迁移版本不要直接改内容。
 
-## 13. 后续可扩展方向
+## 10. 配置要点
 
-- 接入真实支付沙箱和更完整的资金清结算流程。
-- 增加真实骑手端或更完整的配送轨迹模拟。
-- 增加酒店房态、电影选座、技师排班等复杂预约能力。
-- 提升 Playwright E2E 的并行度、稳定性、报告质量和失败定位能力。
-- 将移动端 Android emulator / 真机 `integration_test` 作为手动专项或独立 workflow，避免阻塞默认 CI 门禁。
-- 按 `docs/stage-new-2/微服务/微服务接口清单.md` 推进网关和微服务拆分。
-- 扩展 AI Skills、调用日志、智能推荐和运营辅助能力。
+### 10.1 后端 `.config`
+
+后端默认读取 `.config`。本地没有该文件也能以 demo 默认值启动；生产必须设置强随机 JWT secret。
+
+```properties
+aituan.security.jwt-secret=<生产强随机 JWT secret>
+aituan.ai.enabled=false
+aituan.ai.api-url=http://cliapi.2b.gs
+aituan.ai.api-key=
+aituan.ai.model=pp/gpt-5.5
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+aituan.upload.strategy=local
+aituan.upload.root-dir=/data/uploads
+aituan.map.provider=local
+```
+
+真实数据库密码、邮箱授权码、AI key、图床 token、SSH 私钥、kubeconfig 和证书私钥不要提交到仓库。
+
+### 10.2 Docker Compose `.env`
+
+Compose 生产回退部署使用 `deploy/.env`：
+
+```dotenv
+MYSQL_DATABASE=aituan_dev
+MYSQL_USER=<真实 MySQL 用户>
+MYSQL_PASSWORD=<真实 MySQL 密码>
+MYSQL_ROOT_PASSWORD=<真实 MySQL root 密码>
+AITUAN_DATA_DIR=/opt/aituan/data
+AITUAN_CONFIG_HOST_FILE=../.config
+AITUAN_IMAGE_REGISTRY=ghcr.io/puaa-team/aituan
+AITUAN_IMAGE_TAG=sha-xxxxxxx
+AITUAN_DOWNLOADS_DIR=/opt/aituan/data/downloads
+AITUAN_NGINX_SERVER_NAME=aituan.2b.gs
+AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
+AITUAN_CERTBOT_WEBROOT=/var/www/certbot
+```
+
+### 10.3 Kubernetes 配置
+
+Kubernetes 固定命名空间为 `aituan`。核心配置：
+
+```yaml
+MYSQL_DATABASE: aituan_dev
+SPRING_PROFILES_ACTIVE: dev
+SERVER_PORT: "8080"
+AITUAN_UPLOAD_ROOT: /data/uploads
+AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
+MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
+TZ: Asia/Shanghai
+NGINX_SERVER_NAME: aituan.2b.gs
+```
+
+Kubernetes 资源关系：
+
+```text
+mysql StatefulSet
+  -> mysql Service: 3306
+backend Deployment
+  -> backend Service: 8080
+web Deployment
+  -> web LoadBalancer Service: 80 / 443
+  -> /api/ 反向代理 backend:8080
+  -> /actuator/health 反向代理 backend:8080/actuator/health
+```
+
+### 10.4 数据与证书
+
+- MySQL 数据：K8s 使用 `mysql-data` PVC；Compose 使用 `/opt/aituan/data/mysql`。
+- 上传文件：K8s 使用 `aituan-uploads` PVC，挂载到 `/data/uploads`；Compose 使用 `/opt/aituan/data/uploads`。
+- APK 下载：K8s 使用 `aituan-downloads` PVC，挂载到 `/usr/share/nginx/html/downloads`；Compose 使用 `/opt/aituan/data/downloads`。
+- TLS 证书：服务器路径为 `/etc/letsencrypt/live/aituan.2b.gs/fullchain.pem` 和 `/etc/letsencrypt/live/aituan.2b.gs/privkey.pem`；K8s 中同步为 `aituan-tls` Secret。
+- 迁移脚本必须兼容 MySQL 8 和 H2 `MODE=MySQL`，生产数据库结构变更统一走 Flyway。
