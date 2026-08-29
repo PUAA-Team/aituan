@@ -182,6 +182,8 @@
 
 `./docs/stage-new-1/业务场景用例追溯表.md`
 
+`./docs/stage-new-1/GitHubActions流水线原始报告说明.md`
+
 `./docs/配置与脚本位置清单.md`
 
 ### 11. 期末展示文档

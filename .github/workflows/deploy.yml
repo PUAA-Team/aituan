@@ -24,6 +24,7 @@ on:
 permissions:
   contents: read
   packages: write
+  actions: read
 
 concurrency:
   group: production-deploy
@@ -549,3 +550,40 @@ jobs:
              done; \
              docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 backend; \
              exit 1"
+
+  pipeline_raw_report:
+    name: Upload deployment pipeline raw report
+    runs-on: ubuntu-latest
+    needs:
+      - build_and_push
+      - deploy_k8s
+      - deploy_compose
+    if: always()
+    steps:
+      - name: Checkout report script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Generate deployment pipeline raw report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-deploy 流水线原始报告
+          AITUAN_JOB_STATUS: build_and_push=${{ needs.build_and_push.result }}, deploy_k8s=${{ needs.deploy_k8s.result }}, deploy_compose=${{ needs.deploy_compose.result }}
+          AITUAN_IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+          AITUAN_IMAGE_TAG: ${{ needs.build_and_push.outputs.image_tag }}
+          AITUAN_SHOULD_DEPLOY: ${{ needs.build_and_push.outputs.should_deploy }}
+          AITUAN_DEPLOY_TARGET: ${{ needs.build_and_push.outputs.deploy_target }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/aituan-deploy
+
+      - name: Upload deployment pipeline raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aituan-deploy-pipeline-raw-report
+          path: .aituan-report/aituan-deploy/
+          if-no-files-found: error
+          retention-days: 30

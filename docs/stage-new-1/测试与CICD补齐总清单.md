@@ -577,8 +577,8 @@ apps/user_app/integration_test/
 | T03 | Web 页面测试 | 商家端 / 后台端页面交互 | 仅有 `src/api.test.ts` | 不满足 | 缺页面级组件测试或浏览器 E2E | Vitest component tests 或 Playwright |
 | T04 | Flutter 端到端 | APP 页面完整流程 | `apps/user_app/test` 有单测和 Widget 测试 | 不满足 | 缺 `integration_test` | `apps/user_app/integration_test/` |
 | C01 | CI 测试门禁 | PR 自动测试失败即停 | `aituan-ci` 已覆盖后端、Web、Flutter、静态回归，并上传后端 Surefire/JaCoCo、Web Vitest、Flutter coverage artifact | 满足 | 后续可继续补覆盖率阈值 | 现已上传测试报告和覆盖率 artifact |
-| C02 | CD 测试门禁 | push 部署前完整测试 | `aituan-deploy` 跑后端、merchant/admin Web、Flutter 测试 | 满足 | 后续可继续补部署流水线报告归档 | 已在 `deploy.yml` 构建 Web 前补 `npm test` |
+| C02 | CD 测试门禁 | push 部署前完整测试 | `aituan-deploy` 跑后端、merchant/admin Web、Flutter 测试，并上传 `aituan-deploy-pipeline-raw-report` | 满足 | 真实部署仍需 GitHub Secrets/Variables 配置正确 | 已在 `deploy.yml` 构建 Web 前补 `npm test`，并补齐部署流水线原始报告 artifact |
 | C03 | Kubernetes 部署 | push 后部署到 K8s 并健康检查 | 已新增 `k8s/` manifests，`aituan-deploy` 支持 `deploy_target=k8s` 并执行 `kubectl rollout status` | 满足 | 真实集群需配置 `KUBE_CONFIG` 和 K8s Secrets | 配置 GitHub Secrets 后运行 K8s 部署验证 |
 | C04 | 镜像版本 | 镜像不能只用 latest | Compose 与 K8s 均使用 `sha-短提交号`，`main` 仅作辅助标签 | 满足 | 无 | K8s 通过 `kubectl set image` 使用 `${IMAGE_TAG}` |
-| C05 | 测试报告产物 | 测试总数、通过数、失败数、失败原因、环境 | 文档有历史材料 | 不满足当前自动化口径 | 缺最新 CI 原始报告 artifact | 上传 Surefire、Vitest、Flutter test、coverage artifact |
+| C05 | 测试报告产物 | 测试总数、通过数、失败数、失败原因、环境 | `aituan-ci` 上传测试报告/覆盖率 artifact，`aituan-ci`、`aituan-deploy`、`aituan-android-apk` 均上传流水线原始报告 artifact | 满足 | 后续可继续增加覆盖率阈值或更细粒度测试统计 | 已上传 Surefire、Vitest、Flutter test、coverage artifact，并新增统一原始报告脚本 `scripts/verify/write_pipeline_raw_report.sh` |
 | D01 | 新服务器配置 | 新服务器变量、密钥、known_hosts | 文档写到 `8.220.192.106`，服务器健康 | 部分满足 | GitHub Secrets / Variables 需在网页端确认 | 核对 `SERVER_ORIGIN`、`SERVER_HOST`、`SERVER_KNOWN_HOSTS` |

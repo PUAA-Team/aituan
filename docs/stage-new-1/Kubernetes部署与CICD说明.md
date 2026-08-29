@@ -211,7 +211,19 @@ https://aituan.2b.gs/merchant/
 https://aituan.2b.gs/admin/
 ```
 
-## 10. 回滚
+## 10. 流水线原始报告
+
+`aituan-deploy` 每次运行结束后都会通过 `pipeline_raw_report` job 上传原始报告 artifact：
+
+```text
+aituan-deploy-pipeline-raw-report
+```
+
+报告中包含本次 run 的触发事件 payload、run 元数据、jobs 原始 JSON、提交 hash、checkout 状态，以及部署目标、镜像仓库、镜像标签、是否部署、K8s/Compose job 结果等关键信息。部署失败时该 job 使用 `if: always()` 尽量继续上传报告，便于追溯失败阶段。
+
+详见：`docs/stage-new-1/GitHubActions流水线原始报告说明.md`。
+
+## 11. 回滚
 
 Kubernetes 内回滚：
 

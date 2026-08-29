@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -307,3 +308,38 @@ jobs:
             tests/e2e/playwright-report
             tests/e2e/test-results
           if-no-files-found: ignore
+
+  pipeline_raw_report:
+    name: Upload CI pipeline raw report
+    runs-on: ubuntu-latest
+    needs:
+      - static-regression
+      - backend
+      - web
+      - flutter
+      - e2e
+    if: always()
+    steps:
+      - name: Checkout report script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Generate CI pipeline raw report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-ci 流水线原始报告
+          AITUAN_JOB_STATUS: static-regression=${{ needs.static-regression.result }}, backend=${{ needs.backend.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, e2e=${{ needs.e2e.result }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/aituan-ci
+
+      - name: Upload CI pipeline raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aituan-ci-pipeline-raw-report
+          path: .aituan-report/aituan-ci/
+          if-no-files-found: error
+          retention-days: 30
