@@ -31,6 +31,7 @@ function Invoke-Native {
 $BackendUnitTests = @(
   "FileStorageServiceTest",
   "TradeGrowthServiceTest",
+  "TradeServiceBusinessRuleTest",
   "ComplaintServiceTest",
   "DiscoveryServiceTest",
   "StationMessagePublisherTest",

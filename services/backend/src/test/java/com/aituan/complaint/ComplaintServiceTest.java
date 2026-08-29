@@ -11,10 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 /** 投诉状态机非法跃迁测试：跳过 accept 直接 resolve、对 resolved 再 resolve、对 closed 操作 均应拒绝。 */
 @SpringBootTest
 @ActiveProfiles("test")
+@Transactional
 class ComplaintServiceTest {
 
   @Autowired private ComplaintService complaintService;
@@ -79,6 +81,36 @@ class ComplaintServiceTest {
         .anySatisfy(log -> {
           assertThat(log.action()).isEqualTo("supplement");
           assertThat(log.remark()).contains("继续跟进");
+        });
+  }
+
+  @Test
+  void adminCanAdvanceComplaintFromAcceptToResolveAndClose() {
+    TestAuthSupport.loginAsAdmin(3L);
+
+    ComplaintView accepted = complaintService.accept(1L, new ComplaintActionRequest("已联系商家核实出餐时间"));
+    assertThat(accepted.status()).isEqualTo("processing");
+    assertThat(accepted.acceptedBy()).isEqualTo(3L);
+    assertThat(accepted.acceptedAt()).isNotNull();
+
+    ComplaintView resolved = complaintService.resolve(1L, new ComplaintActionRequest("商家补偿小食并承诺加急配送"));
+    assertThat(resolved.status()).isEqualTo("resolved");
+    assertThat(resolved.resolvedBy()).isEqualTo(3L);
+    assertThat(resolved.resolvedAt()).isNotNull();
+
+    ComplaintView closed = complaintService.close(1L, new ComplaintActionRequest("用户确认满意"));
+    assertThat(closed.status()).isEqualTo("closed");
+    assertThat(closed.closedAt()).isNotNull();
+
+    TestAuthSupport.loginAsUser(1L, 1L);
+    ComplaintDetailView detail = complaintService.myTicketDetail(1L);
+    assertThat(detail.logs())
+        .extracting(ComplaintLogView::action)
+        .containsSubsequence("submit", "accept", "resolve", "close");
+    assertThat(detail.logs())
+        .anySatisfy(log -> {
+          assertThat(log.action()).isEqualTo("resolve");
+          assertThat(log.remark()).contains("补偿小食");
         });
   }
 
