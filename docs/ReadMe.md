@@ -196,6 +196,8 @@
 
 `./docs/stage-new-3/微服务工程地基与适配说明.md`
 
+`./docs/stage-new-3/C分工交易履约微服务拆分说明.md`
+
 `./docs/stage-new-3/小学期后续看板任务项.md`
 
 ### 11. 期末展示文档
