@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-asset-service
+  namespace: aituan
+  labels:
+    app: identity-asset-service
+    app.kubernetes.io/name: identity-asset-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-asset-service
+  template:
+    metadata:
+      labels:
+        app: identity-asset-service
+    spec:
+      containers:
+        - name: identity-asset-service
+          image: ghcr.io/puaa-team/aituan/identity-asset-service:sha-placeholder
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SERVER_PORT
+              value: "8081"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: AITUAN_SERVICE_NAME
+              value: identity-asset-service
+            - name: AITUAN_SERVICE_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['pod-template-hash']
+            - name: AITUAN_IDENTITY_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: identity-asset-db-secret
+                  key: url
+            - name: AITUAN_IDENTITY_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: identity-asset-db-secret
+                  key: username
+            - name: AITUAN_IDENTITY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: identity-asset-db-secret
+                  key: password
+            - name: AITUAN_IDENTITY_DB_DRIVER
+              value: com.mysql.cj.jdbc.Driver
+            - name: AITUAN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-jwt-secret
+                  key: jwt-secret
+            - name: AITUAN_INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-internal-service-secret
+                  key: token
+            - name: AITUAN_TRADE_SERVICE_URL
+              value: http://trade-fulfillment-service:8083
+            - name: AITUAN_PLATFORM_SERVICE_URL
+              value: http://engagement-platform-service:8084
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-asset-service
+  namespace: aituan
+  labels:
+    app: identity-asset-service
+spec:
+  selector:
+    app: identity-asset-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081

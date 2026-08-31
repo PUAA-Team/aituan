@@ -4,6 +4,43 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: forbid-internal-api
+          uri: no://op
+          predicates:
+            - Path=/internal/**
+          filters:
+            - SetStatus=403
+        - id: identity-open-auth
+          uri: ${AITUAN_IDENTITY_SERVICE_URL:http://identity-asset-service:8081}
+          predicates:
+            - Path=/api/open/auth/**
+        - id: identity-app-account
+          uri: ${AITUAN_IDENTITY_SERVICE_URL:http://identity-asset-service:8081}
+          predicates:
+            - Path=/api/app/account/**
+        - id: identity-app-message
+          uri: ${AITUAN_IDENTITY_SERVICE_URL:http://identity-asset-service:8081}
+          predicates:
+            - Path=/api/app/message/**,/api/app/messages/**
+        - id: identity-admin-users
+          uri: ${AITUAN_IDENTITY_SERVICE_URL:http://identity-asset-service:8081}
+          predicates:
+            - Path=/api/admin/users/**,/api/admin/account/profile,/api/admin/operation/member-levels/**,/api/admin/operation/coupon-templates/**
+        - id: merchant-catalog
+          uri: ${AITUAN_MERCHANT_SERVICE_URL:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/open/merchant/**,/api/app/discovery/**,/api/app/location/**,/api/merchant/profile/**,/api/merchant/stores/**,/api/merchant/catalog/**,/api/merchant/trade/stores/**,/api/admin/merchants/**,/api/admin/stores/**,/api/admin/catalog/**,/api/admin/trade/stores/**
+        - id: trade-fulfillment
+          uri: ${AITUAN_TRADE_SERVICE_URL:http://trade-fulfillment-service:8083}
+          predicates:
+            - Path=/api/app/trade/**,/api/admin/trade/orders/**,/api/admin/trade/bookings/**,/api/merchant/trade/orders/**,/api/merchant/trade/bookings/**,/api/admin/delivery/tasks/**
+        - id: engagement-platform
+          uri: ${AITUAN_PLATFORM_SERVICE_URL:http://engagement-platform-service:8084}
+          predicates:
+            - Path=/api/app/interaction/**,/api/app/complaints/**,/api/app/support/**,/api/app/ai/**,/api/merchant/ops/**,/api/admin/governance/**,/api/admin/operation/announcements/**,/api/admin/operation/configs/**,/api/admin/audit/**,/api/admin/dashboard/**,/api/admin/delivery/settings,/api/common/files/**,/api/common/demo-images/**
 
 management:
   endpoints:

@@ -4,6 +4,41 @@ server:
 spring:
   application:
     name: identity-asset-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:demo}
+  datasource:
+    url: ${AITUAN_IDENTITY_DB_URL:jdbc:h2:mem:aituan_identity;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1}
+    username: ${AITUAN_IDENTITY_DB_USERNAME:sa}
+    password: ${AITUAN_IDENTITY_DB_PASSWORD:}
+    driver-class-name: ${AITUAN_IDENTITY_DB_DRIVER:org.h2.Driver}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+    clean-disabled: true
+  config:
+    import: optional:file:${AITUAN_CONFIG_FILE:.config}[.properties],optional:file:../../.config[.properties]
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
+      max-request-size: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5MB}
+  mail:
+    host: ${AITUAN_MAIL_HOST:smtp.qq.com}
+    port: ${AITUAN_MAIL_PORT:465}
+    username: ${AITUAN_MAIL_USERNAME:}
+    password: ${AITUAN_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: ${AITUAN_MAIL_SSL_ENABLE:true}
+      mail.smtp.starttls.enable: ${AITUAN_MAIL_STARTTLS_ENABLE:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
 
 management:
   endpoints:
@@ -19,3 +54,28 @@ management:
 info:
   app:
     name: ${spring.application.name}
+
+aituan:
+  security:
+    jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
+    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
+  upload:
+    root-dir: ${AITUAN_UPLOAD_ROOT:${user.home}/.aituan/uploads}
+    public-prefix: ${AITUAN_UPLOAD_PUBLIC_PREFIX:/api/common/files}
+    max-size-bytes: ${AITUAN_UPLOAD_MAX_SIZE_BYTES:5242880}
+  mail:
+    enabled: ${AITUAN_MAIL_ENABLED:false}
+    debug-return-code: ${AITUAN_MAIL_DEBUG_RETURN_CODE:false}
+    from: ${AITUAN_MAIL_FROM:${AITUAN_MAIL_USERNAME:}}
+    from-name: ${AITUAN_MAIL_FROM_NAME:爱团}
+  map:
+    provider: ${AITUAN_MAP_PROVIDER:local}
+    amap:
+      web-api-key: ${AITUAN_MAP_AMAP_WEB_API_KEY:}
+      geocode-url: ${AITUAN_MAP_AMAP_GEOCODE_URL:https://restapi.amap.com/v3/geocode/geo}
+  internal:
+    service-token: ${AITUAN_INTERNAL_SERVICE_TOKEN:}
+    trade-base-url: ${AITUAN_TRADE_SERVICE_URL:http://trade-fulfillment-service:8083}
+    platform-base-url: ${AITUAN_PLATFORM_SERVICE_URL:http://engagement-platform-service:8084}
+    audit:
+      enabled: ${AITUAN_INTERNAL_AUDIT_ENABLED:false}
