@@ -186,7 +186,11 @@ public class TradeRepository {
 
   public Optional<DeliveryTaskRow> findDeliveryTask(long orderId) {
     List<DeliveryTaskRow> rows = jdbcTemplate.query(
-        "select id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at from delivery_task where order_id = ? and is_deleted = 0 limit 1",
+        """
+        select id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at,
+               auto_advance_enabled, paused_at, abnormal_reason, updated_at
+        from delivery_task where order_id = ? and is_deleted = 0 limit 1
+        """,
         this::mapDeliveryTask, orderId);
     return rows.stream().findFirst();
   }
@@ -257,6 +261,222 @@ public class TradeRepository {
     return rows.stream().findFirst();
   }
 
+  public List<OrderRow> listOpsOrders(String displayStatus, String fulfillmentStatus, int offset, int limit) {
+    StringBuilder where = new StringBuilder("where is_deleted = 0");
+    List<Object> args = new java.util.ArrayList<>();
+    if (displayStatus != null && !displayStatus.isBlank()) {
+      where.append(" and display_status = ?");
+      args.add(displayStatus);
+    }
+    if (fulfillmentStatus != null && !fulfillmentStatus.isBlank()) {
+      where.append(" and fulfillment_status = ?");
+      args.add(fulfillmentStatus);
+    }
+    where.append(" order by created_at desc, id desc limit ? offset ?");
+    args.add(limit);
+    args.add(offset);
+    return queryOrders(where.toString(), args.toArray());
+  }
+
+  public long countOpsOrders(String displayStatus, String fulfillmentStatus) {
+    StringBuilder sql = new StringBuilder("select count(1) from order_main where is_deleted = 0");
+    List<Object> args = new java.util.ArrayList<>();
+    if (displayStatus != null && !displayStatus.isBlank()) {
+      sql.append(" and display_status = ?");
+      args.add(displayStatus);
+    }
+    if (fulfillmentStatus != null && !fulfillmentStatus.isBlank()) {
+      sql.append(" and fulfillment_status = ?");
+      args.add(fulfillmentStatus);
+    }
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
+    return count == null ? 0 : count;
+  }
+
+  public List<StatusCountRow> orderStatusCounts() {
+    return jdbcTemplate.query(
+        "select display_status, count(1) total from order_main where is_deleted = 0 group by display_status order by display_status",
+        (rs, rowNum) -> new StatusCountRow(rs.getString("display_status"), rs.getLong("total")));
+  }
+
+  public int updateTakeawayStage(long orderId, String displayStatus, String fulfillmentStatus, boolean completed) {
+    return jdbcTemplate.update(
+        """
+        update order_main
+        set display_status = ?, fulfillment_status = ?, completed_at = case when ? = 1 then current_timestamp else completed_at end, updated_at = current_timestamp
+        where id = ? and is_deleted = 0
+        """, displayStatus, fulfillmentStatus, completed ? 1 : 0, orderId);
+  }
+
+  public int updateDeliveryTaskStage(long orderId, String expectedStage, String nextStage, String nextText, boolean completed) {
+    int updated = jdbcTemplate.update(
+        """
+        update delivery_task
+        set current_stage = ?, current_stage_text = ?, completed_at = case when ? = 1 then current_timestamp else completed_at end,
+            next_tick_at = null, last_advanced_at = current_timestamp, updated_at = current_timestamp
+        where order_id = ? and current_stage = ? and is_deleted = 0
+        """, nextStage, nextText, completed ? 1 : 0, orderId, expectedStage);
+    if (updated > 0) {
+      jdbcTemplate.update(
+          """
+          update delivery_track_node
+          set reached_at = coalesce(reached_at, current_timestamp), updated_at = current_timestamp
+          where delivery_task_id = (select id from delivery_task where order_id = ? and is_deleted = 0 limit 1)
+            and node_code = ? and is_deleted = 0
+          """, orderId, nextStage);
+    }
+    return updated;
+  }
+
+  public void insertOrderStateLog(long orderId, String fromStatus, String toStatus, String actionType, String operatorType, Long operatorId, String remark) {
+    jdbcTemplate.update(
+        "insert into order_state_log(order_id, from_status, to_status, action_type, operator_type, operator_id, remark) values (?, ?, ?, ?, ?, ?, ?)",
+        orderId, fromStatus, toStatus, actionType, operatorType, operatorId, remark);
+  }
+
+  public Optional<VoucherRow> findVoucherByCode(String voucherCode) {
+    List<VoucherRow> rows = jdbcTemplate.query(
+        "select id, order_id, voucher_code, qr_payload, status, effective_from, effective_to, verified_at, verified_by from order_voucher where voucher_code = ? and is_deleted = 0 limit 1",
+        this::mapVoucher, voucherCode);
+    return rows.stream().findFirst();
+  }
+
+  public void setVoucherUsed(long orderId, long operatorId) {
+    jdbcTemplate.update("update order_voucher set status = 'used', verified_at = current_timestamp, verified_by = ?, updated_at = current_timestamp where order_id = ? and status = 'unused' and is_deleted = 0", operatorId, orderId);
+    jdbcTemplate.update("update order_main set display_status = 'used', fulfillment_status = 'voucher_used', completed_at = current_timestamp, updated_at = current_timestamp where id = ? and is_deleted = 0", orderId);
+  }
+
+  public List<OpsVoucherRow> listOpsVouchers(String status, String keyword, int offset, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select v.id, v.order_id, v.voucher_code, v.qr_payload, v.status, v.effective_from, v.effective_to, v.verified_at, v.verified_by,
+               o.order_no, o.title, o.store_name, o.order_type, o.payable_amount, o.display_status, o.refund_status, o.created_at
+        from order_voucher v join order_main o on o.id = v.order_id
+        where v.is_deleted = 0 and o.is_deleted = 0
+        """);
+    List<Object> args = new java.util.ArrayList<>();
+    if (status != null && !status.isBlank()) {
+      sql.append(" and v.status = ?");
+      args.add(status);
+    }
+    if (keyword != null && !keyword.isBlank()) {
+      sql.append(" and (v.voucher_code like ? or o.order_no like ? or o.title like ?)");
+      String like = "%" + keyword + "%";
+      args.add(like);
+      args.add(like);
+      args.add(like);
+    }
+    sql.append(" order by o.created_at desc, v.id desc limit ? offset ?");
+    args.add(limit);
+    args.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapOpsVoucher, args.toArray());
+  }
+
+  public long countOpsVouchers(String status, String keyword) {
+    StringBuilder sql = new StringBuilder("select count(1) from order_voucher v join order_main o on o.id = v.order_id where v.is_deleted = 0 and o.is_deleted = 0");
+    List<Object> args = new java.util.ArrayList<>();
+    if (status != null && !status.isBlank()) {
+      sql.append(" and v.status = ?");
+      args.add(status);
+    }
+    if (keyword != null && !keyword.isBlank()) {
+      sql.append(" and (v.voucher_code like ? or o.order_no like ? or o.title like ?)");
+      String like = "%" + keyword + "%";
+      args.add(like);
+      args.add(like);
+      args.add(like);
+    }
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
+    return count == null ? 0 : count;
+  }
+
+  public List<OpsBookingRow> listOpsBookings(String status, String businessType, int offset, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select b.id, b.order_id, b.business_type, b.contact_name, b.contact_phone, b.booking_date, b.booking_time_slot, b.guest_count,
+               b.store_confirm_status, b.store_confirm_remark, b.confirmed_at, b.confirmed_by, b.created_at,
+               o.order_no, o.title, o.store_name, o.display_status, o.payment_status, o.refund_status, o.payable_amount
+        from order_booking_record b join order_main o on o.id = b.order_id
+        where b.is_deleted = 0 and o.is_deleted = 0
+        """);
+    List<Object> args = new java.util.ArrayList<>();
+    if (status != null && !status.isBlank()) {
+      sql.append(" and b.store_confirm_status = ?");
+      args.add(status);
+    }
+    if (businessType != null && !businessType.isBlank()) {
+      sql.append(" and b.business_type = ?");
+      args.add(businessType);
+    }
+    sql.append(" order by b.created_at desc, b.id desc limit ? offset ?");
+    args.add(limit);
+    args.add(offset);
+    return jdbcTemplate.query(sql.toString(), this::mapOpsBooking, args.toArray());
+  }
+
+  public long countOpsBookings(String status, String businessType) {
+    StringBuilder sql = new StringBuilder("select count(1) from order_booking_record b join order_main o on o.id = b.order_id where b.is_deleted = 0 and o.is_deleted = 0");
+    List<Object> args = new java.util.ArrayList<>();
+    if (status != null && !status.isBlank()) {
+      sql.append(" and b.store_confirm_status = ?");
+      args.add(status);
+    }
+    if (businessType != null && !businessType.isBlank()) {
+      sql.append(" and b.business_type = ?");
+      args.add(businessType);
+    }
+    Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class, args.toArray());
+    return count == null ? 0 : count;
+  }
+
+  public void confirmBooking(long orderId, Long operatorId, String remark) {
+    jdbcTemplate.update("update order_booking_record set store_confirm_status = 'confirmed', store_confirm_remark = ?, confirmed_at = current_timestamp, confirmed_by = ?, updated_at = current_timestamp where order_id = ? and is_deleted = 0", remark, operatorId, orderId);
+  }
+
+  public Optional<DeliveryTaskRow> findDeliveryTaskById(long taskId) {
+    List<DeliveryTaskRow> rows = jdbcTemplate.query(
+        """
+        select id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at,
+               auto_advance_enabled, paused_at, abnormal_reason, updated_at
+        from delivery_task where id = ? and is_deleted = 0 limit 1
+        """, this::mapDeliveryTask, taskId);
+    return rows.stream().findFirst();
+  }
+
+  public List<DeliveryTaskRow> listDeliveryTasks(String stage, int offset, int limit) {
+    if (stage == null || stage.isBlank()) {
+      return jdbcTemplate.query(
+          """
+          select id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at,
+                 auto_advance_enabled, paused_at, abnormal_reason, updated_at
+          from delivery_task where is_deleted = 0 order by updated_at desc, id desc limit ? offset ?
+          """, this::mapDeliveryTask, limit, offset);
+    }
+    return jdbcTemplate.query(
+        """
+        select id, order_id, current_stage, current_stage_text, eta_minutes, next_tick_at, completed_at,
+               auto_advance_enabled, paused_at, abnormal_reason, updated_at
+        from delivery_task where current_stage = ? and is_deleted = 0 order by updated_at desc, id desc limit ? offset ?
+        """, this::mapDeliveryTask, stage, limit, offset);
+  }
+
+  public long countDeliveryTasks(String stage) {
+    Long count = stage == null || stage.isBlank()
+        ? jdbcTemplate.queryForObject("select count(1) from delivery_task where is_deleted = 0", Long.class)
+        : jdbcTemplate.queryForObject("select count(1) from delivery_task where current_stage = ? and is_deleted = 0", Long.class, stage);
+    return count == null ? 0 : count;
+  }
+
+  public void pauseDeliveryTask(long taskId) {
+    jdbcTemplate.update("update delivery_task set auto_advance_enabled = 0, paused_at = current_timestamp, updated_at = current_timestamp where id = ? and is_deleted = 0", taskId);
+  }
+
+  public void resumeDeliveryTask(long taskId) {
+    jdbcTemplate.update("update delivery_task set auto_advance_enabled = 1, paused_at = null, updated_at = current_timestamp where id = ? and is_deleted = 0", taskId);
+  }
+
+  public void markDeliveryTaskAbnormal(long taskId, String reason) {
+    jdbcTemplate.update("update delivery_task set current_stage = 'abnormal', current_stage_text = '订单异常，待处理', abnormal_reason = ?, auto_advance_enabled = 0, updated_at = current_timestamp where id = ? and is_deleted = 0", reason, taskId);
+  }
+
   private Optional<Long> findCartId(long userId, long storeId) {
     List<Long> rows = jdbcTemplate.query("select id from cart where user_id = ? and store_id = ? and is_deleted = 0 limit 1", (rs, rowNum) -> rs.getLong("id"), userId, storeId);
     return rows.stream().findFirst();
@@ -312,7 +532,28 @@ public class TradeRepository {
 
   private DeliveryTaskRow mapDeliveryTask(ResultSet rs, int rowNum) throws SQLException {
     return new DeliveryTaskRow(rs.getLong("id"), rs.getLong("order_id"), rs.getString("current_stage"), rs.getString("current_stage_text"),
-        rs.getInt("eta_minutes"), toLocalDateTime(rs.getTimestamp("next_tick_at")), toLocalDateTime(rs.getTimestamp("completed_at")));
+        rs.getInt("eta_minutes"), toLocalDateTime(rs.getTimestamp("next_tick_at")), toLocalDateTime(rs.getTimestamp("completed_at")),
+        rs.getBoolean("auto_advance_enabled"), toLocalDateTime(rs.getTimestamp("paused_at")), rs.getString("abnormal_reason"), toLocalDateTime(rs.getTimestamp("updated_at")));
+  }
+
+  private OpsVoucherRow mapOpsVoucher(ResultSet rs, int rowNum) throws SQLException {
+    long verifiedBy = rs.getLong("verified_by");
+    boolean verifiedByNull = rs.wasNull();
+    return new OpsVoucherRow(rs.getLong("id"), rs.getLong("order_id"), rs.getString("voucher_code"), rs.getString("qr_payload"), rs.getString("status"),
+        toLocalDateTime(rs.getTimestamp("effective_from")), toLocalDateTime(rs.getTimestamp("effective_to")), toLocalDateTime(rs.getTimestamp("verified_at")),
+        verifiedByNull ? null : verifiedBy, rs.getString("order_no"), rs.getString("title"), rs.getString("store_name"), rs.getString("order_type"),
+        rs.getBigDecimal("payable_amount"), rs.getString("display_status"), rs.getString("refund_status"), toLocalDateTime(rs.getTimestamp("created_at")));
+  }
+
+  private OpsBookingRow mapOpsBooking(ResultSet rs, int rowNum) throws SQLException {
+    long confirmedBy = rs.getLong("confirmed_by");
+    boolean confirmedByNull = rs.wasNull();
+    Date bookingDate = rs.getDate("booking_date");
+    return new OpsBookingRow(rs.getLong("id"), rs.getLong("order_id"), rs.getString("business_type"), rs.getString("contact_name"),
+        rs.getString("contact_phone"), bookingDate == null ? null : bookingDate.toString(), rs.getString("booking_time_slot"), rs.getInt("guest_count"),
+        rs.getString("store_confirm_status"), rs.getString("store_confirm_remark"), toLocalDateTime(rs.getTimestamp("confirmed_at")),
+        confirmedByNull ? null : confirmedBy, toLocalDateTime(rs.getTimestamp("created_at")), rs.getString("order_no"), rs.getString("title"),
+        rs.getString("store_name"), rs.getString("display_status"), rs.getString("payment_status"), rs.getString("refund_status"), rs.getBigDecimal("payable_amount"));
   }
 
   private BookingRow mapBooking(ResultSet rs, int rowNum) throws SQLException {
@@ -368,11 +609,24 @@ public class TradeRepository {
                            LocalDateTime effectiveTo, LocalDateTime verifiedAt, Long verifiedBy) {}
 
   public record DeliveryTaskRow(Long id, Long orderId, String currentStage, String currentStageText, int etaMinutes,
-                                LocalDateTime nextTickAt, LocalDateTime completedAt) {}
+                                LocalDateTime nextTickAt, LocalDateTime completedAt, boolean autoAdvanceEnabled,
+                                LocalDateTime pausedAt, String abnormalReason, LocalDateTime updatedAt) {}
 
   public record TimelineRow(String code, String text, LocalDateTime reachedAt) {}
+
+  public record StatusCountRow(String status, long count) {}
+
+  public record OpsVoucherRow(Long id, Long orderId, String voucherCode, String qrPayload, String status, LocalDateTime effectiveFrom,
+                              LocalDateTime effectiveTo, LocalDateTime verifiedAt, Long verifiedBy, String orderNo, String orderTitle,
+                              String storeName, String businessType, BigDecimal payableAmount, String displayStatus, String refundStatus,
+                              LocalDateTime orderCreatedAt) {}
 
   public record BookingRow(Long id, Long orderId, String businessType, String contactName, String contactPhone, String bookingDate,
                            String bookingTimeSlot, int guestCount, String storeConfirmStatus, String storeConfirmRemark,
                            LocalDateTime confirmedAt, Long confirmedBy, LocalDateTime createdAt) {}
+
+  public record OpsBookingRow(Long id, Long orderId, String businessType, String contactName, String contactPhone, String bookingDate,
+                              String bookingTimeSlot, int guestCount, String storeConfirmStatus, String storeConfirmRemark,
+                              LocalDateTime confirmedAt, Long confirmedBy, LocalDateTime createdAt, String orderNo, String orderTitle,
+                              String storeName, String displayStatus, String paymentStatus, String refundStatus, BigDecimal payableAmount) {}
 }

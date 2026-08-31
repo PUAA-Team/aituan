@@ -1,8 +1,10 @@
 package com.aituan.tradefulfillment.trade;
 
 import com.aituan.common.api.PageResponse;
+import com.aituan.common.enums.AccountType;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
+import com.aituan.common.security.CurrentUser;
 import com.aituan.common.security.CurrentUserContext;
 import com.aituan.tradefulfillment.trade.client.CatalogClient;
 import com.aituan.tradefulfillment.trade.client.CatalogClient.DeliveryRuleSnapshot;
@@ -15,6 +17,9 @@ import com.aituan.tradefulfillment.trade.client.IdentityClient.AddressSnapshot;
 import com.aituan.tradefulfillment.trade.client.InventoryClient;
 import com.aituan.tradefulfillment.trade.client.MemberGrowthClient;
 import com.aituan.tradefulfillment.trade.client.MessageClient;
+import com.aituan.tradefulfillment.trade.client.MerchantAuthClient;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.AdminDeliveryTaskView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.BookingConfirmRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.BookingRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.BookingView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CartItemQuantityRequest;
@@ -26,14 +31,21 @@ import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutItemView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CreateOrderRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.DeliveryActionRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.DeliveryTimelineView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsBookingView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsOrderSummaryView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsVoucherView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderDetailView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderItemView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderStatusCountView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderSummaryView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.PayOrderRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.PaymentMethodView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.RefundRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.TakeawayOrderActionRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.TimelineNodeView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.VoucherLookupView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.VoucherView;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.BookingRow;
@@ -41,7 +53,10 @@ import com.aituan.tradefulfillment.trade.repository.TradeRepository.DeliveryTask
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderInsertRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderItemInsertRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderItemRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OpsBookingRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OpsVoucherRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.StatusCountRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.TimelineRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.VoucherRow;
 import java.math.BigDecimal;
@@ -69,6 +84,7 @@ public class TradeService {
   private final InventoryClient inventoryClient;
   private final MemberGrowthClient memberGrowthClient;
   private final MessageClient messageClient;
+  private final MerchantAuthClient merchantAuthClient;
 
   public TradeService(
       TradeRepository tradeRepository,
@@ -78,7 +94,8 @@ public class TradeService {
       DistanceClient distanceClient,
       InventoryClient inventoryClient,
       MemberGrowthClient memberGrowthClient,
-      MessageClient messageClient) {
+      MessageClient messageClient,
+      MerchantAuthClient merchantAuthClient) {
     this.tradeRepository = tradeRepository;
     this.catalogClient = catalogClient;
     this.identityClient = identityClient;
@@ -87,6 +104,7 @@ public class TradeService {
     this.inventoryClient = inventoryClient;
     this.memberGrowthClient = memberGrowthClient;
     this.messageClient = messageClient;
+    this.merchantAuthClient = merchantAuthClient;
   }
 
   public List<PaymentMethodView> paymentMethods() {
@@ -254,6 +272,186 @@ public class TradeService {
     return new DeliveryTimelineView(order.orderNo(), currentStage, nodes);
   }
 
+  public PageResponse<OpsOrderSummaryView> listOpsOrders(String displayStatus, String fulfillmentStatus, int page, int pageSize) {
+    requireStaff();
+    int safePage = Math.max(1, page);
+    int safePageSize = Math.min(Math.max(1, pageSize), 50);
+    List<OpsOrderSummaryView> rows = tradeRepository.listOpsOrders(normalizeBlank(displayStatus), normalizeBlank(fulfillmentStatus), (safePage - 1) * safePageSize, safePageSize)
+        .stream()
+        .filter(this::canCurrentStaffManageOrder)
+        .map(this::toOpsOrderSummary)
+        .toList();
+    return PageResponse.of(rows, safePage, safePageSize, tradeRepository.countOpsOrders(normalizeBlank(displayStatus), normalizeBlank(fulfillmentStatus)));
+  }
+
+  public List<OrderStatusCountView> opsOrderStats() {
+    requireStaff();
+    return tradeRepository.orderStatusCounts().stream()
+        .map(row -> new OrderStatusCountView(row.status(), statusLabel(row.status()), row.count()))
+        .toList();
+  }
+
+  public OrderDetailView getOrderDetailForStaff(long orderId) {
+    return toOrderDetail(requireStaffOrder(orderId));
+  }
+
+  @Transactional
+  public OrderDetailView acceptTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    return moveTakeawayOrder(orderId, "merchant_pending", "accepted", "商家已接单", "pending", false, request);
+  }
+
+  @Transactional
+  public OrderDetailView rejectTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    OrderRow order = requireStaffOrder(orderId);
+    ensureTakeaway(order);
+    refundStaffOrder(order, defaultText(actionRemark(request), "商家拒单，系统自动退款"));
+    return getOrderDetailForStaff(order.id());
+  }
+
+  @Transactional
+  public OrderDetailView prepareTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    return moveTakeawayOrder(orderId, "accepted", "preparing", "商家正在备餐", "pending", false, request);
+  }
+
+  @Transactional
+  public OrderDetailView readyTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    return moveTakeawayOrder(orderId, "preparing", "ready_for_delivery", "餐品已出餐，待配送", "pending", false, request);
+  }
+
+  @Transactional
+  public OrderDetailView advanceDelivery(long orderId) {
+    OrderRow order = requireStaffOrder(orderId);
+    ensureTakeaway(order);
+    DeliveryTaskRow task = tradeRepository.findDeliveryTask(order.id()).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    return moveTakeawayOrder(order.id(), task.currentStage(), nextStage(task.currentStage()), nextStageText(task.currentStage()), nextStageDisplayStatus(task.currentStage()), "delivered".equals(task.currentStage()), null);
+  }
+
+  @Transactional
+  public OrderDetailView completeTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    return moveTakeawayOrder(orderId, "delivered", "completed", "订单已完成", "used", true, request);
+  }
+
+  @Transactional
+  public OrderDetailView markTakeawayAbnormal(long orderId, TakeawayOrderActionRequest request) {
+    OrderRow order = requireStaffOrder(orderId);
+    ensureTakeaway(order);
+    tradeRepository.updateTakeawayStage(order.id(), "pending", "abnormal", false);
+    tradeRepository.findDeliveryTask(order.id()).ifPresent(task -> tradeRepository.markDeliveryTaskAbnormal(task.id(), defaultText(actionRemark(request), "订单异常，待处理")));
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), "abnormal", "staff_abnormal", operatorType(), operatorId(), actionRemark(request));
+    return getOrderDetailForStaff(order.id());
+  }
+
+  @Transactional
+  public OrderDetailView refundOrderForStaff(long orderId, RefundRequest request) {
+    OrderRow order = requireStaffOrder(orderId);
+    refundStaffOrder(order, request == null ? null : request.reason());
+    return getOrderDetailForStaff(order.id());
+  }
+
+  public VoucherLookupView lookupVoucher(String voucherCode) {
+    requireStaff();
+    VoucherRow voucher = tradeRepository.findVoucherByCode(voucherCode).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    OrderRow order = tradeRepository.findOrderById(voucher.orderId()).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    requireStaffCanManage(order);
+    return new VoucherLookupView(voucher.voucherCode(), voucher.qrPayload(), voucher.status(), voucher.effectiveFrom(), voucher.effectiveTo(),
+        order.id(), order.orderNo(), order.title(), order.storeName(), order.orderType(), order.payableAmount(), "到店出示券码核销");
+  }
+
+  @Transactional
+  public OrderDetailView redeemVoucher(String voucherCode) {
+    requireStaff();
+    VoucherRow voucher = tradeRepository.findVoucherByCode(voucherCode).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (!"unused".equals(voucher.status())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "refunded".equals(voucher.status()) ? "券码已退款失效" : "券码已核销");
+    }
+    OrderRow order = tradeRepository.findOrderById(voucher.orderId()).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    requireStaffCanManage(order);
+    tradeRepository.setVoucherUsed(order.id(), operatorId());
+    memberGrowthClient.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
+    messageClient.order(order.userId(), "券码已核销", order.storeName() + " 的订单已完成核销。", "核销", order.id());
+    return getOrderDetailForStaff(order.id());
+  }
+
+  public PageResponse<OpsVoucherView> listOpsVouchers(String status, String keyword, int page, int pageSize) {
+    requireStaff();
+    int safePage = Math.max(1, page);
+    int safePageSize = Math.min(Math.max(1, pageSize), 50);
+    List<OpsVoucherView> rows = tradeRepository.listOpsVouchers(normalizeBlank(status), normalizeBlank(keyword), (safePage - 1) * safePageSize, safePageSize)
+        .stream()
+        .filter(row -> canCurrentStaffManageStore(row.storeName(), row.orderId()))
+        .map(this::toOpsVoucherView)
+        .toList();
+    return PageResponse.of(rows, safePage, safePageSize, tradeRepository.countOpsVouchers(normalizeBlank(status), normalizeBlank(keyword)));
+  }
+
+  public PageResponse<OpsBookingView> listOpsBookings(String status, String businessType, int page, int pageSize) {
+    requireStaff();
+    int safePage = Math.max(1, page);
+    int safePageSize = Math.min(Math.max(1, pageSize), 50);
+    List<OpsBookingView> rows = tradeRepository.listOpsBookings(normalizeBlank(status), normalizeBlank(businessType), (safePage - 1) * safePageSize, safePageSize)
+        .stream()
+        .map(this::toOpsBookingView)
+        .toList();
+    return PageResponse.of(rows, safePage, safePageSize, tradeRepository.countOpsBookings(normalizeBlank(status), normalizeBlank(businessType)));
+  }
+
+  @Transactional
+  public BookingView confirmBookingForStaff(long orderId, BookingConfirmRequest request) {
+    OrderRow order = requireStaffOrder(orderId);
+    tradeRepository.confirmBooking(order.id(), operatorId(), request == null ? null : request.remark());
+    messageClient.order(order.userId(), "预约已确认", order.storeName() + " 已确认您的预约。", "预约", order.id());
+    return getBookingForStaff(order.id());
+  }
+
+  public BookingView getBookingForStaff(long orderId) {
+    OrderRow order = requireStaffOrder(orderId);
+    return tradeRepository.findBookingByOrder(order.id()).map(row -> toBookingView(order, row)).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  public PageResponse<AdminDeliveryTaskView> deliveryTasks(String stage, int page, int pageSize) {
+    requireAdmin();
+    int safePage = Math.max(1, page);
+    int safePageSize = Math.min(Math.max(1, pageSize), 50);
+    List<AdminDeliveryTaskView> rows = tradeRepository.listDeliveryTasks(normalizeBlank(stage), (safePage - 1) * safePageSize, safePageSize).stream()
+        .map(this::toAdminDeliveryTaskView)
+        .toList();
+    return PageResponse.of(rows, safePage, safePageSize, tradeRepository.countDeliveryTasks(normalizeBlank(stage)));
+  }
+
+  public AdminDeliveryTaskView deliveryTask(long taskId) {
+    requireAdmin();
+    return toAdminDeliveryTaskView(tradeRepository.findDeliveryTaskById(taskId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND)));
+  }
+
+  @Transactional
+  public AdminDeliveryTaskView advanceDeliveryTask(long taskId, DeliveryActionRequest request) {
+    requireAdmin();
+    DeliveryTaskRow task = tradeRepository.findDeliveryTaskById(taskId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    advanceDelivery(task.orderId());
+    return deliveryTask(taskId);
+  }
+
+  @Transactional
+  public AdminDeliveryTaskView pauseDeliveryTask(long taskId) {
+    requireAdmin();
+    tradeRepository.pauseDeliveryTask(taskId);
+    return deliveryTask(taskId);
+  }
+
+  @Transactional
+  public AdminDeliveryTaskView resumeDeliveryTask(long taskId) {
+    requireAdmin();
+    tradeRepository.resumeDeliveryTask(taskId);
+    return deliveryTask(taskId);
+  }
+
+  @Transactional
+  public AdminDeliveryTaskView markDeliveryAbnormal(long taskId, DeliveryActionRequest request) {
+    requireAdmin();
+    tradeRepository.markDeliveryTaskAbnormal(taskId, request == null ? null : defaultText(request.reason(), request.remark()));
+    return deliveryTask(taskId);
+  }
+
   @Transactional
   public OrderDetailView refundOrderForUser(long orderId, RefundRequest request) {
     OrderRow order = requireOwnOrder(orderId);
@@ -295,6 +493,173 @@ public class TradeService {
         guestCount,
         request.remark());
     return getBookingForUser(order.id());
+  }
+
+  private OrderDetailView moveTakeawayOrder(long orderId, String expectedStage, String nextStage, String stageText, String displayStatus, boolean completed, TakeawayOrderActionRequest request) {
+    OrderRow order = requireStaffOrder(orderId);
+    ensureTakeaway(order);
+    if (!"paid".equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "仅已支付订单可履约");
+    }
+    int updated = tradeRepository.updateDeliveryTaskStage(order.id(), expectedStage, nextStage, stageText, completed);
+    if (updated == 0) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
+    }
+    tradeRepository.updateTakeawayStage(order.id(), displayStatus, nextStage, completed);
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), nextStage, "staff_delivery", operatorType(), operatorId(), actionRemark(request));
+    if (completed) {
+      memberGrowthClient.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
+      messageClient.order(order.userId(), "订单已完成", order.storeName() + " 的订单已完成。", "完成", order.id());
+    }
+    return getOrderDetailForStaff(order.id());
+  }
+
+  private void refundStaffOrder(OrderRow order, String reasonText) {
+    if (!"paid".equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "只有已支付订单可以退款");
+    }
+    if (!"none".equals(order.refundStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "订单已退款或正在退款中");
+    }
+    String reason = defaultText(reasonText, "工作人员发起退款");
+    tradeRepository.insertRefundRecord(order.id(), refundNo(order.id()), order.userId(), order.storeId(), order.payableAmount(), operatorType(), operatorId(), reason);
+    tradeRepository.markOrderRefunded(order.id(), order.payableAmount(), reason, operatorType(), operatorId());
+    tradeRepository.markVoucherRefunded(order.id());
+    tradeRepository.markDeliveryTaskRefunded(order.id());
+    for (OrderItemRow item : tradeRepository.listOrderItems(order.id())) {
+      inventoryClient.release(item.itemId(), item.quantity());
+    }
+    memberGrowthClient.refundOrderGrowth(order.userId(), order.id());
+    messageClient.order(order.userId(), "订单退款成功", reason, "退款", order.id());
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), "refunded", "staff_refund", operatorType(), operatorId(), reason);
+  }
+
+  private OpsOrderSummaryView toOpsOrderSummary(OrderRow order) {
+    DeliveryTaskRow task = tradeRepository.findDeliveryTask(order.id()).orElse(null);
+    return new OpsOrderSummaryView(order.id(), order.orderNo(), order.orderType(), order.displayStatus(), order.paymentStatus(), order.fulfillmentStatus(),
+        order.refundStatus(), task == null ? null : task.currentStage(), task == null ? null : task.currentStageText(), order.storeName(), order.title(), order.payableAmount(), order.createdAt());
+  }
+
+  private OpsVoucherView toOpsVoucherView(OpsVoucherRow row) {
+    return new OpsVoucherView(row.voucherCode(), row.qrPayload(), row.status(), row.effectiveFrom(), row.effectiveTo(), row.verifiedAt(), row.verifiedBy(),
+        row.orderId(), row.orderNo(), row.orderTitle(), row.storeName(), row.businessType(), row.payableAmount(), row.displayStatus(), row.refundStatus(),
+        "none".equals(row.refundStatus()), row.orderCreatedAt());
+  }
+
+  private OpsBookingView toOpsBookingView(OpsBookingRow row) {
+    BookingView booking = new BookingView(row.orderId(), row.orderNo(), row.storeName(), row.businessType(), row.contactName(), row.contactPhone(),
+        row.bookingDate(), row.bookingTimeSlot(), row.guestCount(), row.storeConfirmStatus(), row.storeConfirmRemark(), row.confirmedAt(), row.createdAt());
+    return new OpsBookingView(booking, row.orderTitle(), row.displayStatus(), row.paymentStatus(), row.refundStatus(), row.payableAmount(), "none".equals(row.refundStatus()));
+  }
+
+  private AdminDeliveryTaskView toAdminDeliveryTaskView(DeliveryTaskRow task) {
+    OrderRow order = tradeRepository.findOrderById(task.orderId()).orElse(null);
+    return new AdminDeliveryTaskView(task.id(), task.orderId(), order == null ? null : order.orderNo(), order == null ? null : order.storeName(),
+        task.currentStage(), task.currentStageText(), task.autoAdvanceEnabled(), task.pausedAt(), task.abnormalReason(), task.nextTickAt(), task.completedAt(), task.updatedAt());
+  }
+
+  private CurrentUser requireStaff() {
+    CurrentUser current = CurrentUserContext.required();
+    if (current.accountType() != AccountType.MERCHANT && current.accountType() != AccountType.ADMIN) {
+      throw new BusinessException(ErrorCode.FORBIDDEN);
+    }
+    return current;
+  }
+
+  private void requireAdmin() {
+    if (CurrentUserContext.required().accountType() != AccountType.ADMIN) {
+      throw new BusinessException(ErrorCode.FORBIDDEN);
+    }
+  }
+
+  private OrderRow requireStaffOrder(long orderId) {
+    OrderRow order = tradeRepository.findOrderById(orderId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    requireStaffCanManage(order);
+    return order;
+  }
+
+  private void requireStaffCanManage(OrderRow order) {
+    CurrentUser current = requireStaff();
+    if (current.accountType() == AccountType.ADMIN) {
+      return;
+    }
+    if (!merchantAuthClient.canManageStore(current.accountId(), order.storeId())) {
+      throw new BusinessException(ErrorCode.FORBIDDEN);
+    }
+  }
+
+  private boolean canCurrentStaffManageOrder(OrderRow order) {
+    try {
+      requireStaffCanManage(order);
+      return true;
+    } catch (BusinessException ex) {
+      return false;
+    }
+  }
+
+  private boolean canCurrentStaffManageStore(String ignoredStoreName, long orderId) {
+    return tradeRepository.findOrderById(orderId).map(this::canCurrentStaffManageOrder).orElse(false);
+  }
+
+  private void ensureTakeaway(OrderRow order) {
+    if (!TAKEAWAY.equals(order.orderType())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "仅支持外卖订单");
+    }
+  }
+
+  private String nextStage(String currentStage) {
+    return switch (currentStage) {
+      case "merchant_pending" -> "accepted";
+      case "accepted" -> "preparing";
+      case "preparing" -> "ready_for_delivery";
+      case "ready_for_delivery" -> "delivering";
+      case "delivering" -> "delivered";
+      case "delivered" -> "completed";
+      default -> throw new BusinessException(ErrorCode.ORDER_STATE_INVALID);
+    };
+  }
+
+  private String nextStageText(String currentStage) {
+    return switch (nextStage(currentStage)) {
+      case "accepted" -> "商家已接单";
+      case "preparing" -> "商家正在备餐";
+      case "ready_for_delivery" -> "餐品已出餐，待配送";
+      case "delivering" -> "骑手正在配送";
+      case "delivered" -> "订单已送达";
+      case "completed" -> "订单已完成";
+      default -> "订单处理中";
+    };
+  }
+
+  private String nextStageDisplayStatus(String currentStage) {
+    return "delivered".equals(currentStage) ? "used" : "pending";
+  }
+
+  private String statusLabel(String status) {
+    return switch (status) {
+      case "unpaid" -> "待支付";
+      case "pending" -> "进行中";
+      case "unused" -> "待使用";
+      case "used" -> "已完成";
+      case "refunded" -> "已退款";
+      default -> status;
+    };
+  }
+
+  private String actionRemark(TakeawayOrderActionRequest request) {
+    return request == null ? null : request.remark();
+  }
+
+  private String operatorType() {
+    return CurrentUserContext.required().accountType().name().toLowerCase();
+  }
+
+  private Long operatorId() {
+    return CurrentUserContext.required().accountId();
+  }
+
+  private String normalizeBlank(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
   }
 
   private CartView buildCartView(StoreSnapshot store, long cartId) {

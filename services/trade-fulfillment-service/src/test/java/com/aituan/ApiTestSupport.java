@@ -21,6 +21,14 @@ public final class ApiTestSupport {
     return jwtTokenService.createToken(new CurrentUser(1L, 1L, AccountType.USER, "爱团用户"));
   }
 
+  public static String merchantToken(JwtTokenService jwtTokenService) {
+    return jwtTokenService.createToken(new CurrentUser(2L, 0L, AccountType.MERCHANT, "爱团商家"));
+  }
+
+  public static String adminToken(JwtTokenService jwtTokenService) {
+    return jwtTokenService.createToken(new CurrentUser(3L, 0L, AccountType.ADMIN, "爱团管理员"));
+  }
+
   public static MockHttpServletRequestBuilder bearer(MockHttpServletRequestBuilder request, String token) {
     return request.header("Authorization", "Bearer " + token);
   }

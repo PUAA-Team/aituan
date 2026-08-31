@@ -130,6 +130,25 @@ public final class TradeDtos {
       BigDecimal amount,
       LocalDateTime createdAt) {}
 
+  public record OpsOrderSummaryView(
+      Long id,
+      String orderNo,
+      String orderKind,
+      String displayStatus,
+      String paymentStatus,
+      String fulfillmentStatus,
+      String refundStatus,
+      String currentStage,
+      String currentStageText,
+      String storeName,
+      String title,
+      BigDecimal amount,
+      LocalDateTime createdAt) {}
+
+  public record OrderStatusCountView(String status, String label, long count) {}
+
+  public record TakeawayOrderActionRequest(String remark) {}
+
   public record TimelineNodeView(String code, String text, LocalDateTime reachedAt) {}
 
   public record DeliveryTimelineView(String orderNo, String currentStage, List<TimelineNodeView> nodes) {}
@@ -151,6 +170,70 @@ public final class TradeDtos {
       String storeConfirmRemark,
       LocalDateTime confirmedAt,
       LocalDateTime createdAt) {}
+
+  public record BookingConfirmRequest(String remark) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record OpsBookingView(
+      BookingView booking,
+      String orderTitle,
+      String displayStatus,
+      String paymentStatus,
+      String refundStatus,
+      BigDecimal payableAmount,
+      Boolean refundableByStaff) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record OpsVoucherView(
+      String voucherCode,
+      String qrPayload,
+      String status,
+      LocalDateTime effectiveFrom,
+      LocalDateTime effectiveTo,
+      LocalDateTime verifiedAt,
+      Long verifiedBy,
+      Long orderId,
+      String orderNo,
+      String orderTitle,
+      String storeName,
+      String businessType,
+      BigDecimal payableAmount,
+      String displayStatus,
+      String refundStatus,
+      Boolean refundableByStaff,
+      LocalDateTime orderCreatedAt) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record VoucherLookupView(
+      String voucherCode,
+      String qrPayload,
+      String status,
+      LocalDateTime effectiveFrom,
+      LocalDateTime effectiveTo,
+      Long orderId,
+      String orderNo,
+      String orderTitle,
+      String storeName,
+      String businessType,
+      BigDecimal payableAmount,
+      String usageRulesSnapshot) {}
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record AdminDeliveryTaskView(
+      Long taskId,
+      Long orderId,
+      String orderNo,
+      String storeName,
+      String currentStage,
+      String currentStageText,
+      Boolean autoAdvanceEnabled,
+      LocalDateTime pausedAt,
+      String abnormalReason,
+      LocalDateTime nextTickAt,
+      LocalDateTime completedAt,
+      LocalDateTime updatedAt) {}
+
+  public record DeliveryActionRequest(String remark, String reason) {}
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record OrderDetailView(
