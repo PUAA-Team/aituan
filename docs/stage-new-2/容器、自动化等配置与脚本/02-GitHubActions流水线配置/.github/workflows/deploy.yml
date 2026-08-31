@@ -1,0 +1,589 @@
+name: aituan-deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy after images are pushed
+        required: true
+        type: boolean
+        default: true
+      deploy_target:
+        description: Deployment target
+        required: true
+        type: choice
+        options:
+          - k8s
+          - compose
+          - none
+        default: k8s
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  SERVER_ORIGIN: ${{ vars.SERVER_ORIGIN }}
+  SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR || '/opt/aituan/app' }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'aituan' }}
+
+jobs:
+  build_and_push:
+    name: Test, build, and push images
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: aituan_e2e
+          MYSQL_USER: aituan_e2e
+          MYSQL_PASSWORD: aituan_e2e
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uaituan_e2e -paituan_e2e --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    outputs:
+      image_registry: ${{ steps.meta.outputs.image_registry }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      should_deploy: ${{ steps.meta.outputs.should_deploy }}
+      deploy_target: ${{ steps.meta.outputs.deploy_target }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deployment variables
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${SERVER_ORIGIN}" ]]; then
+            echo "::error::Set GitHub Actions variable SERVER_ORIGIN, for example http://your-domain. Do not include /api."
+            exit 1
+          fi
+          if [[ ! "${SERVER_ORIGIN}" =~ ^https?:// ]]; then
+            echo "::error::SERVER_ORIGIN must start with http:// or https:// and must not include /api."
+            exit 1
+          fi
+          if [[ "${SERVER_ORIGIN}" == */api || "${SERVER_ORIGIN}" == */api/ ]]; then
+            echo "::error::SERVER_ORIGIN must be the site origin only, not an /api URL."
+            exit 1
+          fi
+
+      - name: Compute image metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_namespace="${GITHUB_REPOSITORY,,}"
+          image_registry="${REGISTRY}/${image_namespace}"
+          image_tag="sha-${GITHUB_SHA::7}"
+          should_deploy="false"
+          deploy_target="k8s"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            deploy_target="${{ inputs.deploy_target }}"
+            if [[ "${{ inputs.deploy }}" == "true" && "${deploy_target}" != "none" ]]; then
+              should_deploy="true"
+            fi
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" && "${{ vars.AUTO_DEPLOY_PRODUCTION }}" == "true" ]]; then
+            deploy_target="${{ vars.DEPLOY_TARGET || 'k8s' }}"
+            if [[ "${deploy_target}" != "none" ]]; then
+              should_deploy="true"
+            fi
+          fi
+          case "${deploy_target}" in
+            k8s|compose|none) ;;
+            *)
+              echo "::error::Unsupported deploy target: ${deploy_target}. Use k8s, compose, or none."
+              exit 1
+              ;;
+          esac
+          {
+            echo "image_registry=${image_registry}"
+            echo "image_tag=${image_tag}"
+            echo "should_deploy=${should_deploy}"
+            echo "deploy_target=${deploy_target}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run backend tests
+        run: mvn -B -f services/backend/pom.xml test
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-backend-test-reports
+          path: services/backend/target/surefire-reports/
+          if-no-files-found: warn
+
+      - name: Package backend jar
+        run: |
+          set -euo pipefail
+          mvn -B -f services/backend/pom.xml -DskipTests package
+          mkdir -p deploy/artifacts/backend .aituan-local/e2e/backend
+          cp services/backend/target/aituan-backend-0.0.1-SNAPSHOT.jar deploy/artifacts/backend/aituan-backend.jar
+          cp deploy/artifacts/backend/aituan-backend.jar .aituan-local/e2e/backend/aituan-backend-e2e.jar
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            apps/merchant_web/package-lock.json
+            apps/admin_web/package-lock.json
+            tests/e2e/package-lock.json
+
+      - name: Build merchant web
+        env:
+          VITE_API_BASE_URL: ${{ env.SERVER_ORIGIN }}
+        run: |
+          set -euo pipefail
+          npm ci --prefix apps/merchant_web
+          mkdir -p apps/merchant_web/test-results
+          npm test --prefix apps/merchant_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+          npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/merchant-web" --emptyOutDir
+
+      - name: Upload merchant web test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-merchant-web-test-reports
+          path: apps/merchant_web/test-results/
+          if-no-files-found: warn
+
+      - name: Build admin web
+        env:
+          VITE_API_BASE_URL: ${{ env.SERVER_ORIGIN }}
+        run: |
+          set -euo pipefail
+          npm ci --prefix apps/admin_web
+          mkdir -p apps/admin_web/test-results
+          npm test --prefix apps/admin_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+          npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/admin-web" --emptyOutDir
+
+      - name: Upload admin web test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-admin-web-test-reports
+          path: apps/admin_web/test-results/
+          if-no-files-found: warn
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+
+      - name: Analyze and test Flutter app
+        working-directory: apps/user_app
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter analyze
+          mkdir -p test-results
+          flutter test --coverage --machine > test-results/flutter-test.json
+
+      - name: Upload Flutter test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-flutter-test-reports
+          path: |
+            apps/user_app/test-results/
+            apps/user_app/coverage/
+          if-no-files-found: warn
+
+      - name: Build Flutter web
+        working-directory: apps/user_app
+        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }} --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+
+      - name: Build E2E web artifacts
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8090
+        run: |
+          set -euo pipefail
+          mkdir -p .aituan-local/e2e/web
+          npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/merchant" --emptyOutDir
+          npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/.aituan-local/e2e/web/admin" --emptyOutDir
+          pushd apps/user_app
+          flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1:8090 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=github-actions-e2e --output "$GITHUB_WORKSPACE/.aituan-local/e2e/web/web"
+          popd
+
+      - name: Install E2E dependencies and browsers
+        working-directory: tests/e2e
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Start backend for E2E
+        env:
+          AITUAN_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_e2e?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_DATASOURCE_USERNAME: aituan_e2e
+          AITUAN_DATASOURCE_PASSWORD: aituan_e2e
+          AITUAN_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+        run: |
+          set -euo pipefail
+          nohup java -jar .aituan-local/e2e/backend/aituan-backend-e2e.jar \
+            --spring.profiles.active=e2e \
+            --server.port=8080 > .aituan-local/e2e/backend.out.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/api/open/auth/token/check; then
+              exit 0
+            fi
+            echo "waiting for backend... $i/60"
+            sleep 3
+          done
+          cat .aituan-local/e2e/backend.out.log
+          exit 1
+
+      - name: Start E2E static server
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:8080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+          E2E_ARTIFACTS_ROOT: ${{ github.workspace }}/.aituan-local/e2e/web
+        run: |
+          set -euo pipefail
+          nohup node scripts/static-server.mjs > "$GITHUB_WORKSPACE/.aituan-local/e2e/server.out.log" 2>&1 &
+          sleep 3
+          curl -fsS http://127.0.0.1:8090/web/ > /dev/null
+          curl -fsS http://127.0.0.1:8090/merchant/ > /dev/null
+          curl -fsS http://127.0.0.1:8090/admin/ > /dev/null
+
+      - name: Run UC01-UC13 E2E tests
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:8080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+          E2E_ARTIFACTS_ROOT: ${{ github.workspace }}/.aituan-local/e2e/web
+        run: npx playwright test
+
+      - name: Upload deploy E2E reports and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-e2e-report-uc01-uc13
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+            .aituan-local/e2e/backend.out.log
+            .aituan-local/e2e/server.out.log
+          if-no-files-found: warn
+
+      - name: Sync landing page
+        run: |
+          set -euo pipefail
+          rm -rf deploy/artifacts/landing
+          mkdir -p deploy/artifacts/landing
+          cp -R deploy/landing/. deploy/artifacts/landing/
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: deploy
+          file: deploy/backend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_registry }}/backend:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.image_registry }}/backend:main
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_registry }}/web:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.image_registry }}/web:main
+
+  deploy_k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    if: needs.build_and_push.outputs.should_deploy == 'true' && needs.build_and_push.outputs.deploy_target == 'k8s'
+    environment: production
+    steps:
+      - name: Checkout Kubernetes manifests
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            k8s
+          sparse-checkout-cone-mode: true
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up kubeconfig
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.kube
+          printf '%s' "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          kubectl config current-context
+
+      - name: Prepare Kubernetes secrets
+        shell: bash
+        env:
+          K8S_MYSQL_USER: ${{ secrets.K8S_MYSQL_USER }}
+          K8S_MYSQL_PASSWORD: ${{ secrets.K8S_MYSQL_PASSWORD }}
+          K8S_MYSQL_ROOT_PASSWORD: ${{ secrets.K8S_MYSQL_ROOT_PASSWORD }}
+          K8S_APP_CONFIG: ${{ secrets.K8S_APP_CONFIG }}
+          GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl apply -f k8s/00-namespace.yaml
+          if [[ -n "${K8S_MYSQL_USER}" && -n "${K8S_MYSQL_PASSWORD}" && -n "${K8S_MYSQL_ROOT_PASSWORD}" ]]; then
+            kubectl -n "${namespace}" create secret generic aituan-db-secret \
+              --from-literal=MYSQL_USER="${K8S_MYSQL_USER}" \
+              --from-literal=MYSQL_PASSWORD="${K8S_MYSQL_PASSWORD}" \
+              --from-literal=MYSQL_ROOT_PASSWORD="${K8S_MYSQL_ROOT_PASSWORD}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "Using existing Kubernetes Secret aituan-db-secret."
+          fi
+          if [[ -n "${K8S_APP_CONFIG}" ]]; then
+            printf '%s' "${K8S_APP_CONFIG}" > /tmp/aituan-app.config
+            kubectl -n "${namespace}" create secret generic aituan-app-config \
+              --from-file=.config=/tmp/aituan-app.config \
+              --dry-run=client -o yaml | kubectl apply -f -
+            rm -f /tmp/aituan-app.config
+          else
+            echo "Using existing Kubernetes Secret aituan-app-config."
+          fi
+          if [[ -n "${GHCR_PULL_USERNAME}" && -n "${GHCR_PULL_TOKEN}" ]]; then
+            kubectl -n "${namespace}" create secret docker-registry ghcr-pull-secret \
+              --docker-server=ghcr.io \
+              --docker-username="${GHCR_PULL_USERNAME}" \
+              --docker-password="${GHCR_PULL_TOKEN}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+          else
+            echo "Using existing Kubernetes imagePullSecret ghcr-pull-secret, or public GHCR images."
+          fi
+
+      - name: Apply Kubernetes manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/01-configmap.yaml
+          kubectl apply -f k8s/02-mysql.yaml
+          kubectl apply -f k8s/03-backend.yaml
+          kubectl apply -f k8s/04-web.yaml
+          kubectl apply -f k8s/05-ingress.yaml
+
+      - name: Deploy sha-tagged images
+        shell: bash
+        env:
+          IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+          IMAGE_TAG: ${{ needs.build_and_push.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" set image deployment/aituan-backend backend="${IMAGE_REGISTRY}/backend:${IMAGE_TAG}"
+          kubectl -n "${namespace}" set image deployment/aituan-web web="${IMAGE_REGISTRY}/web:${IMAGE_TAG}"
+
+      - name: Wait for Kubernetes rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" rollout status statefulset/mysql --timeout=300s
+          kubectl -n "${namespace}" rollout status deployment/aituan-backend --timeout=300s
+          kubectl -n "${namespace}" rollout status deployment/aituan-web --timeout=300s
+          kubectl -n "${namespace}" get pods,svc,ingress
+
+      - name: Verify Kubernetes application health
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          health_url="${SERVER_ORIGIN%/}/actuator/health"
+
+          echo "Checking backend health inside Kubernetes cluster..."
+          for i in $(seq 1 24); do
+            pod_name="aituan-health-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${i}"
+            if kubectl -n "${namespace}" run "${pod_name}" --rm -i --restart=Never \
+              --image=curlimages/curl:8.10.1 -- \
+              curl -fsS --max-time 10 http://backend:8080/actuator/health; then
+              echo "Backend service health check passed."
+              break
+            fi
+            if [[ "${i}" == "24" ]]; then
+              echo "::error::Backend service health check failed after 24 attempts."
+              exit 1
+            fi
+            echo "Backend service is not ready yet, retrying ${i}/24..."
+            sleep 5
+          done
+
+          echo "Checking public health endpoint: ${health_url}"
+          for i in $(seq 1 24); do
+            if curl -fsS --max-time 10 "${health_url}"; then
+              echo "Public health check passed."
+              exit 0
+            fi
+            if [[ "${i}" == "24" ]]; then
+              echo "::error::Public health check failed after 24 attempts: ${health_url}"
+              exit 1
+            fi
+            echo "Public endpoint is not ready yet, retrying ${i}/24..."
+            sleep 5
+          done
+
+      - name: Dump Kubernetes diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          namespace="${K8S_NAMESPACE}"
+          kubectl -n "${namespace}" get pods,svc,ingress,events || true
+          kubectl -n "${namespace}" describe deployment/aituan-backend || true
+          kubectl -n "${namespace}" describe deployment/aituan-web || true
+          kubectl -n "${namespace}" logs deployment/aituan-backend --tail=120 || true
+          kubectl -n "${namespace}" logs deployment/aituan-web --tail=120 || true
+
+  deploy_compose:
+    name: Deploy to production with Docker Compose
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    if: needs.build_and_push.outputs.should_deploy == 'true' && needs.build_and_push.outputs.deploy_target == 'compose'
+    environment: production
+    steps:
+      - name: Checkout compose file
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            deploy/docker-compose.cicd.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Prepare SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/aituan_deploy_key
+          chmod 600 ~/.ssh/aituan_deploy_key
+          printf '%s\n' "${{ secrets.SERVER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Upload CI/CD compose file
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
+          ssh_port="${SERVER_PORT:-22}"
+          ssh -i ~/.ssh/aituan_deploy_key -p "$ssh_port" "${SERVER_USER}@${SERVER_HOST}" "mkdir -p '${SERVER_APP_DIR}/deploy'"
+          scp -i ~/.ssh/aituan_deploy_key -P "$ssh_port" deploy/docker-compose.cicd.yml "${SERVER_USER}@${SERVER_HOST}:${SERVER_APP_DIR}/deploy/docker-compose.cicd.yml"
+
+      - name: Deploy images with Docker Compose
+        shell: bash
+        env:
+          IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+          IMAGE_TAG: ${{ needs.build_and_push.outputs.image_tag }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ssh_port="${SERVER_PORT:-22}"
+          printf '%s\n' "${GHCR_TOKEN}" | ssh -i ~/.ssh/aituan_deploy_key -p "$ssh_port" "${SERVER_USER}@${SERVER_HOST}" \
+            "set -eu; \
+             docker login ghcr.io -u '${GHCR_USERNAME}' --password-stdin >/dev/null; \
+             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT; \
+             cd '${SERVER_APP_DIR}'; \
+             test -f deploy/.env; \
+             mkdir -p /opt/aituan/backups; \
+             cp deploy/.env \"/opt/aituan/backups/deploy.env.before-ci-${IMAGE_TAG}\"; \
+             if grep -q '^AITUAN_IMAGE_REGISTRY=' deploy/.env; then sed -i 's|^AITUAN_IMAGE_REGISTRY=.*|AITUAN_IMAGE_REGISTRY=${IMAGE_REGISTRY}|' deploy/.env; else printf '\nAITUAN_IMAGE_REGISTRY=${IMAGE_REGISTRY}\n' >> deploy/.env; fi; \
+             if grep -q '^AITUAN_IMAGE_TAG=' deploy/.env; then sed -i 's|^AITUAN_IMAGE_TAG=.*|AITUAN_IMAGE_TAG=${IMAGE_TAG}|' deploy/.env; else printf '\nAITUAN_IMAGE_TAG=${IMAGE_TAG}\n' >> deploy/.env; fi; \
+             if ! grep -q '^AITUAN_DOWNLOADS_DIR=' deploy/.env; then printf '\nAITUAN_DOWNLOADS_DIR=/opt/aituan/data/downloads\n' >> deploy/.env; fi; \
+             if grep -q '^AITUAN_NGINX_SERVER_NAME=' deploy/.env; then sed -i 's|^AITUAN_NGINX_SERVER_NAME=.*|AITUAN_NGINX_SERVER_NAME=aituan.2b.gs|' deploy/.env; else printf '\nAITUAN_NGINX_SERVER_NAME=aituan.2b.gs\n' >> deploy/.env; fi; \
+             if grep -q '^AITUAN_LETSENCRYPT_DIR=' deploy/.env; then sed -i 's|^AITUAN_LETSENCRYPT_DIR=.*|AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt|' deploy/.env; else printf '\nAITUAN_LETSENCRYPT_DIR=/etc/letsencrypt\n' >> deploy/.env; fi; \
+             if grep -q '^AITUAN_CERTBOT_WEBROOT=' deploy/.env; then sed -i 's|^AITUAN_CERTBOT_WEBROOT=.*|AITUAN_CERTBOT_WEBROOT=/var/www/certbot|' deploy/.env; else printf '\nAITUAN_CERTBOT_WEBROOT=/var/www/certbot\n' >> deploy/.env; fi; \
+             mkdir -p /opt/aituan/data/downloads /var/www/certbot/.well-known/acme-challenge /etc/letsencrypt; \
+             docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull; \
+             docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans; \
+             for i in \$(seq 1 24); do \
+               if curl -fsS http://127.0.0.1/actuator/health; then exit 0; fi; \
+               echo \"waiting for backend health... attempt \$i/24\"; \
+               sleep 5; \
+             done; \
+             docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml logs --tail=120 backend; \
+             exit 1"
+
+  pipeline_raw_report:
+    name: Upload deployment pipeline raw report
+    runs-on: ubuntu-latest
+    needs:
+      - build_and_push
+      - deploy_k8s
+      - deploy_compose
+    if: always()
+    steps:
+      - name: Checkout report script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Generate deployment pipeline raw report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-deploy 流水线原始报告
+          AITUAN_JOB_STATUS: build_and_push=${{ needs.build_and_push.result }}, deploy_k8s=${{ needs.deploy_k8s.result }}, deploy_compose=${{ needs.deploy_compose.result }}
+          AITUAN_IMAGE_REGISTRY: ${{ needs.build_and_push.outputs.image_registry }}
+          AITUAN_IMAGE_TAG: ${{ needs.build_and_push.outputs.image_tag }}
+          AITUAN_SHOULD_DEPLOY: ${{ needs.build_and_push.outputs.should_deploy }}
+          AITUAN_DEPLOY_TARGET: ${{ needs.build_and_push.outputs.deploy_target }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/aituan-deploy
+
+      - name: Upload deployment pipeline raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aituan-deploy-pipeline-raw-report
+          path: .aituan-report/aituan-deploy/
+          if-no-files-found: error
+          retention-days: 30

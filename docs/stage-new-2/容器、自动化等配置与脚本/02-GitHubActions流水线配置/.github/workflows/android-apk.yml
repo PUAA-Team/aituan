@@ -1,0 +1,222 @@
+name: aituan-android-apk
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_origin:
+        description: Optional API origin override. Leave empty to use variable SERVER_ORIGIN.
+        required: false
+        type: string
+      upload_to_server:
+        description: Upload APK to the server downloads directory after build
+        required: true
+        type: boolean
+        default: false
+      apk_name:
+        description: APK file name stored in the artifact and optional server downloads directory
+        required: true
+        type: string
+        default: aituan-user-server-debug.apk
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_apk:
+    name: Build Android debug APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk_name: ${{ steps.resolve.outputs.apk_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: stable
+          cache: true
+
+      - name: Resolve build inputs
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_origin="${{ inputs.api_origin }}"
+          if [[ -z "${api_origin}" ]]; then
+            api_origin="${{ vars.SERVER_ORIGIN }}"
+          fi
+          while [[ "${api_origin}" == */ ]]; do
+            api_origin="${api_origin%/}"
+          done
+          if [[ -z "${api_origin}" ]]; then
+            echo "::error::Set repository variable SERVER_ORIGIN or provide workflow input api_origin."
+            exit 1
+          fi
+          if [[ ! "${api_origin}" =~ ^https?:// ]]; then
+            echo "::error::api_origin must start with http:// or https:// and must not include /api."
+            exit 1
+          fi
+          if [[ "${api_origin}" == */api || "${api_origin}" == */api/ ]]; then
+            echo "::error::api_origin must be the site origin only, not an /api URL."
+            exit 1
+          fi
+
+          apk_name="${{ inputs.apk_name }}"
+          if [[ -z "${apk_name}" ]]; then
+            apk_name="aituan-user-server-debug.apk"
+          fi
+          app_version="$(sed -n 's/^version: //p' apps/user_app/pubspec.yaml)"
+          safe_app_version="${app_version//+/-}"
+          if [[ "${apk_name}" == "aituan-user-server-debug.apk" ]]; then
+            apk_name="aituan-user-${safe_app_version}-server-debug.apk"
+          fi
+          if [[ "${apk_name}" == */* || "${apk_name}" == *\\* ]]; then
+            echo "::error::apk_name must be a file name, not a path."
+            exit 1
+          fi
+
+          echo "api_origin=${api_origin}" >> "$GITHUB_OUTPUT"
+          echo "apk_name=${apk_name}" >> "$GITHUB_OUTPUT"
+          echo "app_version=${app_version}" >> "$GITHUB_OUTPUT"
+          echo "Resolved APK file name: ${apk_name}"
+
+      - name: Show Flutter app version
+        working-directory: apps/user_app
+        run: |
+          set -euo pipefail
+          sed -n 's/^version: //p' pubspec.yaml
+
+      - name: Fetch Flutter dependencies
+        working-directory: apps/user_app
+        run: flutter pub get
+
+      - name: Analyze Flutter app
+        working-directory: apps/user_app
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        working-directory: apps/user_app
+        run: flutter test
+
+      - name: Build server debug APK
+        working-directory: apps/user_app
+        run: >
+          flutter build apk --debug
+          --dart-define=API_BASE_URL=${{ steps.resolve.outputs.api_origin }}
+          --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }}
+          --dart-define=AITUAN_BUILD_SOURCE=github-actions
+
+      - name: Prepare APK artifact
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/apk-output"
+          cp apps/user_app/build/app/outputs/flutter-apk/app-debug.apk "$GITHUB_WORKSPACE/apk-output/${{ steps.resolve.outputs.apk_name }}"
+          ls -lh "$GITHUB_WORKSPACE/apk-output/${{ steps.resolve.outputs.apk_name }}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.resolve.outputs.apk_name }}
+          path: apk-output/${{ steps.resolve.outputs.apk_name }}
+          if-no-files-found: error
+          retention-days: 14
+
+  upload_apk:
+    name: Upload APK to server downloads directory
+    runs-on: ubuntu-latest
+    needs: build_apk
+    if: inputs.upload_to_server == true
+    environment: production
+    env:
+      SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR || '/opt/aituan/app' }}
+      APK_NAME: ${{ needs.build_apk.outputs.apk_name }}
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}
+          path: apk-output
+
+      - name: Prepare SSH key
+        shell: bash
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SERVER_SSH_KEY}" || -z "${SERVER_KNOWN_HOSTS}" ]]; then
+            echo "::error::SERVER_SSH_KEY and SERVER_KNOWN_HOSTS are required when upload_to_server is true. Put them in the production environment secrets."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${SERVER_SSH_KEY}" > ~/.ssh/aituan_deploy_key
+          chmod 600 ~/.ssh/aituan_deploy_key
+          printf '%s\n' "${SERVER_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+
+      - name: Upload APK to server downloads directory
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SERVER_HOST}" || -z "${SERVER_USER}" ]]; then
+            echo "::error::SERVER_HOST and SERVER_USER are required when upload_to_server is true. Put them in the production environment secrets."
+            exit 1
+          fi
+          ssh_port="${SERVER_PORT:-22}"
+          remote_downloads_dir="$(ssh -i ~/.ssh/aituan_deploy_key -p "${ssh_port}" "${SERVER_USER}@${SERVER_HOST}" "set -eu; cd '${SERVER_APP_DIR}'; if [ -f deploy/.env ]; then sed -n 's/^AITUAN_DOWNLOADS_DIR=//p' deploy/.env | tail -n 1; fi" | tr -d '\r')"
+          if [[ -z "${remote_downloads_dir}" ]]; then
+            remote_downloads_dir="/opt/aituan/data/downloads"
+          fi
+          ssh -i ~/.ssh/aituan_deploy_key -p "${ssh_port}" "${SERVER_USER}@${SERVER_HOST}" "mkdir -p '${remote_downloads_dir}'"
+          scp -i ~/.ssh/aituan_deploy_key -P "${ssh_port}" "apk-output/${APK_NAME}" "${SERVER_USER}@${SERVER_HOST}:${remote_downloads_dir}/${APK_NAME}"
+          echo "Uploaded ${APK_NAME} to server downloads directory."
+
+  pipeline_raw_report:
+    name: Upload Android APK pipeline raw report
+    runs-on: ubuntu-latest
+    needs:
+      - build_apk
+      - upload_apk
+    if: always()
+    steps:
+      - name: Checkout report script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Generate Android APK pipeline raw report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-android-apk 流水线原始报告
+          AITUAN_JOB_STATUS: build_apk=${{ needs.build_apk.result }}, upload_apk=${{ needs.upload_apk.result }}
+          AITUAN_APK_NAME: ${{ needs.build_apk.outputs.apk_name }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/aituan-android-apk
+
+      - name: Upload Android APK pipeline raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aituan-android-apk-pipeline-raw-report
+          path: .aituan-report/aituan-android-apk/
+          if-no-files-found: error
+          retention-days: 30

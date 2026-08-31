@@ -1,0 +1,20 @@
+{
+  "name": "aituan-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "install:browser": "playwright install chromium",
+    "typecheck": "tsc --noEmit",
+    "serve": "node scripts/static-server.mjs",
+    "stack:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-e2e-local.ps1",
+    "report": "playwright show-report playwright-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  }
+}

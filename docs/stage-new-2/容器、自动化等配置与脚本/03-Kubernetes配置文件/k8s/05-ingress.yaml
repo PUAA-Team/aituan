@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aituan-ingress
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: aituan-web
+    app.kubernetes.io/part-of: aituan
+    app.kubernetes.io/component: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - aituan.2b.gs
+      secretName: aituan-tls
+  rules:
+    - host: aituan.2b.gs
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: https

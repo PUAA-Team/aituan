@@ -1,0 +1,82 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: aituan-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-aituan_dev}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in deploy/.env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in deploy/.env}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+      - --performance-schema=OFF
+      - --table-open-cache=256
+      - --tmp-table-size=32M
+      - --max-heap-table-size=32M
+    volumes:
+      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - aituan
+
+  backend:
+    image: ${AITUAN_IMAGE_REGISTRY:?set AITUAN_IMAGE_REGISTRY in deploy/.env}/backend:${AITUAN_IMAGE_TAG:?set AITUAN_IMAGE_TAG in deploy/.env}
+    pull_policy: always
+    container_name: aituan-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      AITUAN_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-aituan_dev}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
+      AITUAN_DATASOURCE_USERNAME: "${MYSQL_USER:?set MYSQL_USER in deploy/.env}"
+      AITUAN_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}"
+      AITUAN_CONFIG_FILE: /app/.config
+      AITUAN_UPLOAD_ROOT: /data/uploads
+      AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
+      TZ: Asia/Shanghai
+    volumes:
+      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/uploads:/data/uploads
+      - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
+    expose:
+      - "8080"
+    networks:
+      - aituan
+
+  nginx:
+    image: ${AITUAN_IMAGE_REGISTRY:?set AITUAN_IMAGE_REGISTRY in deploy/.env}/web:${AITUAN_IMAGE_TAG:?set AITUAN_IMAGE_TAG in deploy/.env}
+    pull_policy: always
+    container_name: aituan-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NGINX_SERVER_NAME: ${AITUAN_NGINX_SERVER_NAME:-aituan.2b.gs}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ${AITUAN_LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+      - ${AITUAN_CERTBOT_WEBROOT:-/var/www/certbot}:/var/www/certbot:ro
+      - ${AITUAN_DOWNLOADS_DIR:-/opt/aituan/data/downloads}:/usr/share/nginx/html/downloads:ro
+    networks:
+      - aituan
+
+networks:
+  aituan:
+    name: aituan-network
