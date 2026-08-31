@@ -1,0 +1,194 @@
+name: aituan-trade-fulfillment-ci
+
+on:
+  pull_request:
+    paths:
+      - 'services/trade-fulfillment-service/**'
+      - 'services/common-contract/**'
+      - 'services/api-gateway/**'
+      - 'services/pom.xml'
+      - '.github/workflows/trade-fulfillment-ci.yml'
+      - 'deploy/microservices/trade-fulfillment-service/**'
+      - 'k8s/12-trade-fulfillment-service.yaml'
+      - 'scripts/verify/test_trade_fulfillment.ps1'
+      - 'scripts/build/build_trade_fulfillment_server.ps1'
+      - 'docs/stage-new-3/**'
+      - 'docs/ReadMe.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: trade-fulfillment-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trade-tests:
+    name: Trade fulfillment H2 tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run trade fulfillment tests
+        run: mvn -B -f services/pom.xml -pl common-contract,trade-fulfillment-service -am test
+
+      - name: Upload trade fulfillment test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trade-fulfillment-surefire-reports
+          path: services/trade-fulfillment-service/target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  trade-mysql-migration-smoke:
+    name: Trade Flyway MySQL smoke
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: aituan_trade
+          MYSQL_USER: aituan_trade
+          MYSQL_PASSWORD: aituan_trade_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uaituan_trade -paituan_trade_password --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Verify trade Flyway migrations on MySQL 8
+        env:
+          AITUAN_TRADE_MYSQL_CI_ENABLED: 'true'
+          TRADE_DB_URL: jdbc:mysql://127.0.0.1:3306/aituan_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          TRADE_DB_USERNAME: aituan_trade
+          TRADE_DB_PASSWORD: aituan_trade_password
+        run: mvn -B -f services/pom.xml -pl common-contract,trade-fulfillment-service -am -Dtest=TradeFulfillmentMysqlMigrationSmokeTest test
+
+      - name: Upload trade MySQL smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trade-fulfillment-mysql-smoke-reports
+          path: services/trade-fulfillment-service/target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  gateway-trade-route-test:
+    name: Gateway trade route test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run Gateway trade route test
+        run: mvn -B -f services/pom.xml -pl api-gateway -Dtest=GatewayTradeRouteTest test
+
+      - name: Upload Gateway trade route reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-trade-route-test-reports
+          path: services/api-gateway/target/surefire-reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  trade-package-and-docker-build:
+    name: Trade package and Docker build
+    runs-on: ubuntu-latest
+    needs:
+      - trade-tests
+      - trade-mysql-migration-smoke
+      - gateway-trade-route-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Package trade fulfillment service
+        run: |
+          set -euo pipefail
+          mvn -B -f services/pom.xml -pl common-contract,trade-fulfillment-service -am -DskipTests package
+          mkdir -p deploy/artifacts/trade-fulfillment-service
+          cp services/trade-fulfillment-service/target/trade-fulfillment-service-*.jar deploy/artifacts/trade-fulfillment-service/aituan-trade-fulfillment-service.jar
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build trade fulfillment Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/microservices/trade-fulfillment-service/Dockerfile
+          push: false
+          tags: aituan/trade-fulfillment-service:ci-${{ github.sha }}
+
+  pipeline_raw_report:
+    name: Upload trade CI pipeline raw report
+    runs-on: ubuntu-latest
+    needs:
+      - trade-tests
+      - trade-mysql-migration-smoke
+      - gateway-trade-route-test
+      - trade-package-and-docker-build
+    if: always()
+    steps:
+      - name: Checkout report script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Generate trade CI pipeline raw report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-trade-fulfillment-ci 流水线原始报告
+          AITUAN_JOB_STATUS: trade-tests=${{ needs.trade-tests.result }}, trade-mysql-migration-smoke=${{ needs.trade-mysql-migration-smoke.result }}, gateway-trade-route-test=${{ needs.gateway-trade-route-test.result }}, trade-package-and-docker-build=${{ needs.trade-package-and-docker-build.result }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/trade-fulfillment-ci
+
+      - name: Upload trade CI pipeline raw report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trade-fulfillment-ci-pipeline-raw-report
+          path: .aituan-report/trade-fulfillment-ci/
+          if-no-files-found: error
+          retention-days: 30

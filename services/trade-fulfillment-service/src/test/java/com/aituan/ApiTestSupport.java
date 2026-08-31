@@ -37,10 +37,27 @@ public final class ApiTestSupport {
     return jsonPath("$.code").value(0);
   }
 
+  public static ResultMatcher businessError(ErrorCode errorCode) {
+    return jsonPath("$.code").value(errorCode.code());
+  }
+
   public static ResultMatcher unauthorized() {
+    return all(status().isUnauthorized(), jsonPath("$.code").value(ErrorCode.UNAUTHORIZED.code()));
+  }
+
+  public static ResultMatcher forbidden() {
+    return all(status().isForbidden(), jsonPath("$.code").value(ErrorCode.FORBIDDEN.code()));
+  }
+
+  public static ResultMatcher badRequest() {
+    return all(status().isBadRequest(), jsonPath("$.code").value(ErrorCode.BAD_REQUEST.code()));
+  }
+
+  private static ResultMatcher all(ResultMatcher... matchers) {
     return result -> {
-      status().isUnauthorized().match(result);
-      jsonPath("$.code").value(ErrorCode.UNAUTHORIZED.code()).match(result);
+      for (ResultMatcher matcher : matchers) {
+        matcher.match(result);
+      }
     };
   }
 }
