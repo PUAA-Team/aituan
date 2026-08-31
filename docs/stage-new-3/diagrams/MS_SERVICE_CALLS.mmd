@@ -1,0 +1,23 @@
+sequenceDiagram
+  autonumber
+  participant I as 账号与用户资产服务
+  participant M as 商家与商品服务
+  participant T as 交易与履约服务
+  participant P as 互动与平台服务
+
+  Note over I,P: 服务间只调用 /internal/** REST，携带服务身份、requestId；写操作携带幂等键
+  T->>I: 地址快照、优惠券校验/使用/恢复、成长值、消息
+  I-->>T: 用户资产结果或补偿结果
+  T->>M: 门店/商品快照、履约规则、库存扣减/恢复
+  M-->>T: 交易报价、库存或补偿结果
+  P->>T: 订单快照、完成状态、评价资格、平台订单指标
+  T-->>P: 脱敏订单数据
+  P->>M: 门店/商家快照
+  M-->>P: 门店展示数据
+  P->>I: 用户摘要、发布站内消息
+  I-->>P: 用户摘要或消息结果
+  M->>T: 经营看板订单指标
+  T-->>M: 门店订单聚合数据
+  M->>P: 门店评价摘要
+  P-->>M: 评分与评价数量
+  Note over I,P: 跨服务只保存业务 ID 和必要快照；禁止跨库 JOIN、跨库外键和共享 Repository

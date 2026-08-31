@@ -190,6 +190,10 @@
 
 `./docs/配置与脚本位置清单.md`
 
+`./docs/stage-new-3/后五天微服务拆分实施方案.md`
+
+`./docs/stage-new-3/微服务并行拆分分工与统一标准.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`
