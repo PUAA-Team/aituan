@@ -236,6 +236,26 @@ public class TradeRepository {
     jdbcTemplate.update("update delivery_task set current_stage = 'refunded', current_stage_text = '订单已退款', next_tick_at = null, completed_at = current_timestamp, updated_at = current_timestamp where order_id = ? and is_deleted = 0", orderId);
   }
 
+  public void cancelTakeawayOrder(long orderId) {
+    jdbcTemplate.update(
+        "update order_main set display_status = 'cancelled', fulfillment_status = 'cancelled', completed_at = current_timestamp, updated_at = current_timestamp where id = ? and is_deleted = 0",
+        orderId);
+  }
+
+  public void cancelDeliveryTask(long orderId) {
+    jdbcTemplate.update("update delivery_task set current_stage = 'cancelled', current_stage_text = '订单已取消', next_tick_at = null, completed_at = current_timestamp, updated_at = current_timestamp where order_id = ? and is_deleted = 0", orderId);
+  }
+
+  public void updateOrderDeliveryAddress(long orderId, String addressSnapshot, BigDecimal distanceKm, LocalDateTime estimatedArrivalAt) {
+    jdbcTemplate.update(
+        "update order_main set address_snapshot = ?, delivery_distance_km = ?, estimated_arrival_at = ?, updated_at = current_timestamp where id = ? and is_deleted = 0",
+        addressSnapshot, distanceKm, toTimestamp(estimatedArrivalAt), orderId);
+  }
+
+  public void updateDeliveryTaskEta(long orderId, int etaMinutes) {
+    jdbcTemplate.update("update delivery_task set eta_minutes = ?, updated_at = current_timestamp where order_id = ? and is_deleted = 0", etaMinutes, orderId);
+  }
+
   public void upsertBooking(long orderId, String businessType, String contactName, String contactPhone, String bookingDate, String bookingTimeSlot, int guestCount, String remark) {
     int updated = jdbcTemplate.update(
         """

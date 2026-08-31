@@ -4,6 +4,108 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: identity-open-auth
+          uri: ${aituan.gateway.service-uri.identity}
+          predicates:
+            - Path=/api/open/auth/**
+        - id: identity-app-account
+          uri: ${aituan.gateway.service-uri.identity}
+          predicates:
+            - Path=/api/app/account/**
+        - id: identity-app-messages
+          uri: ${aituan.gateway.service-uri.identity}
+          predicates:
+            - Path=/api/app/message/**,/api/app/messages/**
+        - id: identity-admin-users
+          uri: ${aituan.gateway.service-uri.identity}
+          predicates:
+            - Path=/api/admin/users/**
+        - id: identity-admin-operation
+          uri: ${aituan.gateway.service-uri.identity}
+          predicates:
+            - Path=/api/admin/operation/member-levels/**,/api/admin/operation/coupon-templates/**
+
+        - id: merchant-open
+          uri: ${aituan.gateway.service-uri.merchant}
+          predicates:
+            - Path=/api/open/merchant/**
+        - id: merchant-app-discovery
+          uri: ${aituan.gateway.service-uri.merchant}
+          predicates:
+            - Path=/api/app/discovery/**,/api/app/location/**
+        - id: merchant-console
+          uri: ${aituan.gateway.service-uri.merchant}
+          predicates:
+            - Path=/api/merchant/profile/**,/api/merchant/stores/**,/api/merchant/catalog/**,/api/merchant/certification/**
+        - id: merchant-admin
+          uri: ${aituan.gateway.service-uri.merchant}
+          predicates:
+            - Path=/api/admin/catalog/**,/api/admin/merchants/**,/api/admin/stores/**
+        - id: merchant-trade-store
+          uri: ${aituan.gateway.service-uri.merchant}
+          predicates:
+            - Path=/api/merchant/trade/stores,/api/merchant/trade/stores/**,/api/admin/trade/stores,/api/admin/trade/stores/**
+
+        - id: trade-app
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/app/trade/**
+        - id: trade-merchant-orders
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/merchant/trade/orders,/api/merchant/trade/orders/**
+        - id: trade-admin-orders
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/admin/trade/orders,/api/admin/trade/orders/**
+        - id: trade-merchant-vouchers
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/merchant/trade/vouchers,/api/merchant/trade/vouchers/**
+        - id: trade-admin-vouchers
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/admin/trade/vouchers,/api/admin/trade/vouchers/**
+        - id: trade-merchant-bookings
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/merchant/trade/bookings,/api/merchant/trade/bookings/**
+        - id: trade-admin-bookings
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/admin/trade/bookings,/api/admin/trade/bookings/**
+        - id: trade-admin-delivery-tasks
+          uri: ${aituan.gateway.service-uri.trade}
+          predicates:
+            - Path=/api/admin/delivery/tasks,/api/admin/delivery/tasks/**
+
+        - id: platform-app
+          uri: ${aituan.gateway.service-uri.platform}
+          predicates:
+            - Path=/api/app/interaction/**,/api/app/complaints/**,/api/app/support/**,/api/app/ai/**
+        - id: platform-admin-delivery-settings
+          uri: ${aituan.gateway.service-uri.platform}
+          predicates:
+            - Path=/api/admin/delivery/settings
+        - id: platform-admin
+          uri: ${aituan.gateway.service-uri.platform}
+          predicates:
+            - Path=/api/admin/announcements/**,/api/admin/audit-logs/**,/api/admin/configs/**,/api/admin/dashboard,/api/admin/governance/**
+        - id: platform-common-files
+          uri: ${aituan.gateway.service-uri.platform}
+          predicates:
+            - Path=/api/common/files/**
+
+aituan:
+  gateway:
+    service-uri:
+      identity: ${AITUAN_IDENTITY_URI:http://localhost:8081}
+      merchant: ${AITUAN_MERCHANT_URI:http://localhost:8082}
+      trade: ${AITUAN_TRADE_URI:http://localhost:8083}
+      platform: ${AITUAN_PLATFORM_URI:http://localhost:8084}
 
 management:
   endpoints:

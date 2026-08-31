@@ -12,11 +12,13 @@ import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CreateOrderRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.DeliveryTimelineView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderAddressUpdateRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderDetailView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderSummaryView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.PayOrderRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.PaymentMethodView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.RefundRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.TakeawayOrderActionRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -89,6 +91,21 @@ public class TradeController {
   @PostMapping("/orders/{orderId}/refund")
   public ApiResponse<OrderDetailView> refund(@PathVariable long orderId, @RequestBody(required = false) RefundRequest request) {
     return ApiResponse.ok(tradeService.refundOrderForUser(orderId, request));
+  }
+
+  @PostMapping("/orders/{orderId}/cancel")
+  public ApiResponse<OrderDetailView> cancel(@PathVariable long orderId, @RequestBody(required = false) TakeawayOrderActionRequest request) {
+    return ApiResponse.ok(tradeService.cancelTakeawayOrder(orderId, request));
+  }
+
+  @PostMapping("/orders/{orderId}/remind")
+  public ApiResponse<OrderDetailView> remind(@PathVariable long orderId, @RequestBody(required = false) TakeawayOrderActionRequest request) {
+    return ApiResponse.ok(tradeService.remindTakeawayOrder(orderId, request));
+  }
+
+  @PutMapping("/orders/{orderId}/delivery-address")
+  public ApiResponse<OrderDetailView> updateDeliveryAddress(@PathVariable long orderId, @Valid @RequestBody OrderAddressUpdateRequest request) {
+    return ApiResponse.ok(tradeService.updateDeliveryAddress(orderId, request));
   }
 
   @GetMapping("/orders")

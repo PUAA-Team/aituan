@@ -60,6 +60,8 @@ public final class TradeDtos {
 
   public record RefundRequest(String reason) {}
 
+  public record OrderAddressUpdateRequest(@NotNull Long addressId) {}
+
   public record BookingRequest(
       String contactName,
       String contactPhone,

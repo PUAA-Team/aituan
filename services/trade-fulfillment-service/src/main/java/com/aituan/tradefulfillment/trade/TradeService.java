@@ -36,6 +36,7 @@ import com.aituan.tradefulfillment.trade.dto.TradeDtos.DeliveryTimelineView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsBookingView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsOrderSummaryView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OpsVoucherView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderAddressUpdateRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderDetailView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderItemView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderStatusCountView;
@@ -263,6 +264,64 @@ public class TradeService {
     return toOrderDetail(requireOwnOrder(orderId));
   }
 
+  @Transactional
+  public OrderDetailView cancelTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    ensureTakeaway(order);
+    if (isClosedByCancelOrRefund(order)) {
+      return toOrderDetail(order);
+    }
+    String reason = defaultText(actionRemark(request), "用户取消订单");
+    if ("unpaid".equals(order.paymentStatus())) {
+      tradeRepository.cancelTakeawayOrder(order.id());
+      tradeRepository.cancelDeliveryTask(order.id());
+      releaseOrderResources(order);
+      tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), "cancelled", "user_cancel", operatorType(), operatorId(), reason);
+      return getOrderDetail(order.id());
+    }
+    if (canUserCancelPaidTakeaway(order)) {
+      tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), "refunded", "user_cancel", operatorType(), operatorId(), reason);
+      refundUserOrder(order, reason);
+      return getOrderDetail(order.id());
+    }
+    throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "商家已接单，请联系商家或平台处理退款");
+  }
+
+  @Transactional
+  public OrderDetailView remindTakeawayOrder(long orderId, TakeawayOrderActionRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    ensureTakeaway(order);
+    if (!"pending".equals(order.displayStatus()) || !"paid".equals(order.paymentStatus()) || !"none".equals(order.refundStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前订单不可催单");
+    }
+    String remark = actionRemark(request);
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), order.fulfillmentStatus(), "user_remind", operatorType(), operatorId(), remark);
+    messageClient.remindMerchant(order.storeId(), order.id(), order.orderNo(), remark);
+    return getOrderDetail(order.id());
+  }
+
+  @Transactional
+  public OrderDetailView updateDeliveryAddress(long orderId, OrderAddressUpdateRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    ensureTakeaway(order);
+    if (!canChangeDeliveryAddress(order)) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "当前订单不可修改配送地址");
+    }
+    AddressSnapshot address = identityClient.findAddress(order.userId(), request.addressId())
+        .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    StoreSnapshot store = catalogClient.findStore(order.storeId()).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    DeliveryQuote quote = deliveryQuote(new TradeContext(store, address, catalogClient.deliveryRule(store.id()), List.of()));
+    if (!quote.deliverable()) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, quote.unavailableReason());
+    }
+    tradeRepository.updateOrderDeliveryAddress(order.id(), formatAddress(address), quote.distanceKm(), quote.estimatedArrivalAt());
+    if (quote.estimatedMinutes() != null) {
+      tradeRepository.updateDeliveryTaskEta(order.id(), quote.estimatedMinutes());
+    }
+    tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), order.fulfillmentStatus(), "user_change_address", operatorType(), operatorId(), null);
+    return getOrderDetail(order.id());
+  }
+
   public DeliveryTimelineView deliveryTimeline(long orderId) {
     OrderRow order = requireOwnOrder(orderId);
     List<TimelineNodeView> nodes = tradeRepository.listDeliveryTimeline(order.id()).stream()
@@ -455,22 +514,8 @@ public class TradeService {
   @Transactional
   public OrderDetailView refundOrderForUser(long orderId, RefundRequest request) {
     OrderRow order = requireOwnOrder(orderId);
-    if (!"paid".equals(order.paymentStatus())) {
-      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "仅已支付订单可申请退款");
-    }
-    if (!"none".equals(order.refundStatus())) {
-      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "订单已退款或正在退款中");
-    }
     String reason = request == null || request.reason() == null || request.reason().isBlank() ? "用户申请退款" : request.reason().trim();
-    tradeRepository.insertRefundRecord(order.id(), refundNo(order.id()), order.userId(), order.storeId(), order.payableAmount(), "user", order.userId(), reason);
-    tradeRepository.markOrderRefunded(order.id(), order.payableAmount(), reason, "user", order.userId());
-    tradeRepository.markVoucherRefunded(order.id());
-    tradeRepository.markDeliveryTaskRefunded(order.id());
-    for (OrderItemRow item : tradeRepository.listOrderItems(order.id())) {
-      inventoryClient.release(item.itemId(), item.quantity());
-    }
-    memberGrowthClient.refundOrderGrowth(order.userId(), order.id());
-    messageClient.order(order.userId(), "订单退款成功", reason, "refund", order.id());
+    refundUserOrder(order, reason);
     return getOrderDetail(order.id());
   }
 
@@ -526,12 +571,33 @@ public class TradeService {
     tradeRepository.markOrderRefunded(order.id(), order.payableAmount(), reason, operatorType(), operatorId());
     tradeRepository.markVoucherRefunded(order.id());
     tradeRepository.markDeliveryTaskRefunded(order.id());
-    for (OrderItemRow item : tradeRepository.listOrderItems(order.id())) {
-      inventoryClient.release(item.itemId(), item.quantity());
-    }
+    releaseOrderResources(order);
     memberGrowthClient.refundOrderGrowth(order.userId(), order.id());
     messageClient.order(order.userId(), "订单退款成功", reason, "退款", order.id());
     tradeRepository.insertOrderStateLog(order.id(), order.fulfillmentStatus(), "refunded", "staff_refund", operatorType(), operatorId(), reason);
+  }
+
+  private void refundUserOrder(OrderRow order, String reason) {
+    if (!"paid".equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "仅已支付订单可申请退款");
+    }
+    if (!"none".equals(order.refundStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "订单已退款或正在退款中");
+    }
+    tradeRepository.insertRefundRecord(order.id(), refundNo(order.id()), order.userId(), order.storeId(), order.payableAmount(), "user", order.userId(), reason);
+    tradeRepository.markOrderRefunded(order.id(), order.payableAmount(), reason, "user", order.userId());
+    tradeRepository.markVoucherRefunded(order.id());
+    tradeRepository.markDeliveryTaskRefunded(order.id());
+    releaseOrderResources(order);
+    memberGrowthClient.refundOrderGrowth(order.userId(), order.id());
+    messageClient.order(order.userId(), "订单退款成功", reason, "refund", order.id());
+  }
+
+  private void releaseOrderResources(OrderRow order) {
+    for (OrderItemRow item : tradeRepository.listOrderItems(order.id())) {
+      inventoryClient.release(item.itemId(), item.quantity());
+    }
+    couponClient.releaseByOrder(order.id());
   }
 
   private OpsOrderSummaryView toOpsOrderSummary(OrderRow order) {
@@ -605,6 +671,18 @@ public class TradeService {
     if (!TAKEAWAY.equals(order.orderType())) {
       throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "仅支持外卖订单");
     }
+  }
+
+  private boolean isClosedByCancelOrRefund(OrderRow order) {
+    return "cancelled".equals(order.displayStatus()) || "refunded".equals(order.paymentStatus()) || !"none".equals(order.refundStatus());
+  }
+
+  private boolean canUserCancelPaidTakeaway(OrderRow order) {
+    return "paid".equals(order.paymentStatus()) && "pending".equals(order.displayStatus()) && "merchant_pending".equals(order.fulfillmentStatus());
+  }
+
+  private boolean canChangeDeliveryAddress(OrderRow order) {
+    return !isClosedByCancelOrRefund(order) && ("unpaid".equals(order.paymentStatus()) || canUserCancelPaidTakeaway(order));
   }
 
   private String nextStage(String currentStage) {

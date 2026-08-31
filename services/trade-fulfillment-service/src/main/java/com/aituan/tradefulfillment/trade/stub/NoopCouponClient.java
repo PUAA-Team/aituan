@@ -14,4 +14,8 @@ public class NoopCouponClient implements CouponClient {
     }
     return new CouponDiscount(false, BigDecimal.ZERO, "优惠券服务尚未接入");
   }
+
+  @Override
+  public void releaseByOrder(long orderId) {
+  }
 }

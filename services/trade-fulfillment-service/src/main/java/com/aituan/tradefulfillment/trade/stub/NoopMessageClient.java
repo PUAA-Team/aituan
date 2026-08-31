@@ -9,4 +9,8 @@ public class NoopMessageClient implements MessageClient {
   @Override
   public void order(long userId, String title, String content, String badge, long orderId) {
   }
+
+  @Override
+  public void remindMerchant(long storeId, long orderId, String orderNo, String remark) {
+  }
 }
