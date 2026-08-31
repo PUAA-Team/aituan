@@ -1,5 +1,6 @@
 package com.aituan.tradefulfillment.trade;
 
+import com.aituan.common.api.PageResponse;
 import com.aituan.common.exception.BusinessException;
 import com.aituan.common.exception.ErrorCode;
 import com.aituan.common.security.CurrentUserContext;
@@ -11,6 +12,11 @@ import com.aituan.tradefulfillment.trade.client.CouponClient;
 import com.aituan.tradefulfillment.trade.client.DistanceClient;
 import com.aituan.tradefulfillment.trade.client.IdentityClient;
 import com.aituan.tradefulfillment.trade.client.IdentityClient.AddressSnapshot;
+import com.aituan.tradefulfillment.trade.client.InventoryClient;
+import com.aituan.tradefulfillment.trade.client.MemberGrowthClient;
+import com.aituan.tradefulfillment.trade.client.MessageClient;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.BookingRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.BookingView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CartItemQuantityRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CartItemRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CartLineView;
@@ -19,10 +25,28 @@ import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutItemRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutItemView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.CheckoutPreviewView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.CreateOrderRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.DeliveryTimelineView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderDetailView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderItemView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.OrderSummaryView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.PayOrderRequest;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.PaymentMethodView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.RefundRequest;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.TimelineNodeView;
+import com.aituan.tradefulfillment.trade.dto.TradeDtos.VoucherView;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.BookingRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.DeliveryTaskRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderInsertRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderItemInsertRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderItemRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.TimelineRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.VoucherRow;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,24 +59,34 @@ public class TradeService {
   private static final String TAKEAWAY = "takeaway";
   private static final BigDecimal DEFAULT_MAX_DELIVERY_DISTANCE_KM = BigDecimal.valueOf(5).setScale(2);
   private static final DateTimeFormatter ARRIVAL_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+  private static final DateTimeFormatter ORDER_NO_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
   private final TradeRepository tradeRepository;
   private final CatalogClient catalogClient;
   private final IdentityClient identityClient;
   private final CouponClient couponClient;
   private final DistanceClient distanceClient;
+  private final InventoryClient inventoryClient;
+  private final MemberGrowthClient memberGrowthClient;
+  private final MessageClient messageClient;
 
   public TradeService(
       TradeRepository tradeRepository,
       CatalogClient catalogClient,
       IdentityClient identityClient,
       CouponClient couponClient,
-      DistanceClient distanceClient) {
+      DistanceClient distanceClient,
+      InventoryClient inventoryClient,
+      MemberGrowthClient memberGrowthClient,
+      MessageClient messageClient) {
     this.tradeRepository = tradeRepository;
     this.catalogClient = catalogClient;
     this.identityClient = identityClient;
     this.couponClient = couponClient;
     this.distanceClient = distanceClient;
+    this.inventoryClient = inventoryClient;
+    this.memberGrowthClient = memberGrowthClient;
+    this.messageClient = messageClient;
   }
 
   public List<PaymentMethodView> paymentMethods() {
@@ -120,6 +154,149 @@ public class TradeService {
     return buildPreview(context, request.remark(), tablewareSelection(request.tablewareOption(), request.tablewareCount()), request.couponId(), userId);
   }
 
+  @Transactional
+  public OrderDetailView createOrder(CreateOrderRequest request) {
+    long userId = CurrentUserContext.required().userId();
+    String idempotencyKey = normalizeIdempotencyKey(request.idempotencyKey());
+    if (idempotencyKey != null) {
+      var existing = tradeRepository.findOrderByIdempotency(userId, idempotencyKey);
+      if (existing.isPresent()) {
+        return toOrderDetail(existing.get());
+      }
+    }
+
+    TradeContext context = loadTradeContext(userId, request.storeId(), request.businessType(), request.addressId(), request.items());
+    CheckoutPreviewView preview = buildPreview(context, request.remark(), tablewareSelection(request.tablewareOption(), request.tablewareCount()), request.couponId(), userId);
+    validatePreviewForOrder(preview);
+    reserveInventory(context.items());
+
+    Long orderId = tradeRepository.insertOrder(new OrderInsertRow(
+        userId,
+        context.store().id(),
+        context.store().storeName(),
+        context.store().businessType(),
+        orderTitle(context.items()),
+        "unpaid",
+        "unpaid",
+        "created",
+        null,
+        preview.amount(),
+        preview.deliveryFee(),
+        preview.packageFee(),
+        preview.discountAmount(),
+        preview.payableAmount(),
+        preview.addressSnapshot(),
+        preview.deliveryDistanceKm(),
+        preview.estimatedArrivalAt(),
+        null,
+        preview.tablewareOption(),
+        preview.tablewareCount(),
+        request.remark(),
+        idempotencyKey,
+        newOrderNo()));
+    for (TradeItem item : context.items()) {
+      tradeRepository.insertOrderItem(orderId, toOrderItemInsert(item));
+    }
+    if (TAKEAWAY.equals(context.store().businessType())) {
+      tradeRepository.clearCart(tradeRepository.getOrCreateCart(userId, context.store().id()));
+    }
+    return getOrderDetail(orderId);
+  }
+
+  @Transactional
+  public OrderDetailView pay(long orderId, PayOrderRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    if (!"mock".equalsIgnoreCase(request.paymentMode())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "当前仅支持模拟支付");
+    }
+    if ("refunded".equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "已退款订单不能支付");
+    }
+    if ("paid".equals(order.paymentStatus())) {
+      return toOrderDetail(order);
+    }
+    tradeRepository.markPaymentSuccess(order.id(), "mock", order.payableAmount());
+    if (TAKEAWAY.equals(order.orderType())) {
+      tradeRepository.updateTakeawayAfterPaid(order.id(), "merchant_pending");
+      tradeRepository.insertDeliveryTask(order.id(), "merchant_pending", "待商家接单", etaMinutes(order));
+    } else {
+      String voucherCode = voucherCode(order.id());
+      tradeRepository.insertVoucher(order.id(), voucherCode, "AITUAN-VOUCHER:" + voucherCode, LocalDateTime.now().plusDays(30));
+      tradeRepository.updateServiceAfterPaid(order.id(), "券码已生成，请到店出示核销");
+    }
+    memberGrowthClient.addOrderCompletionGrowth(order.userId(), order.id(), order.payableAmount());
+    messageClient.order(order.userId(), "订单支付成功", order.title(), "trade", order.id());
+    return getOrderDetail(order.id());
+  }
+
+  public PageResponse<OrderSummaryView> listOrders(String displayStatus, int page, int pageSize) {
+    long userId = CurrentUserContext.required().userId();
+    int safePage = Math.max(1, page);
+    int safePageSize = Math.min(Math.max(1, pageSize), 50);
+    String status = displayStatus == null || displayStatus.isBlank() ? null : displayStatus.trim();
+    List<OrderSummaryView> rows = tradeRepository.listOrders(userId, status, (safePage - 1) * safePageSize, safePageSize)
+        .stream()
+        .map(this::toOrderSummary)
+        .toList();
+    return PageResponse.of(rows, safePage, safePageSize, tradeRepository.countOrders(userId, status));
+  }
+
+  public OrderDetailView getOrderDetail(long orderId) {
+    return toOrderDetail(requireOwnOrder(orderId));
+  }
+
+  public DeliveryTimelineView deliveryTimeline(long orderId) {
+    OrderRow order = requireOwnOrder(orderId);
+    List<TimelineNodeView> nodes = tradeRepository.listDeliveryTimeline(order.id()).stream()
+        .map(row -> new TimelineNodeView(row.code(), row.text(), row.reachedAt()))
+        .toList();
+    String currentStage = tradeRepository.findDeliveryTask(order.id()).map(DeliveryTaskRow::currentStage).orElse(order.fulfillmentStatus());
+    return new DeliveryTimelineView(order.orderNo(), currentStage, nodes);
+  }
+
+  @Transactional
+  public OrderDetailView refundOrderForUser(long orderId, RefundRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    if (!"paid".equals(order.paymentStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "仅已支付订单可申请退款");
+    }
+    if (!"none".equals(order.refundStatus())) {
+      throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "订单已退款或正在退款中");
+    }
+    String reason = request == null || request.reason() == null || request.reason().isBlank() ? "用户申请退款" : request.reason().trim();
+    tradeRepository.insertRefundRecord(order.id(), refundNo(order.id()), order.userId(), order.storeId(), order.payableAmount(), "user", order.userId(), reason);
+    tradeRepository.markOrderRefunded(order.id(), order.payableAmount(), reason, "user", order.userId());
+    tradeRepository.markVoucherRefunded(order.id());
+    tradeRepository.markDeliveryTaskRefunded(order.id());
+    for (OrderItemRow item : tradeRepository.listOrderItems(order.id())) {
+      inventoryClient.release(item.itemId(), item.quantity());
+    }
+    memberGrowthClient.refundOrderGrowth(order.userId(), order.id());
+    messageClient.order(order.userId(), "订单退款成功", reason, "refund", order.id());
+    return getOrderDetail(order.id());
+  }
+
+  public BookingView getBookingForUser(long orderId) {
+    OrderRow order = requireOwnOrder(orderId);
+    return tradeRepository.findBookingByOrder(order.id()).map(row -> toBookingView(order, row)).orElse(null);
+  }
+
+  @Transactional
+  public BookingView upsertBooking(long orderId, BookingRequest request) {
+    OrderRow order = requireOwnOrder(orderId);
+    int guestCount = request.guestCount() == null || request.guestCount() < 1 ? 1 : request.guestCount();
+    tradeRepository.upsertBooking(
+        order.id(),
+        order.orderType(),
+        defaultText(request.contactName(), "爱团用户"),
+        defaultText(request.contactPhone(), "18800001111"),
+        defaultText(request.bookingDate(), LocalDate.now().plusDays(1).toString()),
+        defaultText(request.bookingTimeSlot(), "18:00-20:00"),
+        guestCount,
+        request.remark());
+    return getBookingForUser(order.id());
+  }
+
   private CartView buildCartView(StoreSnapshot store, long cartId) {
     List<CartLineView> items = tradeRepository.listCartItems(cartId).stream()
         .map(row -> toCartLineView(row.itemId(), row.quantity()))
@@ -133,17 +310,7 @@ public class TradeService {
         .orElse(new ItemSnapshot(itemId, null, "已失效商品", null, TAKEAWAY, null, null, BigDecimal.ZERO, "off_sale", 0));
     BigDecimal totalPrice = valueOrZero(item.price()).multiply(BigDecimal.valueOf(quantity));
     boolean soldOut = stock(item) <= 0 || !"on_sale".equals(item.status());
-    return new CartLineView(
-        item.id(),
-        item.itemName(),
-        item.subtitle(),
-        item.categoryName(),
-        valueOrZero(item.price()),
-        quantity,
-        totalPrice,
-        stock(item),
-        item.status(),
-        soldOut);
+    return new CartLineView(item.id(), item.itemName(), item.subtitle(), item.categoryName(), valueOrZero(item.price()), quantity, totalPrice, stock(item), item.status(), soldOut);
   }
 
   private TradeContext loadTradeContext(long userId, long storeId, String businessType, Long addressId, List<CheckoutItemRequest> requests) {
@@ -167,14 +334,14 @@ public class TradeService {
     BigDecimal amount = BigDecimal.ZERO;
     List<CheckoutItemView> itemViews = new ArrayList<>();
     for (TradeItem tradeItem : context.items()) {
-      BigDecimal total = valueOrZero(tradeItem.item().price()).multiply(BigDecimal.valueOf(tradeItem.quantity()));
+      BigDecimal total = money(valueOrZero(tradeItem.item().price()).multiply(BigDecimal.valueOf(tradeItem.quantity())));
       amount = amount.add(total);
       itemViews.add(new CheckoutItemView(
           tradeItem.item().id(),
           tradeItem.item().itemName(),
           tradeItem.item().subtitle(),
           tradeItem.quantity(),
-          valueOrZero(tradeItem.item().price()),
+          money(valueOrZero(tradeItem.item().price())),
           total,
           tradeItem.item().categoryId(),
           tradeItem.item().categoryName()));
@@ -184,36 +351,95 @@ public class TradeService {
     BigDecimal deliveryFee = TAKEAWAY.equals(context.store().businessType()) ? valueOrZero(context.deliveryRule().deliveryFee()).add(distanceExtraFee) : BigDecimal.ZERO;
     BigDecimal packageFee = packageFee(context);
     BigDecimal discountAmount = couponDiscount(userId, couponId, amount);
-    BigDecimal payableAmount = amount.add(deliveryFee).add(packageFee).subtract(discountAmount).max(BigDecimal.ZERO);
+    BigDecimal payableAmount = money(amount.add(deliveryFee).add(packageFee).subtract(discountAmount).max(BigDecimal.ZERO));
     BigDecimal startPrice = startPrice(context);
     BigDecimal startPriceMissing = startPriceMissing(amount, startPrice);
     boolean minimumOrderMet = startPriceMissing.compareTo(BigDecimal.ZERO) <= 0;
     return new CheckoutPreviewView(
-        context.store().id(),
-        context.store().storeName(),
-        context.store().businessType(),
-        context.address() == null ? null : formatAddress(context.address()),
-        deliveryFee,
-        packageFee,
-        distanceExtraFee,
-        amount,
-        payableAmount,
-        discountAmount,
-        startPrice,
-        startPriceMissing,
-        minimumOrderMet,
-        quote.distanceKm(),
-        quote.maxDistanceKm(),
-        quote.estimatedMinutes(),
-        quote.estimatedArrivalAt(),
-        arrivalText(quote.estimatedArrivalAt()),
-        quote.deliverable(),
-        quote.unavailableReason(),
-        tableware.option(),
-        tableware.count(),
-        tableware.text(),
-        itemViews,
-        remark);
+        context.store().id(), context.store().storeName(), context.store().businessType(), context.address() == null ? null : formatAddress(context.address()),
+        money(deliveryFee), packageFee, distanceExtraFee, money(amount), payableAmount, money(discountAmount), startPrice, startPriceMissing,
+        minimumOrderMet, quote.distanceKm(), quote.maxDistanceKm(), quote.estimatedMinutes(), quote.estimatedArrivalAt(), arrivalText(quote.estimatedArrivalAt()),
+        quote.deliverable(), quote.unavailableReason(), tableware.option(), tableware.count(), tableware.text(), itemViews, remark);
+  }
+
+  private void validatePreviewForOrder(CheckoutPreviewView preview) {
+    if (!Boolean.TRUE.equals(preview.deliverable())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, preview.unavailableReason());
+    }
+    if (!Boolean.TRUE.equals(preview.minimumOrderMet())) {
+      throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "未达到起送价");
+    }
+  }
+
+  private void reserveInventory(List<TradeItem> items) {
+    List<TradeItem> reserved = new ArrayList<>();
+    for (TradeItem item : items) {
+      if (!inventoryClient.reserve(item.item().id(), item.quantity())) {
+        reserved.forEach(row -> inventoryClient.release(row.item().id(), row.quantity()));
+        throw new BusinessException(ErrorCode.ITEM_STOCK_NOT_ENOUGH);
+      }
+      reserved.add(item);
+    }
+  }
+
+  private OrderItemInsertRow toOrderItemInsert(TradeItem item) {
+    BigDecimal total = money(valueOrZero(item.item().price()).multiply(BigDecimal.valueOf(item.quantity())));
+    return new OrderItemInsertRow(item.item().id(), item.item().itemName(), item.item().subtitle(), item.item().businessType(), item.item().categoryId(),
+        item.quantity(), money(valueOrZero(item.item().price())), total, null);
+  }
+
+  private OrderDetailView toOrderDetail(OrderRow order) {
+    List<OrderItemView> items = tradeRepository.listOrderItems(order.id()).stream().map(this::toOrderItemView).toList();
+    DeliveryTimelineView timeline = TAKEAWAY.equals(order.orderType()) ? deliveryTimelineForOrder(order) : null;
+    VoucherView voucher = tradeRepository.findVoucher(order.id()).map(this::toVoucherView).orElse(null);
+    BookingView booking = tradeRepository.findBookingByOrder(order.id()).map(row -> toBookingView(order, row)).orElse(null);
+    boolean refundable = "paid".equals(order.paymentStatus()) && "none".equals(order.refundStatus());
+    return new OrderDetailView(
+        order.id(), order.orderNo(), order.orderType(), order.displayStatus(), order.paymentStatus(), order.fulfillmentStatus(), order.paymentMethod(),
+        order.storeId(), order.storeName(), order.title(), order.amount(), order.deliveryFee(), order.packageFee(), order.discountAmount(), order.payableAmount(),
+        order.addressSnapshot(), order.deliveryDistanceKm(), order.estimatedArrivalAt(), arrivalText(order.estimatedArrivalAt()), deliveryCompletionText(order),
+        order.voucherSummary(), order.tablewareOption(), order.tablewareCount(), tablewareSelection(order.tablewareOption(), order.tablewareCount()).text(), order.remark(),
+        order.refundStatus(), order.refundAmount(), order.refundReason(), order.refundedAt(), refundable, false, refundable ? "可申请退款" : "当前状态不可退款",
+        order.createdAt(), order.paidAt(), order.completedAt(), items, timeline, voucher, booking);
+  }
+
+  private OrderSummaryView toOrderSummary(OrderRow order) {
+    return new OrderSummaryView(order.id(), order.orderNo(), order.orderType(), order.displayStatus(), order.fulfillmentStatus(), order.refundStatus(),
+        order.storeName(), order.title(), order.payableAmount(), order.createdAt());
+  }
+
+  private OrderItemView toOrderItemView(OrderItemRow row) {
+    String categoryName = catalogClient.findItem(row.itemId()).map(ItemSnapshot::categoryName).orElse(null);
+    return new OrderItemView(row.itemId(), row.itemName(), row.itemSubtitle(), row.businessType(), row.categoryId(), categoryName,
+        row.quantity(), row.unitPrice(), row.totalPrice(), row.coverUrl());
+  }
+
+  private DeliveryTimelineView deliveryTimelineForOrder(OrderRow order) {
+    List<TimelineNodeView> nodes = tradeRepository.listDeliveryTimeline(order.id()).stream().map(this::toTimelineNode).toList();
+    String currentStage = tradeRepository.findDeliveryTask(order.id()).map(DeliveryTaskRow::currentStage).orElse(order.fulfillmentStatus());
+    return new DeliveryTimelineView(order.orderNo(), currentStage, nodes);
+  }
+
+  private TimelineNodeView toTimelineNode(TimelineRow row) {
+    return new TimelineNodeView(row.code(), row.text(), row.reachedAt());
+  }
+
+  private VoucherView toVoucherView(VoucherRow row) {
+    return new VoucherView(row.voucherCode(), row.qrPayload(), row.status(), row.effectiveFrom(), row.effectiveTo());
+  }
+
+  private BookingView toBookingView(OrderRow order, BookingRow row) {
+    return new BookingView(order.id(), order.orderNo(), order.storeName(), row.businessType(), row.contactName(), row.contactPhone(), row.bookingDate(),
+        row.bookingTimeSlot(), row.guestCount(), row.storeConfirmStatus(), row.storeConfirmRemark(), row.confirmedAt(), row.createdAt());
+  }
+
+  private OrderRow requireOwnOrder(long orderId) {
+    long userId = CurrentUserContext.required().userId();
+    OrderRow order = tradeRepository.findOrderById(orderId).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+    if (order.userId() != userId) {
+      throw new BusinessException(ErrorCode.NOT_FOUND);
+    }
+    return order;
   }
 
   private StoreSnapshot requireTakeawayStore(long storeId) {
@@ -294,7 +520,7 @@ public class TradeService {
     }
     BigDecimal step = rule.distanceExtraStepKm() == null || rule.distanceExtraStepKm().compareTo(BigDecimal.ZERO) <= 0 ? BigDecimal.ONE : rule.distanceExtraStepKm();
     BigDecimal steps = distanceKm.subtract(threshold).divide(step, 0, RoundingMode.CEILING);
-    return rule.distanceExtraFee().multiply(steps).setScale(2, RoundingMode.HALF_UP);
+    return money(rule.distanceExtraFee().multiply(steps));
   }
 
   private BigDecimal packageFee(TradeContext context) {
@@ -304,8 +530,8 @@ public class TradeService {
     DeliveryRuleSnapshot rule = context.deliveryRule();
     String mode = rule.packageFeeMode() == null ? "none" : rule.packageFeeMode();
     return switch (mode) {
-      case "fixed" -> valueOrZero(rule.packageFeeFixed());
-      case "per_item" -> valueOrZero(rule.packageFeePerItem()).multiply(BigDecimal.valueOf(context.items().stream().mapToInt(TradeItem::quantity).sum())).setScale(2, RoundingMode.HALF_UP);
+      case "fixed" -> money(valueOrZero(rule.packageFeeFixed()));
+      case "per_item" -> money(valueOrZero(rule.packageFeePerItem()).multiply(BigDecimal.valueOf(context.items().stream().mapToInt(TradeItem::quantity).sum())));
       default -> BigDecimal.ZERO;
     };
   }
@@ -314,12 +540,12 @@ public class TradeService {
     if (!TAKEAWAY.equals(context.store().businessType()) || context.deliveryRule() == null) {
       return BigDecimal.ZERO;
     }
-    return valueOrZero(context.deliveryRule().startPrice()).setScale(2, RoundingMode.HALF_UP);
+    return money(valueOrZero(context.deliveryRule().startPrice()));
   }
 
   private BigDecimal startPriceMissing(BigDecimal amount, BigDecimal startPrice) {
     BigDecimal missing = startPrice.subtract(amount == null ? BigDecimal.ZERO : amount);
-    return missing.compareTo(BigDecimal.ZERO) <= 0 ? BigDecimal.ZERO : missing.setScale(2, RoundingMode.HALF_UP);
+    return missing.compareTo(BigDecimal.ZERO) <= 0 ? BigDecimal.ZERO : money(missing);
   }
 
   private TablewareSelection tablewareSelection(String option, Integer count) {
@@ -351,8 +577,49 @@ public class TradeService {
     return estimatedArrivalAt == null ? null : estimatedArrivalAt.format(ARRIVAL_TIME_FORMATTER);
   }
 
+  private String deliveryCompletionText(OrderRow order) {
+    if (order.completedAt() != null) return "订单已完成";
+    if ("refunded".equals(order.fulfillmentStatus())) return "订单已退款";
+    return null;
+  }
+
+  private String orderTitle(List<TradeItem> items) {
+    if (items.isEmpty()) return "爱团订单";
+    String firstName = items.get(0).item().itemName();
+    return items.size() == 1 ? firstName : firstName + "等" + items.size() + "件商品";
+  }
+
+  private String newOrderNo() {
+    return "T" + LocalDateTime.now().format(ORDER_NO_FORMATTER) + String.format("%06d", Math.floorMod(System.nanoTime(), 1_000_000));
+  }
+
+  private String voucherCode(long orderId) {
+    return String.format("88%08d", Math.floorMod(orderId, 100_000_000));
+  }
+
+  private String refundNo(long orderId) {
+    return "R" + LocalDateTime.now().format(ORDER_NO_FORMATTER) + String.format("%06d", Math.floorMod(orderId, 1_000_000));
+  }
+
+  private int etaMinutes(OrderRow order) {
+    if (order.estimatedArrivalAt() == null) return 35;
+    return Math.max(1, (int) java.time.Duration.between(LocalDateTime.now(), order.estimatedArrivalAt()).toMinutes());
+  }
+
+  private String normalizeIdempotencyKey(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  private String defaultText(String value, String fallback) {
+    return value == null || value.isBlank() ? fallback : value.trim();
+  }
+
   private BigDecimal valueOrZero(BigDecimal value) {
     return value == null ? BigDecimal.ZERO : value;
+  }
+
+  private BigDecimal money(BigDecimal value) {
+    return valueOrZero(value).setScale(2, RoundingMode.HALF_UP);
   }
 
   private int stock(ItemSnapshot item) {
