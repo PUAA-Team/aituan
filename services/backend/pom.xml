@@ -4,26 +4,26 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.4.6</version>
-    <relativePath/>
+    <groupId>com.aituan</groupId>
+    <artifactId>aituan-services-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>com.aituan</groupId>
   <artifactId>aituan-backend</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
   <name>aituan-backend</name>
   <description>爱团后端服务</description>
 
   <properties>
-    <java.version>17</java.version>
-    <springdoc.version>2.8.8</springdoc.version>
-    <jacoco.version>0.8.12</jacoco.version>
     <backend.build.directory>${project.basedir}/target</backend.build.directory>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>com.aituan</groupId>
+      <artifactId>common-contract</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
@@ -103,13 +103,13 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <release>17</release>
-        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>

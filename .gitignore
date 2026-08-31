@@ -2,7 +2,7 @@
 CLAUDE.md
 
 # Backend build outputs
-services/backend/target/
+services/*/target/
 services/backend/bin/
 
 # Web build outputs

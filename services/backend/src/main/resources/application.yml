@@ -41,6 +41,15 @@ management:
     web:
       exposure:
         include: health,info
+  info:
+    env:
+      enabled: true
+    git:
+      mode: simple
+
+info:
+  app:
+    name: ${spring.application.name}
 
 aituan:
   security:

@@ -194,6 +194,10 @@
 
 `./docs/stage-new-3/微服务并行拆分分工与统一标准.md`
 
+`./docs/stage-new-3/微服务工程地基与适配说明.md`
+
+`./docs/stage-new-3/小学期后续看板任务项.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`
