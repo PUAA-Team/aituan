@@ -1,0 +1,57 @@
+flowchart TB
+  subgraph clients["客户端"]
+    app["Flutter 用户端"]
+    merchantWeb["商家 Web"]
+    adminWeb["平台后台 Web"]
+  end
+
+  gateway["API Gateway<br/>统一域名·路由·限流<br/>不计入业务微服务"]
+
+  subgraph services["4 个业务微服务"]
+    identity["账号与用户资产服务<br/>认证·用户·会员·优惠券·消息"]
+    merchant["商家与商品服务<br/>商家·门店·目录·搜索·履约规则"]
+    trade["交易与履约服务<br/>购物车·订单·支付·退款·配送"]
+    platform["互动与平台服务<br/>评价·投诉·客服·AI·审计"]
+  end
+
+  subgraph mysql["MySQL 8 单实例·4 个逻辑库"]
+    identityDb[("aituan_identity<br/>账号与用户资产库")]
+    merchantDb[("aituan_merchant<br/>商家与商品库")]
+    tradeDb[("aituan_trade<br/>交易与履约库")]
+    platformDb[("aituan_platform<br/>互动与平台库")]
+  end
+
+  subgraph providers["外部依赖"]
+    map["高德地图"]
+    mail["邮件服务"]
+    ai["AI Provider<br/>可关闭降级"]
+    object["文件/对象存储"]
+  end
+
+  app --> gateway
+  merchantWeb --> gateway
+  adminWeb --> gateway
+  gateway --> identity
+  gateway --> merchant
+  gateway --> trade
+  gateway --> platform
+
+  identity --> identityDb
+  merchant --> merchantDb
+  trade --> tradeDb
+  platform --> platformDb
+
+  identity --> mail
+  merchant --> map
+  platform --> ai
+  platform --> object
+
+  classDef entry fill:#e8f1ff,stroke:#3769a8,color:#17324d,stroke-width:1.5px;
+  classDef service fill:#edf8ef,stroke:#3d7f4d,color:#173b20,stroke-width:1.5px;
+  classDef data fill:#fff4df,stroke:#ad7628,color:#53360e,stroke-width:1.5px;
+  classDef external fill:#f5efff,stroke:#7552a6,color:#35214f,stroke-width:1.2px;
+  class gateway entry;
+  class identity,merchant,trade,platform service;
+  class identityDb,merchantDb,tradeDb,platformDb data;
+  class map,mail,ai,object external;
+
