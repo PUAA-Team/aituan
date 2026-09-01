@@ -196,6 +196,16 @@
 
 `./docs/stage-new-3/微服务工程地基与适配说明.md`
 
+`./docs/stage-new-3/C分工交易履约微服务拆分说明.md`
+
+`./docs/stage-new-3/C分工测试容器化与流水线说明.md`
+
+`./docs/stage-new-3/A分工账号用户资产服务检查反馈.md`
+
+`./docs/stage-new-3/B分工商家商品服务检查反馈.md`
+
+`./docs/stage-new-3/第二阶段微服务集成准备说明.md`
+
 `./docs/stage-new-3/小学期后续看板任务项.md`
 
 ### 11. 期末展示文档
