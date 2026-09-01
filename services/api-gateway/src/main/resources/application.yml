@@ -4,6 +4,63 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: deny-internal-api
+          uri: no://op
+          predicates:
+            - Path=/internal/**
+          filters:
+            - SetStatus=403
+        - id: merchant-open
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/open/merchant/**
+        - id: merchant-discovery
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/app/discovery/**
+        - id: merchant-location
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/app/location/**
+        - id: merchant-profile
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/merchant/profile/**
+        - id: merchant-stores
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/merchant/stores/**
+        - id: merchant-catalog
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/merchant/catalog/**
+        - id: merchant-ops-dashboard
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/merchant/ops/dashboard
+        - id: merchant-trade-stores
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/merchant/trade/stores/**
+        - id: admin-merchants
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/admin/merchants/**
+        - id: admin-stores
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/admin/stores/**
+        - id: admin-catalog
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/admin/catalog/**
+        - id: admin-trade-stores
+          uri: ${MERCHANT_CATALOG_SERVICE_URI:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/admin/trade/stores/**
 
 management:
   endpoints:

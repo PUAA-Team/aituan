@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: merchant-catalog-service
+  namespace: aituan
+  labels:
+    app: merchant-catalog-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: merchant-catalog-service
+  template:
+    metadata:
+      labels:
+        app: merchant-catalog-service
+    spec:
+      containers:
+        - name: merchant-catalog-service
+          image: ghcr.io/OWNER/REPO/merchant-catalog-service:sha-placeholder
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: MERCHANT_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-merchant-db
+                  key: url
+            - name: MERCHANT_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-merchant-db
+                  key: username
+            - name: MERCHANT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-merchant-db
+                  key: password
+            - name: MERCHANT_DB_DRIVER
+              value: com.mysql.cj.jdbc.Driver
+            - name: AITUAN_INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-internal-secret
+                  key: service-token
+            - name: IDENTITY_ASSET_SERVICE_URL
+              value: http://identity-asset-service:8081
+            - name: TRADE_FULFILLMENT_SERVICE_URL
+              value: http://trade-fulfillment-service:8083
+            - name: ENGAGEMENT_PLATFORM_SERVICE_URL
+              value: http://engagement-platform-service:8084
+            - name: SERVICE_NAME
+              value: merchant-catalog-service
+            - name: SERVICE_VERSION
+              value: sha-placeholder
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 40
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: merchant-catalog-service
+  namespace: aituan
+  labels:
+    app: merchant-catalog-service
+spec:
+  selector:
+    app: merchant-catalog-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082

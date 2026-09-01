@@ -11,7 +11,8 @@ public enum ErrorCode {
   BUSINESS_RULE_VIOLATION(5001, "业务状态不允许"),
   ORDER_STATE_INVALID(5002, "订单状态不允许该操作"),
   ITEM_STOCK_NOT_ENOUGH(5003, "库存不足"),
-  DUPLICATE_SUBMISSION(5004, "请勿重复提交");
+  DUPLICATE_SUBMISSION(5004, "请勿重复提交"),
+  INTERNAL_ERROR(9999, "服务暂时不可用");
 
   private final int code;
   private final String message;
