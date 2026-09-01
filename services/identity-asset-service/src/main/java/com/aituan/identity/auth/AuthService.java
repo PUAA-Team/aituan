@@ -89,7 +89,7 @@ class AuthService {
     if (expectedType != null && account.accountType() != expectedType) {
       throw new BusinessException(ErrorCode.FORBIDDEN);
     }
-    if (!passwordEncoder.matches(request.password(), account.passwordHash()) && !request.password().equals(account.passwordHash())) {
+    if (!passwordMatches(request.password(), account.passwordHash())) {
       throw new BusinessException(ErrorCode.INVALID_PASSWORD);
     }
     authRepository.updateLastLogin(account.id(), "127.0.0.1");
@@ -131,6 +131,17 @@ class AuthService {
 
   private AuthProfile toProfile(AuthRepository.UserProfileRow row) {
     return new AuthProfile(row.id(), row.nickname(), row.avatarUrl(), row.phone(), row.email(), row.memberLevelName());
+  }
+
+  private boolean passwordMatches(String rawPassword, String storedPassword) {
+    if (rawPassword.equals(storedPassword)) {
+      return true;
+    }
+    try {
+      return passwordEncoder.matches(rawPassword, storedPassword);
+    } catch (IllegalArgumentException exception) {
+      return false;
+    }
   }
 
   private AuthProfile toProfile(AuthRepository.AccountRow row) {

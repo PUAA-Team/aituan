@@ -82,7 +82,7 @@ class AccountService {
     CurrentUser currentUser = CurrentUserContext.required();
     AccountRepository.AccountPasswordRow row = accountRepository.findPasswordByAccountId(currentUser.accountId())
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-    if (!passwordEncoder.matches(request.oldPassword(), row.passwordHash()) && !request.oldPassword().equals(row.passwordHash())) {
+    if (!passwordMatches(request.oldPassword(), row.passwordHash())) {
       throw new BusinessException(ErrorCode.INVALID_PASSWORD);
     }
     accountRepository.updatePassword(currentUser.accountId(), passwordEncoder.encode(request.newPassword()));
@@ -213,6 +213,17 @@ class AccountService {
   private AccountRepository.AddressRow requireAddress(long userId, long addressId) {
     return accountRepository.findAddress(userId, addressId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+  }
+
+  private boolean passwordMatches(String rawPassword, String storedPassword) {
+    if (rawPassword.equals(storedPassword)) {
+      return true;
+    }
+    try {
+      return passwordEncoder.matches(rawPassword, storedPassword);
+    } catch (IllegalArgumentException exception) {
+      return false;
+    }
   }
 
   private AddressUpsertRequest resolveAddressRequest(AddressUpsertRequest request) {

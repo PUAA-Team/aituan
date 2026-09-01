@@ -1,4 +1,4 @@
-name: aituan-microservices-ci
+name: aituan-identity-asset-ci
 
 on:
   pull_request:
@@ -8,21 +8,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: microservices-ci-${{ github.workflow }}-${{ github.ref }}
+  group: identity-asset-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  service-test:
-    name: Microservice test (${{ matrix.service }})
+  identity-ci:
+    name: Identity service CI
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - identity-asset-service
-          - merchant-catalog-service
-          - trade-fulfillment-service
-          - engagement-platform-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,18 +26,98 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run service tests
-        run: mvn -B -f services/pom.xml -pl ${{ matrix.service }} -am test
+      - name: Validate common contract
+        run: mvn -B -f services/pom.xml -pl common-contract test
 
-      - name: Package service jar
-        run: mvn -B -f services/pom.xml -pl ${{ matrix.service }} -am -DskipTests package
+      - name: Run identity service tests
+        run: mvn -B -f services/pom.xml -pl identity-asset-service -am test
+
+      - name: Run API gateway route tests
+        run: mvn -B -f services/pom.xml -pl api-gateway test
+
+      - name: Package identity service jar
+        run: mvn -B -f services/pom.xml -pl identity-asset-service -am -DskipTests package
+
+      - name: Build identity Docker image
+        run: docker build -f deploy/microservices/identity-asset-service/Dockerfile -t identity-asset-service:ci .
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Validate identity K8s manifest
+        run: kubectl apply --dry-run=client --validate=false -f k8s/10-identity-asset-service.yaml
 
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.service }}-test-reports
+          name: identity-asset-test-reports
           path: |
-            services/${{ matrix.service }}/target/surefire-reports/**
-            services/${{ matrix.service }}/target/failsafe-reports/**
+            services/identity-asset-service/target/surefire-reports/**
+            services/identity-asset-service/target/failsafe-reports/**
+            services/api-gateway/target/surefire-reports/**
+            services/api-gateway/target/failsafe-reports/**
+          if-no-files-found: ignore
+
+  identity-mysql-smoke:
+    name: Identity MySQL 8 migration smoke
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: aituan_identity_smoke
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: Wait for MySQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL service did not become ready" >&2
+          exit 1
+
+      - name: Run identity MySQL migration smoke
+        env:
+          AITUAN_IDENTITY_MYSQL_SMOKE: "true"
+          AITUAN_IDENTITY_SMOKE_JDBC_URL: jdbc:mysql://127.0.0.1:3306/aituan_identity_smoke?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_IDENTITY_SMOKE_DB_USERNAME: root
+          AITUAN_IDENTITY_SMOKE_DB_PASSWORD: root
+        run: mvn -B -f services/pom.xml -pl identity-asset-service -am -Dtest=IdentityFlywayMysqlSmokeTest test
+
+      - name: Upload MySQL smoke test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-mysql-smoke-test-reports
+          path: |
+            services/identity-asset-service/target/surefire-reports/**
+            services/identity-asset-service/target/failsafe-reports/**
           if-no-files-found: ignore

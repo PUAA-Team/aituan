@@ -1,4 +1,4 @@
-name: aituan-microservices-deploy
+name: aituan-identity-asset-deploy
 
 on:
   push:
@@ -12,25 +12,20 @@ permissions:
   packages: write
 
 concurrency:
-  group: microservices-deploy-${{ github.ref }}
+  group: identity-asset-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
   NAMESPACE: aituan
+  SERVICE: identity-asset-service
 
 jobs:
   build-test-image:
-    name: Test and image (${{ matrix.service }})
+    name: Test and image identity-asset-service
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - identity-asset-service
-          - merchant-catalog-service
-          - trade-fulfillment-service
-          - engagement-platform-service
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           image_namespace="${GITHUB_REPOSITORY,,}"
-          echo "image=${REGISTRY}/${image_namespace}/${{ matrix.service }}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY}/${image_namespace}/${SERVICE}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -50,11 +45,11 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Run service tests
-        run: mvn -B -f services/pom.xml -pl ${{ matrix.service }} -am test
+      - name: Run identity service tests
+        run: mvn -B -f services/pom.xml -pl identity-asset-service -am test
 
-      - name: Package service jar
-        run: mvn -B -f services/pom.xml -pl ${{ matrix.service }} -am -DskipTests package
+      - name: Package identity service jar
+        run: mvn -B -f services/pom.xml -pl identity-asset-service -am -DskipTests package
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -66,16 +61,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push service image
+      - name: Build and push identity image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/microservices/${{ matrix.service }}/Dockerfile
+          file: deploy/microservices/identity-asset-service/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.image }}
 
   deploy:
-    name: Apply K8s and rollout
+    name: Apply identity K8s and rollout
     runs-on: ubuntu-latest
     needs: build-test-image
     if: github.event_name == 'workflow_dispatch'
@@ -91,49 +86,39 @@ jobs:
           printf '%s' "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
           chmod 600 ~/.kube/config
 
-      - name: Apply manifests
+      - name: Apply identity manifest
         run: |
           set -euo pipefail
           kubectl apply -f k8s/10-identity-asset-service.yaml
-          kubectl apply -f k8s/11-merchant-catalog-service.yaml || true
-          kubectl apply -f k8s/12-trade-fulfillment-service.yaml || true
-          kubectl apply -f k8s/13-engagement-platform-service.yaml || true
 
-      - name: Update images and wait rollout
+      - name: Update identity image and wait rollout
         shell: bash
         run: |
           set -euo pipefail
-          image_namespace="${GITHUB_REPOSITORY,,}"
-          image_tag="sha-${GITHUB_SHA::7}"
-          for service in identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
-            if kubectl -n "$NAMESPACE" get deployment "$service" >/dev/null 2>&1; then
-              kubectl -n "$NAMESPACE" set image "deployment/$service" "$service=${REGISTRY}/${image_namespace}/${service}:${image_tag}"
-              kubectl -n "$NAMESPACE" rollout status "deployment/$service" --timeout=180s
-            fi
-          done
+          kubectl -n "$NAMESPACE" set image "deployment/$SERVICE" "$SERVICE=${{ needs.build-test-image.outputs.image }}"
+          kubectl -n "$NAMESPACE" rollout status "deployment/$SERVICE" --timeout=180s
 
-      - name: Health checks
+      - name: Identity health check
         shell: bash
         run: |
           set -euo pipefail
-          for service in identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
-            if kubectl -n "$NAMESPACE" get service "$service" >/dev/null 2>&1; then
-              kubectl -n "$NAMESPACE" run "health-$service-${GITHUB_RUN_ID}" --rm -i --restart=Never --image=curlimages/curl:8.11.1 -- \
-                curl -fsS "http://${service}:$(case "$service" in identity-asset-service) echo 8081;; merchant-catalog-service) echo 8082;; trade-fulfillment-service) echo 8083;; engagement-platform-service) echo 8084;; esac)/actuator/health"
-            fi
-          done
+          kubectl -n "$NAMESPACE" run "health-$SERVICE-${GITHUB_RUN_ID}" --rm -i --restart=Never --image=curlimages/curl:8.11.1 -- \
+            curl -fsS "http://$SERVICE:8081/actuator/health"
 
-      - name: Diagnostics on failure
+      - name: Collect diagnostics on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          kubectl -n "$NAMESPACE" get pods,svc,ingress,events
-          kubectl -n "$NAMESPACE" describe deployment/identity-asset-service
-          kubectl -n "$NAMESPACE" describe deployment/merchant-catalog-service
-          kubectl -n "$NAMESPACE" describe deployment/trade-fulfillment-service
-          kubectl -n "$NAMESPACE" describe deployment/engagement-platform-service
-          kubectl -n "$NAMESPACE" logs deployment/identity-asset-service --tail=120
-          kubectl -n "$NAMESPACE" logs deployment/merchant-catalog-service --tail=120
-          kubectl -n "$NAMESPACE" logs deployment/trade-fulfillment-service --tail=120
-          kubectl -n "$NAMESPACE" logs deployment/engagement-platform-service --tail=120
+          mkdir -p k8s-diagnostics
+          kubectl -n "$NAMESPACE" get pods,svc,ingress,events > k8s-diagnostics/resources.txt 2>&1
+          kubectl -n "$NAMESPACE" describe deployment/identity-asset-service > k8s-diagnostics/deployment-identity-asset-service.txt 2>&1
+          kubectl -n "$NAMESPACE" logs deployment/identity-asset-service --tail=200 > k8s-diagnostics/logs-identity-asset-service.txt 2>&1
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-k8s-diagnostics
+          path: k8s-diagnostics/**
+          if-no-files-found: ignore

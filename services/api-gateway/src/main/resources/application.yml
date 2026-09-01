@@ -28,7 +28,7 @@ spring:
         - id: identity-admin-users
           uri: ${AITUAN_IDENTITY_SERVICE_URL:http://identity-asset-service:8081}
           predicates:
-            - Path=/api/admin/users/**,/api/admin/account/profile,/api/admin/operation/member-levels/**,/api/admin/operation/coupon-templates/**
+            - Path=/api/admin/users,/api/admin/users/**,/api/admin/account/profile,/api/admin/operation/member-levels,/api/admin/operation/member-levels/**,/api/admin/operation/coupon-templates,/api/admin/operation/coupon-templates/**
         - id: merchant-catalog
           uri: ${AITUAN_MERCHANT_SERVICE_URL:http://merchant-catalog-service:8082}
           predicates:
