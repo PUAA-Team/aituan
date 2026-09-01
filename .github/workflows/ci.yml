@@ -76,6 +76,29 @@ jobs:
           AITUAN_DATASOURCE_PASSWORD: aituan_password
         run: mvn -B -f services/backend/pom.xml -Dtest=MysqlMigrationSmokeTest test
 
+  contract:
+    name: Cross-service contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify consumer contracts with local mock providers
+        run: node tests/contracts/contract-test.mjs --output tests/contracts/results/ci-contract-report.json
+
+      - name: Upload contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-service-contract-report
+          path: tests/contracts/results/ci-contract-report.json
+          if-no-files-found: error
+
   web:
     name: Web build (${{ matrix.app.name }})
     runs-on: ubuntu-latest
@@ -315,6 +338,7 @@ jobs:
     needs:
       - static-regression
       - backend
+      - contract
       - web
       - flutter
       - e2e
@@ -332,7 +356,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           AITUAN_REPORT_TITLE: aituan-ci 流水线原始报告
-          AITUAN_JOB_STATUS: static-regression=${{ needs.static-regression.result }}, backend=${{ needs.backend.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, e2e=${{ needs.e2e.result }}
+          AITUAN_JOB_STATUS: static-regression=${{ needs.static-regression.result }}, backend=${{ needs.backend.result }}, contract=${{ needs.contract.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, e2e=${{ needs.e2e.result }}
         run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/aituan-ci
 
       - name: Upload CI pipeline raw report

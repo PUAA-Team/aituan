@@ -31,6 +31,8 @@ apps/user_app/build/
 tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
+tests/contracts/results/
+tests/performance/results/
 
 # Local runtime/build handoff directories
 .aituan-local/

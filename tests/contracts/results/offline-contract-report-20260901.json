@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-09-01T02:29:19.064Z",
+  "contractVersion": 1,
+  "dataset": "R__seed_demo_data.sql",
+  "mode": "consumer-mock",
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "id": "trade-to-identity-address-snapshot-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "identity-asset-service",
+      "mode": "consumer-mock",
+      "success": true,
+      "durationMs": 14,
+      "status": 200,
+      "assertions": 6
+    },
+    {
+      "id": "trade-to-catalog-store-snapshot-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "merchant-catalog-service",
+      "mode": "consumer-mock",
+      "success": true,
+      "durationMs": 3,
+      "status": 200,
+      "assertions": 6
+    },
+    {
+      "id": "trade-to-catalog-checkout-quote-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "merchant-catalog-service",
+      "mode": "consumer-mock",
+      "success": true,
+      "durationMs": 4,
+      "status": 200,
+      "assertions": 7
+    }
+  ]
+}
