@@ -40,4 +40,3 @@ class LocalImageStorageClient implements ImageStorageClient {
     return rootDir;
   }
 }
-

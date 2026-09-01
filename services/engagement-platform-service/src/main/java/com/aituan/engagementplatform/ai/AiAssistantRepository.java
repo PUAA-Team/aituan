@@ -208,4 +208,3 @@ class AiAssistantRepository {
       boolean modelUsed,
       LocalDateTime createdAt) {}
 }
-

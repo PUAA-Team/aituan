@@ -54,4 +54,3 @@ record AiAssistantAction(
     String message,
     String route,
     Map<String, Object> payload) {}
-

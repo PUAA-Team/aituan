@@ -35,4 +35,3 @@ class ComplaintMerchantController {
     return ApiResponse.ok(complaintService.merchantTicketDetail(id));
   }
 }
-

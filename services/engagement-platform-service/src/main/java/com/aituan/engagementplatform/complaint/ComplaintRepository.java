@@ -239,4 +239,3 @@ class ComplaintRepository {
                 Long operatorId, String remark, LocalDateTime createdAt) {}
 
 }
-

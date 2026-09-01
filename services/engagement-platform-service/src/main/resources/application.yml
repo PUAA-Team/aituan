@@ -46,10 +46,11 @@ info:
     active-profile: ${spring.profiles.active:default}
 
 aituan:
+  internal:
+    service-token: ${AITUAN_INTERNAL_SERVICE_TOKEN:dev-internal-token}
   security:
     jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
     jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
-    internal-token: ${AITUAN_INTERNAL_TOKEN:aituan-internal-demo-token}
   clients:
     connect-timeout-ms: ${AITUAN_CLIENT_CONNECT_TIMEOUT_MS:1000}
     read-timeout-ms: ${AITUAN_CLIENT_READ_TIMEOUT_MS:1500}
@@ -62,6 +63,7 @@ aituan:
       fixed-delay-ms: ${AITUAN_REVIEW_COMPENSATION_FIXED_DELAY_MS:60000}
       batch-size: ${AITUAN_REVIEW_COMPENSATION_BATCH_SIZE:50}
       max-attempts: ${AITUAN_REVIEW_COMPENSATION_MAX_ATTEMPTS:10}
+      lock-timeout-seconds: ${AITUAN_REVIEW_COMPENSATION_LOCK_TIMEOUT_SECONDS:300}
   upload:
     strategy: ${AITUAN_UPLOAD_STRATEGY:local}
     root-dir: ${AITUAN_UPLOAD_ROOT:${user.home}/.aituan/platform-uploads}

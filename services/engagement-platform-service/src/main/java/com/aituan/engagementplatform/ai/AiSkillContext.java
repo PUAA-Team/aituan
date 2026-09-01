@@ -25,4 +25,3 @@ public record AiSkillContext(
     return current + "\n" + memory;
   }
 }
-

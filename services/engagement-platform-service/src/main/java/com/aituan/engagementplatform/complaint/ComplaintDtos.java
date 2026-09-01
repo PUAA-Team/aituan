@@ -51,4 +51,3 @@ record ComplaintLogView(
 record ComplaintDetailView(
     ComplaintView complaint,
     List<ComplaintLogView> logs) {}
-

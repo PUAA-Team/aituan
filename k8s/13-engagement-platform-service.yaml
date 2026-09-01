@@ -91,11 +91,11 @@ spec:
                 secretKeyRef:
                   name: engagement-platform-secret
                   key: JWT_SECRET
-            - name: AITUAN_INTERNAL_TOKEN
+            - name: AITUAN_INTERNAL_SERVICE_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: engagement-platform-secret
-                  key: INTERNAL_TOKEN
+                  key: SERVICE_TOKEN
             - name: AITUAN_IDENTITY_BASE_URL
               value: http://identity-asset-service:8081
             - name: AITUAN_MERCHANT_BASE_URL

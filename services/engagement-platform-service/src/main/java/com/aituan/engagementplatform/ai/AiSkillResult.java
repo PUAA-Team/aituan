@@ -12,4 +12,3 @@ record AiSkillResult(
     return new AiSkillResult(name, title, content, List.of(), List.of());
   }
 }
-

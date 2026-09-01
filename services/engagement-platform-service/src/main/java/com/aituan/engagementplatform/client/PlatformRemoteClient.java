@@ -21,7 +21,7 @@ public class PlatformRemoteClient {
   private final RestClient identityClient;
   private final RestClient merchantClient;
   private final RestClient tradeClient;
-  private final String internalToken;
+  private final String serviceToken;
 
   PlatformRemoteClient(
       @Value("${aituan.clients.identity-base-url}") String identityBaseUrl,
@@ -29,8 +29,8 @@ public class PlatformRemoteClient {
       @Value("${aituan.clients.trade-base-url}") String tradeBaseUrl,
       @Value("${aituan.clients.connect-timeout-ms}") int connectTimeoutMs,
       @Value("${aituan.clients.read-timeout-ms}") int readTimeoutMs,
-      @Value("${aituan.security.internal-token}") String internalToken) {
-    this.internalToken = internalToken;
+      @Value("${aituan.internal.service-token}") String serviceToken) {
+    this.serviceToken = serviceToken;
     this.identityClient = client(identityBaseUrl, connectTimeoutMs, readTimeoutMs);
     this.merchantClient = client(merchantBaseUrl, connectTimeoutMs, readTimeoutMs);
     this.tradeClient = client(tradeBaseUrl, connectTimeoutMs, readTimeoutMs);
@@ -93,7 +93,7 @@ public class PlatformRemoteClient {
 
   public void addReviewGrowth(long userId, long reviewId) {
     post(identityClient, "/internal/members/{userId}/growth",
-        Map.of("sourceType", "review", "sourceId", reviewId, "growth", 5),
+        Map.of("sourceType", "review", "sourceId", reviewId, "delta", 5, "reason", "发布评价"),
         "review-growth-" + reviewId, "评价成长值暂时无法入账", userId);
   }
 
@@ -158,7 +158,7 @@ public class PlatformRemoteClient {
   private void internalHeaders(org.springframework.http.HttpHeaders headers) {
     headers.set("X-Caller-Service", CALLER);
     headers.set("X-Request-Id", RequestIds.current());
-    headers.set("X-Internal-Token", internalToken);
+    headers.set("X-Service-Token", serviceToken);
   }
 
   private JsonNode unwrap(JsonNode root, String failureMessage) {
@@ -202,6 +202,6 @@ public class PlatformRemoteClient {
       String storeName, String displayStatus, String paymentStatus, String fulfillmentStatus, String orderType) {}
   public record ReviewEligibility(boolean eligible, String reason, OrderSnapshot order) {}
   public record MessageCommand(
-      long userId, String messageType, String title, String content, String badgeText,
+      long userId, String type, String title, String content, String badgeText,
       Long relatedOrderId, String relatedTargetType, Long relatedTargetId) {}
 }

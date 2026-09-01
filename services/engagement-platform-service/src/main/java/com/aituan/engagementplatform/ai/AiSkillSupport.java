@@ -178,4 +178,3 @@ final class AiSkillSupport {
     return map;
   }
 }
-

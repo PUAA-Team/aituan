@@ -9,4 +9,3 @@ interface AiSkill {
 
   Optional<AiSkillResult> evaluate(AiSkillContext context);
 }
-

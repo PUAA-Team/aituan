@@ -55,4 +55,3 @@ record ReviewHelpfulView(boolean helpful, int helpfulCount) {}
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 record ReviewReportView(Long reportId, String status) {}
-

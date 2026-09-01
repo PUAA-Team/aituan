@@ -10,4 +10,3 @@ public record FileAssetView(
     String mimeType,
     Long sizeBytes,
     LocalDateTime createdAt) {}
-

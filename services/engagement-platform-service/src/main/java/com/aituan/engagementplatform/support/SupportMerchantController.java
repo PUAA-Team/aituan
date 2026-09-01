@@ -81,4 +81,3 @@ class SupportMerchantController {
     return ApiResponse.ok(null);
   }
 }
-

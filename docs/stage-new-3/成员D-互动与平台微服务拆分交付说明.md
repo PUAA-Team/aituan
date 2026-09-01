@@ -37,7 +37,7 @@ GET  /internal/metrics/platform/governance
 POST /internal/audit-logs
 ```
 
-内部请求必须携带 `X-Caller-Service`、`X-Internal-Token` 和 `X-Request-Id`；内部写操作还必须携带 `Idempotency-Key`。审计写入以 `(caller_service, idempotency_key)` 唯一约束实现重复提交幂等。
+内部请求必须携带非空的 `X-Caller-Service`、`X-Service-Token` 和 `X-Request-Id`；内部写操作还必须携带 `Idempotency-Key`。审计写入以 `(caller_service, idempotency_key)` 唯一约束实现重复提交幂等。
 
 ## 3. 数据库拆分
 
@@ -104,14 +104,17 @@ mvn -f services/pom.xml -pl engagement-platform-service -am `
 
 | 测试 | 覆盖内容 |
 | --- | --- |
-| `PlatformRemoteClientTest` | 成功、404、超时、5xx 单次重试、POST 不自动重试、内部请求头 |
-| `ReviewOrderMarkCompensationTest` | 固定幂等标识下的补偿成功与失败记账 |
-| `PlatformInternalContractTest` | 健康检查、内部鉴权、审计重复幂等键 |
+| `PlatformRemoteClientTest` | 成功、404、超时、5xx 单次重试、POST 不自动重试、真实 A 服务 JSON 字段与内部请求头 |
+| `StationMessageClientTest` | 消息依赖失败不回滚主业务，并生成可查询的审计轨迹 |
+| `ReviewOrderMarkCompensationTest` | 固定幂等标识下的补偿成功、失败记账和多副本抢占入口 |
+| `PlatformInternalContractTest` | 健康检查、内部鉴权、审计幂等及 4 个内部接口 wire DTO |
+| `FileStorageServiceTest` | 文件类型、大小、业务类型与路径穿越防护 |
+| `EngagementPlatformRouteTest` | Gateway 的 D 路由集合及外部 `/internal/**` 拒绝 |
 | `EngagementPlatformServiceApplicationTest` | Spring 启动、Flyway 空库迁移、18 表精确归属 |
 | `PublicEndpointInventoryTest` | 标准要求的 59 个公开操作逐项比对 |
 | `ServiceBoundaryTest` | 禁止跨服务数据库表访问 |
 
-原始 XML/TXT 报告生成在 `services/engagement-platform-service/target/surefire-reports`。`.github/workflows/microservices-ci.yml` 在 MySQL 8.4 的 `aituan_platform` 空库上运行全部测试、打包 JAR、上传报告，并验证 Docker 镜像可构建。
+原始 XML/TXT 报告生成在 `services/engagement-platform-service/target/surefire-reports`。`.github/workflows/microservices-ci.yml` **设计为**在 MySQL 8.4 的 `aituan_platform` 空库上运行全部测试、打包 JAR、上传报告并验证 Docker 镜像；是否实际通过必须以对应分支的 GitHub Actions 成功记录和原始日志为准。
 
 ## 7. 构建和运行
 
@@ -132,7 +135,7 @@ AITUAN_PLATFORM_DATASOURCE_DRIVER=com.mysql.cj.jdbc.Driver
 AITUAN_IDENTITY_BASE_URL=http://localhost:8081
 AITUAN_MERCHANT_BASE_URL=http://localhost:8082
 AITUAN_TRADE_BASE_URL=http://localhost:8083
-AITUAN_INTERNAL_TOKEN=<shared-secret>
+AITUAN_INTERNAL_SERVICE_TOKEN=<shared-secret>
 AITUAN_JWT_SECRET=<shared-jwt-secret>
 ```
 
@@ -148,8 +151,8 @@ Invoke-RestMethod http://localhost:8084/actuator/info
 - Dockerfile：`deploy/microservices/engagement-platform-service/Dockerfile`，多阶段构建、非 root 用户、容器端口 8084。
 - K8s：`k8s/13-engagement-platform-service.yaml`，包含 PVC、Service、Deployment、readiness/liveness、资源限制和 Secret 引用。
 - Secret 字段示例：`k8s/secret-engagement-platform.example.yaml`，真实值不得提交。
-- CI：`.github/workflows/microservices-ci.yml`。
-- 发布：`.github/workflows/microservices-deploy.yml`，测试通过后才推送 `sha-xxxxxxx` 镜像；选择部署时等待 rollout、执行集群内健康检查，失败自动上传资源、Deployment 和日志诊断。
+- CI 定义：`.github/workflows/microservices-ci.yml`；本地文件存在不等于流水线已经执行成功。
+- 发布定义：`.github/workflows/microservices-deploy.yml`，计划在测试通过后推送 `sha-xxxxxxx` 镜像；选择部署时等待 rollout、执行集群内健康检查，失败上传资源、Deployment 和日志诊断。实际交付需附 Actions、镜像和 rollout 运行证据。
 
 K8s 部署前必须先创建 `aituan_platform` 及账号，并创建 `engagement-platform-secret`。Gateway 已增加成员 D 的精确路径集合；本地默认转发到 `http://localhost:8084`，部署时通过 `AITUAN_ENGAGEMENT_BASE_URL=http://engagement-platform-service:8084` 覆盖。
 

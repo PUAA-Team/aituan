@@ -64,4 +64,3 @@ class InteractionController {
     return ApiResponse.ok(interactionService.reportReview(id, request));
   }
 }
-

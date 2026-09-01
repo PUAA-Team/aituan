@@ -46,4 +46,3 @@ class ComplaintController {
     return ApiResponse.ok(complaintService.supplement(id, request));
   }
 }
-

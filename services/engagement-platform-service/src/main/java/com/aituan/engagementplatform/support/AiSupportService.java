@@ -20,4 +20,3 @@ class AiSupportService {
     return aiAgentService.localKeywordReply(content);
   }
 }
-

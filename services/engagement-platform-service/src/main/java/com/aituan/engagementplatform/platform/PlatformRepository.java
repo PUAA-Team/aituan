@@ -1,5 +1,7 @@
 package com.aituan.engagementplatform.platform;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -72,11 +74,20 @@ class PlatformRepository {
   }
   ReviewSummaryView reviewSummary(long storeId) {
     Map<String,Object> a=jdbc.queryForMap("select count(*) review_count,coalesce(avg(rating),0) average_rating from review_record where store_id=? and status='published' and is_deleted=0",storeId);
-    Map<Integer,Long> d=new LinkedHashMap<>(); for(int i=1;i<=5;i++)d.put(i,0L);
-    jdbc.query("select rating,count(*) c from review_record where store_id=? and status='published' and is_deleted=0 group by rating",rs->{d.put(rs.getInt("rating"),rs.getLong("c"));},storeId);
-    return new ReviewSummaryView(storeId,((Number)a.get("review_count")).longValue(),((Number)a.get("average_rating")).doubleValue(),d);
+    Number average=(Number)a.get("average_rating");
+    BigDecimal rating=BigDecimal.valueOf(average.doubleValue()).setScale(1,RoundingMode.HALF_UP);
+    return new ReviewSummaryView(rating,((Number)a.get("review_count")).longValue(),reviewHighlights(storeId));
   }
-  StoreEngagementView storeEngagement(long storeId) { return new StoreEngagementView(storeId,countWhere("select count(*) from review_record where store_id=? and replied=0 and status='published' and is_deleted=0",storeId),countWhere("select count(*) from support_session where store_id=? and status='open' and is_deleted=0",storeId)); }
+  StoreEngagementView storeEngagement(long storeId) { ReviewSummaryView summary=reviewSummary(storeId);return new StoreEngagementView(summary.rating(),summary.count(),countWhere("select count(*) from review_record where store_id=? and replied=0 and status='published' and is_deleted=0",storeId),countWhere("select count(*) from support_session where store_id=? and status='open' and is_deleted=0",storeId)); }
+
+  private List<String> reviewHighlights(long storeId){
+    Map<String,Long> counts=new LinkedHashMap<>();
+    for(String labels:jdbc.queryForList("select labels from review_record where store_id=? and status='published' and is_deleted=0 and labels is not null order by id desc limit 100",String.class,storeId)){
+      if(labels==null)continue;
+      for(String label:labels.split(",")){String value=label.trim();if(!value.isEmpty())counts.merge(value,1L,Long::sum);}
+    }
+    return counts.entrySet().stream().sorted(Map.Entry.<String,Long>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey())).limit(5).map(Map.Entry::getKey).toList();
+  }
 
   private long count(String table,String where){Long v=jdbc.queryForObject("select count(*) from "+table+" where "+where,Long.class);return v==null?0:v;}
   private long countWhere(String sql,long id){Long v=jdbc.queryForObject(sql,Long.class,id);return v==null?0:v;}

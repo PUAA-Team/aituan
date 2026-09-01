@@ -50,4 +50,3 @@ class AiAssistantController {
     return ApiResponse.ok(aiAgentService.conversation(current, conversationId));
   }
 }
-

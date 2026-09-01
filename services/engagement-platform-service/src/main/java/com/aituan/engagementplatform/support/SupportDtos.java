@@ -67,4 +67,3 @@ record SupportAutoReplyRuleView(
     boolean enabled,
     LocalDateTime createdAt,
     LocalDateTime updatedAt) {}
-

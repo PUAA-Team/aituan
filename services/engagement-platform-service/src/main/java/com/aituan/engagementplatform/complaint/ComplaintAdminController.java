@@ -48,4 +48,3 @@ class ComplaintAdminController {
     return ApiResponse.ok(complaintService.close(id, request));
   }
 }
-

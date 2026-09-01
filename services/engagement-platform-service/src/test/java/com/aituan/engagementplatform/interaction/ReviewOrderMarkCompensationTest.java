@@ -16,13 +16,13 @@ class ReviewOrderMarkCompensationTest {
   void retriesWithStableReviewIdAndRecordsSuccessOrFailure() {
     InteractionRepository repository = mock(InteractionRepository.class);
     PlatformRemoteClient remoteClient = mock(PlatformRemoteClient.class);
-    when(repository.findPendingOrderMarks(10, 50)).thenReturn(List.of(
+    when(repository.claimPendingOrderMarks(10, 50, 300)).thenReturn(List.of(
         new InteractionRepository.PendingOrderMark(101, 201),
         new InteractionRepository.PendingOrderMark(102, 202)));
     doThrow(new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "trade unavailable"))
         .when(remoteClient).markOrderReviewed(202, 102);
 
-    new ReviewOrderMarkCompensation(repository, remoteClient, 50, 10).retryPending();
+    new ReviewOrderMarkCompensation(repository, remoteClient, 50, 10, 300).retryPending();
 
     verify(remoteClient).markOrderReviewed(201, 101);
     verify(repository).markOrderSyncSucceeded(101);

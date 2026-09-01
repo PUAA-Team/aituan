@@ -61,4 +61,3 @@ class SupportController {
     return ApiResponse.ok(supportService.userCloseSession(id, request));
   }
 }
-

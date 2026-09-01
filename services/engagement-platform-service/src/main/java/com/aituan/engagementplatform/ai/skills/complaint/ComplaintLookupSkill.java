@@ -94,4 +94,3 @@ class ComplaintLookupSkill implements AiSkill {
   record TicketRow(long id, String ticketNo, String title, String category, String detail, String evidenceUrls,
                    String status, String storeName, String orderNo, int logCount) {}
 }
-

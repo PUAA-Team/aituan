@@ -12,16 +12,19 @@ class ReviewOrderMarkCompensation {
   private final PlatformRemoteClient remoteClient;
   private final int batchSize;
   private final int maxAttempts;
+  private final int lockTimeoutSeconds;
 
   ReviewOrderMarkCompensation(
       InteractionRepository repository,
       PlatformRemoteClient remoteClient,
       @Value("${aituan.compensation.review-order-mark.batch-size:50}") int batchSize,
-      @Value("${aituan.compensation.review-order-mark.max-attempts:10}") int maxAttempts) {
+      @Value("${aituan.compensation.review-order-mark.max-attempts:10}") int maxAttempts,
+      @Value("${aituan.compensation.review-order-mark.lock-timeout-seconds:300}") int lockTimeoutSeconds) {
     this.repository = repository;
     this.remoteClient = remoteClient;
     this.batchSize = batchSize;
     this.maxAttempts = maxAttempts;
+    this.lockTimeoutSeconds = lockTimeoutSeconds;
   }
 
   @Scheduled(
@@ -29,7 +32,7 @@ class ReviewOrderMarkCompensation {
       fixedDelayString = "${aituan.compensation.review-order-mark.fixed-delay-ms:60000}")
   void retryPending() {
     for (InteractionRepository.PendingOrderMark pending
-        : repository.findPendingOrderMarks(maxAttempts, batchSize)) {
+        : repository.claimPendingOrderMarks(maxAttempts, batchSize, lockTimeoutSeconds)) {
       try {
         // PlatformRemoteClient 始终以 reviewId 构造同一幂等键，重试不会重复修改订单。
         remoteClient.markOrderReviewed(pending.orderId(), pending.reviewId());

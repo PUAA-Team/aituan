@@ -370,4 +370,3 @@ class SupportRepository {
   record AutoReplyRuleRow(Long id, Long merchantId, String keywords, String replyContent,
                           boolean enabled, LocalDateTime createdAt, LocalDateTime updatedAt) {}
 }
-

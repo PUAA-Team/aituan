@@ -6,4 +6,3 @@ record AiToolDefinition(
     String name,
     String description,
     Map<String, Object> parameters) {}
-

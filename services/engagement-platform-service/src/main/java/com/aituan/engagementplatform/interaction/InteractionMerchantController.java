@@ -42,4 +42,3 @@ class InteractionMerchantController {
     return ApiResponse.ok(interactionService.merchantReply(id, request));
   }
 }
-

@@ -108,25 +108,36 @@ class InteractionRepository {
 
   void markOrderSyncSucceeded(long reviewId) {
     jdbcTemplate.update(
-        "update review_record set order_marked = 1, order_mark_attempts = order_mark_attempts + 1, order_mark_last_error = null, updated_at = current_timestamp where id = ?",
+        "update review_record set order_marked = 1, order_mark_attempts = order_mark_attempts + 1, order_mark_last_error = null, order_mark_locked_at = null, updated_at = current_timestamp where id = ?",
         reviewId);
   }
 
   void markOrderSyncFailed(long reviewId, String error) {
     jdbcTemplate.update(
-        "update review_record set order_mark_attempts = order_mark_attempts + 1, order_mark_last_error = ?, updated_at = current_timestamp where id = ?",
+        "update review_record set order_mark_attempts = order_mark_attempts + 1, order_mark_last_error = ?, order_mark_locked_at = null, updated_at = current_timestamp where id = ?",
         error, reviewId);
   }
 
-  List<PendingOrderMark> findPendingOrderMarks(int maxAttempts, int limit) {
-    return jdbcTemplate.query(
+  List<PendingOrderMark> claimPendingOrderMarks(int maxAttempts, int limit, int lockTimeoutSeconds) {
+    LocalDateTime lockExpiredBefore = LocalDateTime.now().minusSeconds(lockTimeoutSeconds);
+    List<PendingOrderMark> candidates = jdbcTemplate.query(
         """
         select id, order_id from review_record
         where order_marked = 0 and order_mark_attempts < ? and is_deleted = 0
+          and (order_mark_locked_at is null or order_mark_locked_at < ?)
         order by updated_at asc, id asc limit ?
         """,
         (rs, rowNum) -> new PendingOrderMark(rs.getLong("id"), rs.getLong("order_id")),
-        maxAttempts, limit);
+        maxAttempts, lockExpiredBefore, limit);
+    return candidates.stream()
+        .filter(candidate -> jdbcTemplate.update(
+            """
+            update review_record set order_mark_locked_at = current_timestamp
+            where id = ? and order_marked = 0 and order_mark_attempts < ? and is_deleted = 0
+              and (order_mark_locked_at is null or order_mark_locked_at < ?)
+            """,
+            candidate.reviewId(), maxAttempts, lockExpiredBefore) == 1)
+        .toList();
   }
 
   // ============ 评价"有用" ============
@@ -416,4 +427,3 @@ class InteractionRepository {
   record ReportRow(Long id, Long reviewId, Long reporterUserId, String reason, String detail,
                    String evidenceUrls, String status) {}
 }
-

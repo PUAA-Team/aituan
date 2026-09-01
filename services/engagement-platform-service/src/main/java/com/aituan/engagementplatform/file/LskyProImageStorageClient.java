@@ -154,4 +154,3 @@ class LskyProImageStorageClient implements ImageStorageClient {
     return form;
   }
 }
-

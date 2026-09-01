@@ -77,4 +77,3 @@ class DemoImageController {
     return value.length() > 36 ? value.substring(0, 36) : value;
   }
 }
-

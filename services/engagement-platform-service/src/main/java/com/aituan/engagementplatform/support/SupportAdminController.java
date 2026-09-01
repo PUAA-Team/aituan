@@ -41,4 +41,3 @@ class SupportAdminController {
     return ApiResponse.ok(supportService.adminSendPlatformMessage(id, request));
   }
 }
-

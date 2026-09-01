@@ -124,4 +124,3 @@ class AiToolRegistry {
     return false;
   }
 }
-

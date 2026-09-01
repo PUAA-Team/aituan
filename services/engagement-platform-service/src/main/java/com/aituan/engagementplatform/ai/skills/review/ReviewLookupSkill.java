@@ -127,4 +127,3 @@ class ReviewLookupSkill implements AiSkill {
                    int helpfulCount, int reportedCount, String status, boolean replied, String replyContent,
                    String createdAt, boolean reportedByMe, boolean helpfulByMe) {}
 }
-

@@ -42,4 +42,3 @@ class GovernanceSkill implements AiSkill {
     return Optional.empty();
   }
 }
-

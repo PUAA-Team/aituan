@@ -6,4 +6,3 @@ record AiToolCall(
     String id,
     String name,
     Map<String, Object> arguments) {}
-

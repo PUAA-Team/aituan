@@ -24,7 +24,7 @@ public class InternalServiceAuthenticationFilter extends OncePerRequestFilter {
   private final ObjectMapper objectMapper;
 
   InternalServiceAuthenticationFilter(
-      @Value("${aituan.security.internal-token}") String expectedToken,
+      @Value("${aituan.internal.service-token}") String expectedToken,
       ObjectMapper objectMapper) {
     this.expectedToken = expectedToken.getBytes(StandardCharsets.UTF_8);
     this.objectMapper = objectMapper;
@@ -39,10 +39,11 @@ public class InternalServiceAuthenticationFilter extends OncePerRequestFilter {
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
     String caller = request.getHeader("X-Caller-Service");
-    String token = request.getHeader("X-Internal-Token");
+    String requestId = request.getHeader("X-Request-Id");
+    String token = request.getHeader("X-Service-Token");
     boolean tokenMatches = token != null && MessageDigest.isEqual(
         expectedToken, token.getBytes(StandardCharsets.UTF_8));
-    if (!ALLOWED_CALLERS.contains(caller) || !tokenMatches) {
+    if (requestId == null || requestId.isBlank() || !ALLOWED_CALLERS.contains(caller) || !tokenMatches) {
       response.setStatus(403);
       response.setCharacterEncoding("UTF-8");
       response.setContentType("application/json;charset=UTF-8");

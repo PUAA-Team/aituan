@@ -37,4 +37,3 @@ class InteractionAdminController {
     return ApiResponse.ok(interactionService.adminAudit(id, request));
   }
 }
-

@@ -484,4 +484,3 @@ public class AiAgentService {
 
   record ToolRun(List<AiSkillResult> results, boolean modelUsed) {}
 }
-

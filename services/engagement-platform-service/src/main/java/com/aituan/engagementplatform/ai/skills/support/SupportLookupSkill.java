@@ -98,4 +98,3 @@ class SupportLookupSkill implements AiSkill {
                     String interventionStatus, int unreadCount, String storeName, String orderNo,
                     String lastMessageAt, String lastContent) {}
 }
-

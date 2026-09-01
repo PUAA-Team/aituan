@@ -386,4 +386,3 @@ class InteractionService {
     return nickname.charAt(0) + "***" + nickname.charAt(nickname.length() - 1);
   }
 }
-

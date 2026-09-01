@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +29,8 @@ class PlatformRemoteClientTest {
     AtomicInteger headerChecks = new AtomicInteger();
     start(exchange -> {
       if ("engagement-platform-service".equals(exchange.getRequestHeaders().getFirst("X-Caller-Service"))
-          && "test-token".equals(exchange.getRequestHeaders().getFirst("X-Internal-Token"))) {
+          && "test-token".equals(exchange.getRequestHeaders().getFirst("X-Service-Token"))
+          && exchange.getRequestHeaders().getFirst("X-Request-Id") != null) {
         headerChecks.incrementAndGet();
       }
       respond(exchange, 200, "{\"code\":0,\"data\":{\"userId\":7,\"nickname\":\"Alice\"}}");
@@ -38,6 +40,33 @@ class PlatformRemoteClientTest {
 
     assertThat(result).isEqualTo(new PlatformRemoteClient.UserSnapshot(7, "Alice"));
     assertThat(headerChecks).hasValue(1);
+  }
+
+  @Test
+  void identityWriteBodiesMatchIdentityAssetDtos() throws Exception {
+    AtomicBoolean growthContract = new AtomicBoolean();
+    AtomicBoolean messageContract = new AtomicBoolean();
+    start(exchange -> {
+      String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+      String path = exchange.getRequestURI().getPath();
+      if (path.equals("/internal/members/7/growth")) {
+        growthContract.set(body.contains("\"delta\":5") && !body.contains("\"growth\"")
+            && body.contains("\"sourceType\":\"review\"")
+            && "review-growth-31".equals(exchange.getRequestHeaders().getFirst("Idempotency-Key")));
+      } else if (path.equals("/internal/messages")) {
+        messageContract.set(body.contains("\"type\":\"review\"") && !body.contains("messageType")
+            && "message-31".equals(exchange.getRequestHeaders().getFirst("Idempotency-Key")));
+      }
+      respond(exchange, 200, "{\"code\":0,\"data\":{\"success\":true}}");
+    });
+    PlatformRemoteClient client = client(300);
+
+    client.addReviewGrowth(7, 31);
+    client.publishMessage(new PlatformRemoteClient.MessageCommand(
+        7, "review", "评价通知", "内容", "评价", 21L, "review", 31L), "message-31");
+
+    assertThat(growthContract).isTrue();
+    assertThat(messageContract).isTrue();
   }
 
   @Test
