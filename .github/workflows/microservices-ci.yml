@@ -1,0 +1,83 @@
+name: microservices-ci
+
+on:
+  pull_request:
+    paths:
+      - services/common-contract/**
+      - services/api-gateway/src/main/resources/application.yml
+      - services/engagement-platform-service/**
+      - services/pom.xml
+      - deploy/microservices/engagement-platform-service/**
+      - k8s/13-engagement-platform-service.yaml
+      - .github/workflows/microservices-ci.yml
+  push:
+    branches:
+      - microservices-main
+    paths:
+      - services/common-contract/**
+      - services/api-gateway/src/main/resources/application.yml
+      - services/engagement-platform-service/**
+      - services/pom.xml
+      - deploy/microservices/engagement-platform-service/**
+      - k8s/13-engagement-platform-service.yaml
+      - .github/workflows/microservices-ci.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  service:
+    name: Test and package ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: aituan_platform
+          MYSQL_USER: aituan_platform_svc
+          MYSQL_PASSWORD: platform_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uaituan_platform_svc -pplatform_password --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - engagement-platform-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run unit, API, contract, boundary, and migration tests
+        env:
+          AITUAN_PLATFORM_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_PLATFORM_DATASOURCE_USERNAME: aituan_platform_svc
+          AITUAN_PLATFORM_DATASOURCE_PASSWORD: platform_password
+          AITUAN_PLATFORM_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+        run: mvn -B -f services/pom.xml -pl api-gateway,${{ matrix.service }} -am verify
+
+      - name: Upload test reports and packaged JAR
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service }}-reports-and-jar
+          path: |
+            services/${{ matrix.service }}/target/surefire-reports/
+            services/${{ matrix.service }}/target/${{ matrix.service }}.jar
+          if-no-files-found: error
+
+      - name: Verify service image builds
+        run: docker build --file deploy/microservices/${{ matrix.service }}/Dockerfile --tag aituan/${{ matrix.service }}:ci services

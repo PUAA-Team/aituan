@@ -1,4 +1,4 @@
-# Stage6 分工A · 后台会员优惠券与下单抵扣交付说明
+﻿# Stage6 分工A · 后台会员优惠券与下单抵扣交付说明
 
 ## 1. 文档状态
 
@@ -154,4 +154,4 @@ D:/aituan_release/apk/aituan-user-debug.apk
 
 - 当前优惠券抵扣按 `商品金额 + 配送费` 作为试算金额；如后续需要“仅商品金额可抵扣”，需调整 `TradeService` 中试算基准。
 - `admin_web` 依赖已本地安装到 `apps/admin_web/node_modules`，便于后续继续构建；如果 C 盘空间紧张，可在确认后删除并在下次构建前重新 `npm install`。
-- 本机项目脚本 `scripts/build/build_backend.ps1` 默认写死 `D:\tools\jdk-17.0.18+8`，该路径当前不存在；本次用 IntelliJ JBR 21 临时构建，未修改系统环境变量。
+- 本机项目脚本 `scripts/build/build_backend.ps1` 默认写死 `C:\Program Files\Java\jdk-21`，该路径当前不存在；本次用 IntelliJ JBR 21 临时构建，未修改系统环境变量。

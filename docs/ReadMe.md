@@ -217,3 +217,13 @@
 `./docs/stage9-e2e/README.md`
 
 `./tests/e2e/README.md`
+
+### 14. Stage New 3 微服务拆分文档
+
+`./docs/stage-new-3/微服务并行拆分分工与统一标准.md`
+
+`./docs/stage-new-3/微服务接口清单.md`
+
+`./docs/stage-new-3/数据表归属方案.md`
+
+`./docs/stage-new-3/成员D-互动与平台微服务拆分交付说明.md`

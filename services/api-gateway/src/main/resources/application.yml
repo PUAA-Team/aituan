@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: engagement-platform-service
+          uri: ${AITUAN_ENGAGEMENT_BASE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/app/interaction/**,/api/app/complaints/**,/api/app/support/**,/api/app/ai/**,/api/merchant/ops/**,/api/admin/governance/**,/api/admin/announcements/**,/api/admin/configs/**,/api/admin/audit-logs/**,/api/admin/dashboard,/api/admin/delivery/settings,/api/common/files/**,/api/common/demo-images/**
 
 management:
   endpoints:

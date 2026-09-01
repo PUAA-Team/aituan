@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 function Invoke-Step {
   param(
@@ -30,7 +30,7 @@ $BackendDir = Join-Path $RepoRoot 'services\backend'
 $BuildDir = 'D:\aituan_build\backend_server'
 $ArtifactDir = Join-Path $RepoRoot 'deploy\artifacts\backend'
 $MavenRepo = 'D:\aituan_cache\m2'
-$JavaHome = 'D:\tools\jdk-17.0.18+8'
+$JavaHome = 'C:\Program Files\Java\jdk-21'
 $JarName = 'aituan-backend.jar'
 
 New-Item -ItemType Directory -Force -Path $BuildDir, $ArtifactDir, $MavenRepo | Out-Null

@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: engagement-platform-uploads
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: engagement-platform-service
+    app.kubernetes.io/part-of: aituan
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: engagement-platform-service
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: engagement-platform-service
+    app.kubernetes.io/part-of: aituan
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: engagement-platform-service
+    app.kubernetes.io/part-of: aituan
+  ports:
+    - name: http
+      port: 8084
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: engagement-platform-service
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: engagement-platform-service
+    app.kubernetes.io/part-of: aituan
+    app.kubernetes.io/component: platform
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: engagement-platform-service
+      app.kubernetes.io/part-of: aituan
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: engagement-platform-service
+        app.kubernetes.io/part-of: aituan
+        app.kubernetes.io/component: platform
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: engagement-platform-service
+          image: ghcr.io/puaa-team/aituan/engagement-platform-service:sha-example
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8084
+          env:
+            - name: SERVER_PORT
+              value: "8084"
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: AITUAN_SERVICE_VERSION
+              value: "0.0.1"
+            - name: AITUAN_IMAGE_TAG
+              value: sha-example
+            - name: AITUAN_PLATFORM_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/aituan_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+            - name: AITUAN_PLATFORM_DATASOURCE_DRIVER
+              value: com.mysql.cj.jdbc.Driver
+            - name: AITUAN_PLATFORM_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: engagement-platform-secret
+                  key: MYSQL_USER
+            - name: AITUAN_PLATFORM_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: engagement-platform-secret
+                  key: MYSQL_PASSWORD
+            - name: AITUAN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: engagement-platform-secret
+                  key: JWT_SECRET
+            - name: AITUAN_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: engagement-platform-secret
+                  key: INTERNAL_TOKEN
+            - name: AITUAN_IDENTITY_BASE_URL
+              value: http://identity-asset-service:8081
+            - name: AITUAN_MERCHANT_BASE_URL
+              value: http://merchant-catalog-service:8082
+            - name: AITUAN_TRADE_BASE_URL
+              value: http://trade-fulfillment-service:8083
+            - name: AITUAN_UPLOAD_ROOT
+              value: /data/uploads
+            - name: AITUAN_UPLOAD_PUBLIC_PREFIX
+              value: /api/common/files
+            - name: JAVA_TOOL_OPTIONS
+              value: -Xms128m -Xmx512m -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+            - name: TZ
+              value: Asia/Shanghai
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 640Mi
+          volumeMounts:
+            - name: uploads
+              mountPath: /data/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: engagement-platform-uploads

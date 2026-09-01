@@ -19,7 +19,7 @@ $BackendDir = Join-Path $RepoRoot 'services\backend'
 $BuildDir = 'D:\aituan_build\backend'
 $ReleaseDir = 'D:\aituan_release\backend'
 $MavenRepo = 'D:\aituan_cache\m2'
-$JavaHome = 'D:\tools\jdk-17.0.18+8'
+$JavaHome = 'C:\Program Files\Java\jdk-21'
 $JarName = 'aituan-backend.jar'
 
 New-Item -ItemType Directory -Force -Path $BuildDir, $ReleaseDir, $MavenRepo | Out-Null
