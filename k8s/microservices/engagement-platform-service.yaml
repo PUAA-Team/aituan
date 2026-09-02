@@ -48,9 +48,9 @@ spec:
             - {name: AITUAN_TRADE_BASE_URL, value: "http://trade-fulfillment-service:8083"}
             - {name: AITUAN_UPLOAD_ROOT, value: /data/uploads}
             - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
-          startupProbe: &platformProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
+          startupProbe: &platformProbe {httpGet: {path: /actuator/health, port: http}, timeoutSeconds: 3, failureThreshold: 30, periodSeconds: 5}
           readinessProbe: *platformProbe
-          livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
+          livenessProbe: {httpGet: {path: /actuator/health/liveness, port: http}, initialDelaySeconds: 45, timeoutSeconds: 3, failureThreshold: 5, periodSeconds: 20}
           resources:
             requests: {cpu: 75m, memory: 128Mi}
             limits: {cpu: 750m, memory: 384Mi}

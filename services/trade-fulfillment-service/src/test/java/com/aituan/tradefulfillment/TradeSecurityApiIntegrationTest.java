@@ -2,6 +2,8 @@ package com.aituan.tradefulfillment;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aituan.ApiTestSupport;
 import com.aituan.common.security.JwtTokenService;
@@ -13,7 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
+@SpringBootTest(properties = "management.endpoint.health.probes.enabled=true")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
@@ -24,6 +26,13 @@ class TradeSecurityApiIntegrationTest {
 
   @Autowired
   private JwtTokenService jwtTokenService;
+
+  @Test
+  void livenessProbeShouldBePublic() throws Exception {
+    mockMvc.perform(get("/actuator/health/liveness"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"));
+  }
 
   @Test
   void appTradeApiRequiresUserRole() throws Exception {

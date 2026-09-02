@@ -33,10 +33,12 @@ spec:
               valueFrom: {configMapKeyRef: {name: aituan-microservices-config, key: TRADE_FULFILLMENT_SERVICE_URL}}
             - name: ENGAGEMENT_PLATFORM_SERVICE_URL
               valueFrom: {configMapKeyRef: {name: aituan-microservices-config, key: ENGAGEMENT_PLATFORM_SERVICE_URL}}
+            - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED
+              valueFrom: {configMapKeyRef: {name: aituan-microservices-config, key: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED}}
             - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
-          startupProbe: &gatewayProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
+          startupProbe: &gatewayProbe {httpGet: {path: /actuator/health, port: http}, timeoutSeconds: 3, failureThreshold: 30, periodSeconds: 5}
           readinessProbe: *gatewayProbe
-          livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 30, periodSeconds: 20}
+          livenessProbe: {httpGet: {path: /actuator/health/liveness, port: http}, initialDelaySeconds: 30, timeoutSeconds: 3, failureThreshold: 5, periodSeconds: 20}
           resources:
             requests: {cpu: 50m, memory: 96Mi}
             limits: {cpu: 500m, memory: 384Mi}

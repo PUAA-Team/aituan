@@ -423,8 +423,12 @@ jobs:
           done
           kubectl -n "${K8S_NAMESPACE}" get pods,svc,hpa,pvc -o wide > .aituan-local/deployment-report/resources.txt
           test "$(kubectl -n "${K8S_NAMESPACE}" get hpa -o name | wc -l | tr -d ' ')" = 5
+          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}')" = 5
+          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}')" = 1
           for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
             test "$(kubectl -n "${K8S_NAMESPACE}" get "hpa/${service}" -o jsonpath='{.spec.scaleTargetRef.name}')" = "${service}"
+            test "$(kubectl -n "${K8S_NAMESPACE}" get "deployment/${service}" -o jsonpath='{.spec.template.spec.containers[0].livenessProbe.httpGet.path}')" = /actuator/health/liveness
+            test "$(kubectl -n "${K8S_NAMESPACE}" get "deployment/${service}" -o jsonpath='{.spec.template.spec.containers[0].livenessProbe.failureThreshold}')" = 5
           done
           for attempt in $(seq 1 24); do
             unknown="$(kubectl -n "${K8S_NAMESPACE}" get hpa -o json | jq '[.items[] | select(((.status.currentMetrics // []) | length) == 0)] | length')"

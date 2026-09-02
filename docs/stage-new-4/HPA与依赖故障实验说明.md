@@ -19,6 +19,8 @@
 
 扩容立即计算，可按 15 秒周期增加 100% 或 2 个 Pod；降容设置 120 秒稳定窗口并分批下降，避免流量抖动造成频繁伸缩。CD 在每次生产部署后检查 HPA 数量、目标绑定和 CPU 指标，不允许“清单存在但 metrics-server 不工作”。
 
+四个业务服务的 Hikari 连接池按 Pod 限制为最大 5、最小空闲 1。即使 A/B/C/D 同时扩到 4 Pod，业务连接池理论上限仍为 80，低于 MySQL 默认连接上限。存活探针使用不含外部依赖的 `/actuator/health/liveness`；数据库或下游拥塞会使完整健康/就绪检查失败并停止接收新流量，但不会引发容器重启风暴。
+
 `scripts/experiments/hpa-load.mjs` 按相同比例请求 A 用户资料、B 首页、C 订单列表和 D 门店评价，所有请求均经 Gateway。`scripts/experiments/run_hpa_experiment.sh` 在集群内创建临时 Node Job，并同步采集 HPA 副本、Pod CPU/内存、节点配置和 Kubernetes 事件。
 
 实验通过条件：
@@ -54,7 +56,7 @@ kubectl config current-context
 kubectl -n aituan get pods,svc,hpa
 
 HPA_LOAD_DURATION_SECONDS=180 \
-HPA_LOAD_CONCURRENCY=80 \
+HPA_LOAD_CONCURRENCY=40 \
 bash scripts/experiments/run_hpa_experiment.sh
 
 bash scripts/experiments/run_catalog_fault_experiment.sh
@@ -66,7 +68,7 @@ bash scripts/experiments/run_catalog_fault_experiment.sh
 | --- | --- | --- |
 | `K8S_NAMESPACE` | `aituan` | 实验 namespace |
 | `HPA_LOAD_DURATION_SECONDS` | `180` | 加压时长 |
-| `HPA_LOAD_CONCURRENCY` | `80` | 并发 worker 数 |
+| `HPA_LOAD_CONCURRENCY` | `40` | 并发 worker 数 |
 | `HPA_LOAD_ACCOUNT` / `HPA_LOAD_PASSWORD` | 默认演示用户 | 登录账号 |
 | `HPA_EXPERIMENT_OUTPUT_DIR` | 带 UTC 时间的 stage-new-4 目录 | HPA 原始证据目录 |
 | `FAULT_TEST_ORIGIN` | `https://aituan.2b.gs` | 故障实验的公开入口 |

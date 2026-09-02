@@ -36,9 +36,9 @@ spec:
             - name: AITUAN_INTERNAL_SERVICE_TOKEN
               valueFrom: {secretKeyRef: {name: aituan-service-secret, key: internal-service-token}}
             - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
-          startupProbe: &merchantProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
+          startupProbe: &merchantProbe {httpGet: {path: /actuator/health, port: http}, timeoutSeconds: 3, failureThreshold: 30, periodSeconds: 5}
           readinessProbe: *merchantProbe
-          livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
+          livenessProbe: {httpGet: {path: /actuator/health/liveness, port: http}, initialDelaySeconds: 45, timeoutSeconds: 3, failureThreshold: 5, periodSeconds: 20}
           resources:
             requests: {cpu: 75m, memory: 128Mi}
             limits: {cpu: 750m, memory: 384Mi}

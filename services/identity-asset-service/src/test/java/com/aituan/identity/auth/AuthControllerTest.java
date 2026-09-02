@@ -13,11 +13,21 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(properties = "aituan.internal.trade-base-url=http://127.0.0.1:9")
+@SpringBootTest(properties = {
+    "aituan.internal.trade-base-url=http://127.0.0.1:9",
+    "management.endpoint.health.probes.enabled=true"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthControllerTest {
   @Autowired private MockMvc mockMvc;
+
+  @Test
+  void livenessProbeShouldBePublic() throws Exception {
+    mockMvc.perform(get("/actuator/health/liveness"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"));
+  }
 
   @Test
   void tokenCheckWithoutTokenShouldReturnInvalid() throws Exception {

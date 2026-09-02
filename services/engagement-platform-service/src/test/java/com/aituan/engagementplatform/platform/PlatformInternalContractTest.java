@@ -16,13 +16,19 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SpringBootTest(properties = "aituan.internal.service-token=dev-internal-token")
+@SpringBootTest(properties = {
+    "aituan.internal.service-token=dev-internal-token",
+    "management.endpoint.health.probes.enabled=true"
+})
 @AutoConfigureMockMvc
 class PlatformInternalContractTest {
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate jdbc;
 
-  @Test void healthIsPublic() throws Exception { mvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP")); }
+  @Test void healthIsPublic() throws Exception {
+    mvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+    mvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+  }
 
   @Test void auditWriteRequiresServiceIdentityAndIsIdempotent() throws Exception {
     String body="""

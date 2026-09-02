@@ -38,7 +38,7 @@ public class SecurityConfig {
             .authenticationEntryPoint(authenticationEntryPoint(objectMapper))
             .accessDeniedHandler(accessDeniedHandler(objectMapper)))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/health", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+            .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             .requestMatchers("/h2-console/**").permitAll()
             .requestMatchers("/internal/**").permitAll()
             .requestMatchers("/api/open/merchant/**").permitAll()

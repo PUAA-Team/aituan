@@ -45,7 +45,7 @@ public class IdentitySecurityConfig {
             .authenticationEntryPoint(authenticationEntryPoint(objectMapper))
             .accessDeniedHandler(accessDeniedHandler(objectMapper)))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/actuator/health", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+            .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             .requestMatchers("/h2-console/**").permitAll()
             .requestMatchers("/api/open/auth/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/open/**").permitAll()

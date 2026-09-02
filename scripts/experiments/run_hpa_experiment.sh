@@ -3,7 +3,7 @@ set -euo pipefail
 
 namespace="${K8S_NAMESPACE:-aituan}"
 duration_seconds="${HPA_LOAD_DURATION_SECONDS:-180}"
-concurrency="${HPA_LOAD_CONCURRENCY:-80}"
+concurrency="${HPA_LOAD_CONCURRENCY:-40}"
 account="${HPA_LOAD_ACCOUNT:-demo_user}"
 password="${HPA_LOAD_PASSWORD:-123456}"
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"

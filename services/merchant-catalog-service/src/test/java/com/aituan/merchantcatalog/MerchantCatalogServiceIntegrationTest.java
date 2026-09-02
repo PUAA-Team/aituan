@@ -19,13 +19,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+@SpringBootTest(properties = "management.endpoint.health.probes.enabled=true")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class MerchantCatalogServiceIntegrationTest {
   @Autowired MockMvc mockMvc;
   @Autowired JwtTokenService jwtTokenService;
   @Autowired JdbcTemplate jdbcTemplate;
+
+  @Test
+  void livenessProbeShouldBePublic() throws Exception {
+    mockMvc.perform(get("/actuator/health/liveness"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"));
+  }
 
   @Test
   void discoveryHomeUsesMerchantDatabaseOnlyAndReturnsRecommendations() throws Exception {
