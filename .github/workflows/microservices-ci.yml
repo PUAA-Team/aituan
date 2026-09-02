@@ -88,14 +88,14 @@ jobs:
           java-version: "17"
           cache: maven
       - name: Run legacy backend tests and coverage
-        run: mvn -B -f services/backend/pom.xml verify
+        run: mvn -B -f services/pom.xml -pl backend -am clean verify
       - name: Verify legacy Flyway migrations on MySQL 8
         env:
           AITUAN_MYSQL_CI_ENABLED: "true"
           AITUAN_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
           AITUAN_DATASOURCE_USERNAME: aituan
           AITUAN_DATASOURCE_PASSWORD: aituan_password
-        run: mvn -B -f services/backend/pom.xml -Dtest=MysqlMigrationSmokeTest test
+        run: mvn -B -f services/pom.xml -pl backend -am -Dtest=MysqlMigrationSmokeTest -Dsurefire.failIfNoSpecifiedTests=false test
       - name: Upload legacy backend test and coverage reports
         if: always()
         uses: actions/upload-artifact@v4
