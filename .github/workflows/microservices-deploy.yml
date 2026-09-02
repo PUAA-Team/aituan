@@ -4,8 +4,20 @@ on:
   workflow_run:
     workflows: [aituan-microservices-ci]
     types: [completed]
-    branches: [main, microservices-main]
+    branches: [main, microservices-main, integration/microservices-acceptance]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy after the quality gate and image publication
+        required: true
+        type: boolean
+        default: true
+      deploy_target:
+        description: Deployment target
+        required: true
+        type: choice
+        options: [k8s, compose, none]
+        default: k8s
 
 permissions:
   actions: read
@@ -18,49 +30,156 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  K8S_NAMESPACE: aituan
+  SERVER_ORIGIN: ${{ vars.SERVER_ORIGIN }}
+  SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR || '/opt/aituan/app' }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE || 'aituan' }}
   DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   quality-gate:
-    name: Full microservice quality gate
+    name: Test all modules and build three frontends
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    outputs:
+      image_registry: ${{ steps.meta.outputs.image_registry }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      should_deploy: ${{ steps.meta.outputs.should_deploy }}
+      deploy_target: ${{ steps.meta.outputs.deploy_target }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
+      - name: Resolve deployment metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SERVER_ORIGIN}"
+          [[ "${SERVER_ORIGIN}" =~ ^https?:// ]]
+          [[ "${SERVER_ORIGIN}" != */api && "${SERVER_ORIGIN}" != */api/ ]]
+          image_namespace="${GITHUB_REPOSITORY,,}"
+          deploy_target="${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target || vars.DEPLOY_TARGET || 'k8s' }}"
+          should_deploy=true
+          if [[ "${GITHUB_EVENT_NAME}" == workflow_dispatch && "${{ inputs.deploy }}" != true ]]; then
+            should_deploy=false
+          fi
+          if [[ "${deploy_target}" == none ]]; then
+            should_deploy=false
+          fi
+          case "${deploy_target}" in k8s|compose|none) ;; *) exit 1 ;; esac
+          {
+            echo "image_registry=${REGISTRY}/${image_namespace}"
+            echo "image_tag=sha-${DEPLOY_SHA}"
+            echo "should_deploy=${should_deploy}"
+            echo "deploy_target=${deploy_target}"
+          } >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
           cache: maven
-      - run: mvn -B -f services/pom.xml clean test
-      - name: Upload test evidence
+      - name: Run all microservice unit and contract tests
+        run: mvn -B -f services/pom.xml clean test
+      - name: Upload Java test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deploy-quality-gate-reports
+          name: deploy-microservices-java-test-reports
           path: services/**/target/surefire-reports/
           if-no-files-found: warn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            apps/merchant_web/package-lock.json
+            apps/admin_web/package-lock.json
+      - name: Test and build merchant web
+        env:
+          VITE_API_BASE_URL: ${{ env.SERVER_ORIGIN }}
+        run: |
+          set -euo pipefail
+          npm ci --prefix apps/merchant_web
+          mkdir -p apps/merchant_web/test-results
+          npm test --prefix apps/merchant_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+          npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/merchant-web" --emptyOutDir
+      - name: Test and build admin web
+        env:
+          VITE_API_BASE_URL: ${{ env.SERVER_ORIGIN }}
+        run: |
+          set -euo pipefail
+          npm ci --prefix apps/admin_web
+          mkdir -p apps/admin_web/test-results
+          npm test --prefix apps/admin_web -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+          npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/deploy/artifacts/admin-web" --emptyOutDir
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+      - name: Analyze, test, and build user web
+        working-directory: apps/user_app
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter analyze
+          mkdir -p test-results
+          flutter test --coverage --machine > test-results/flutter-test.json
+          flutter build web --base-href /web/ --dart-define=API_BASE_URL=${{ env.SERVER_ORIGIN }} --dart-define=AITUAN_BUILD_COMMIT=${{ env.DEPLOY_SHA }} --dart-define=AITUAN_BUILD_SOURCE=microservices-github-actions --output "$GITHUB_WORKSPACE/deploy/artifacts/user-web"
+      - name: Prepare web image input
+        run: |
+          set -euo pipefail
+          rm -rf deploy/artifacts/landing
+          mkdir -p deploy/artifacts/landing
+          cp -R deploy/landing/. deploy/artifacts/landing/
+      - name: Upload frontend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-microservices-frontend-test-reports
+          path: |
+            apps/merchant_web/test-results/
+            apps/admin_web/test-results/
+            apps/user_app/test-results/
+            apps/user_app/coverage/
+          if-no-files-found: warn
+      - name: Upload production web bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-production-web-bundle
+          path: |
+            deploy/artifacts/landing/
+            deploy/artifacts/user-web/
+            deploy/artifacts/merchant-web/
+            deploy/artifacts/admin-web/
+          if-no-files-found: error
+          retention-days: 7
 
   publish-images:
-    name: Publish ${{ matrix.service }}
+    name: Publish ${{ matrix.image }} image
     runs-on: ubuntu-latest
     needs: quality-gate
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - api-gateway
-          - identity-asset-service
-          - merchant-catalog-service
-          - trade-fulfillment-service
-          - engagement-platform-service
+        include:
+          - {image: api-gateway, context: ., dockerfile: deploy/microservices/api-gateway/Dockerfile}
+          - {image: identity-asset-service, context: ., dockerfile: deploy/microservices/identity-asset-service/Dockerfile}
+          - {image: merchant-catalog-service, context: ., dockerfile: deploy/microservices/merchant-catalog-service/Dockerfile}
+          - {image: trade-fulfillment-service, context: ., dockerfile: deploy/microservices/trade-fulfillment-service/Dockerfile}
+          - {image: engagement-platform-service, context: ., dockerfile: deploy/microservices/engagement-platform-service/Dockerfile}
+          - {image: mysql, context: deploy/microservices/mysql, dockerfile: deploy/microservices/mysql/Dockerfile}
+          - {image: web, context: ., dockerfile: deploy/web/Dockerfile}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
+      - name: Download production web bundle
+        if: matrix.image == 'web'
+        uses: actions/download-artifact@v4
+        with:
+          name: microservices-production-web-bundle
+          path: deploy/artifacts
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -69,17 +188,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: .
-          file: deploy/microservices/${{ matrix.service }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:sha-${{ env.DEPLOY_SHA }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:microservices
+            ${{ needs.quality-gate.outputs.image_registry }}/${{ matrix.image }}:${{ needs.quality-gate.outputs.image_tag }}
+            ${{ needs.quality-gate.outputs.image_registry }}/${{ matrix.image }}:microservices
 
   deploy-kubernetes:
-    name: Deploy and verify Kubernetes
+    name: Migrate, deploy, and verify Kubernetes
     runs-on: ubuntu-latest
-    needs: publish-images
+    needs: [quality-gate, publish-images]
+    if: needs.quality-gate.outputs.should_deploy == 'true' && needs.quality-gate.outputs.deploy_target == 'k8s'
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -87,47 +207,213 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
       - uses: azure/setup-kubectl@v4
       - name: Configure cluster access
+        shell: bash
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
         run: |
+          set -euo pipefail
           test -n "${KUBE_CONFIG_DATA}"
           mkdir -p "$HOME/.kube"
-          printf '%s' "${KUBE_CONFIG_DATA}" | base64 --decode > "$HOME/.kube/config"
+          printf '%s' "${KUBE_CONFIG_DATA}" > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
-      - name: Apply topology and pin SHA images
+          kubectl config current-context
+      - name: Prepare namespace, application config, and service-owned DB credentials
+        shell: bash
+        env:
+          K8S_MYSQL_PASSWORD: ${{ secrets.K8S_MYSQL_PASSWORD }}
+          K8S_MYSQL_ROOT_PASSWORD: ${{ secrets.K8S_MYSQL_ROOT_PASSWORD }}
+          K8S_APP_CONFIG: ${{ secrets.K8S_APP_CONFIG }}
+          GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
         run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          kubectl apply -f k8s/microservices/common.yaml
+
+          db_password="${K8S_MYSQL_PASSWORD}"
+          root_password="${K8S_MYSQL_ROOT_PASSWORD}"
+          if [[ -z "${db_password}" ]]; then
+            db_password="$(kubectl -n "${namespace}" get secret aituan-db-secret -o jsonpath='{.data.MYSQL_PASSWORD}' | base64 --decode)"
+          fi
+          if [[ -z "${root_password}" ]]; then
+            root_password="$(kubectl -n "${namespace}" get secret aituan-db-secret -o jsonpath='{.data.MYSQL_ROOT_PASSWORD}' | base64 --decode)"
+          fi
+          test -n "${db_password}"
+          test -n "${root_password}"
+          kubectl -n "${namespace}" create secret generic aituan-mysql-root-secret --from-literal=password="${root_password}" --dry-run=client -o yaml | kubectl apply -f -
+          for entry in identity:aituan_identity_svc merchant:aituan_merchant_svc trade:aituan_trade_svc platform:aituan_platform_svc; do
+            key="${entry%%:*}"
+            username="${entry#*:}"
+            kubectl -n "${namespace}" create secret generic "aituan-${key}-db-secret" --from-literal=username="${username}" --from-literal=password="${db_password}" --dry-run=client -o yaml | kubectl apply -f -
+          done
+
+          config_file="$(mktemp)"
+          trap 'rm -f "${config_file}"' EXIT
+          if [[ -n "${K8S_APP_CONFIG}" ]]; then
+            printf '%s' "${K8S_APP_CONFIG}" > "${config_file}"
+          else
+            kubectl -n "${namespace}" get secret aituan-app-config -o jsonpath='{.data.\.config}' | base64 --decode > "${config_file}"
+          fi
+          test -s "${config_file}"
+          jwt_secret="$(sed -n 's/^aituan\.security\.jwt-secret=//p' "${config_file}" | tail -n 1)"
+          internal_token="$(sed -n 's/^aituan\.internal\.service-token=//p' "${config_file}" | tail -n 1)"
+          test -n "${jwt_secret}"
+          if [[ -z "${internal_token}" ]]; then
+            internal_token="$(printf '%s' "${jwt_secret}:aituan-internal" | sha256sum | awk '{print $1}')"
+          fi
+          kubectl -n "${namespace}" create secret generic aituan-app-config --from-file=.config="${config_file}" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "${namespace}" create secret generic aituan-service-secret --from-literal=jwt-secret="${jwt_secret}" --from-literal=internal-service-token="${internal_token}" --dry-run=client -o yaml | kubectl apply -f -
+
+          if [[ -n "${GHCR_PULL_USERNAME}" && -n "${GHCR_PULL_TOKEN}" ]]; then
+            kubectl -n "${namespace}" create secret docker-registry ghcr-pull-secret --docker-server=ghcr.io --docker-username="${GHCR_PULL_USERNAME}" --docker-password="${GHCR_PULL_TOKEN}" --dry-run=client -o yaml | kubectl apply -f -
+          else
+            kubectl -n "${namespace}" get secret ghcr-pull-secret >/dev/null
+          fi
+          kubectl -n "${namespace}" get secret aituan-tls >/dev/null
+      - name: Remove the authorized legacy monolith topology once
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${K8S_NAMESPACE}"
+          if kubectl -n "${namespace}" get deployment aituan-backend >/dev/null 2>&1; then
+            echo 'Legacy monolith detected; removing only its workloads, services, ingress, and disposable database volumes.'
+            kubectl -n "${namespace}" delete deployment/aituan-backend deployment/aituan-web service/backend service/web ingress/aituan-ingress statefulset/mysql service/mysql --ignore-not-found --wait=true
+            kubectl -n "${namespace}" delete pvc/mysql-data-mysql-0 pvc/aituan-uploads --ignore-not-found --wait=true
+          fi
+      - name: Apply microservice topology and pin immutable SHA images
+        shell: bash
+        env:
+          IMAGE_REGISTRY: ${{ needs.quality-gate.outputs.image_registry }}
+          IMAGE_TAG: ${{ needs.quality-gate.outputs.image_tag }}
+        run: |
+          set -euo pipefail
           kubectl apply -k k8s/microservices
           for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
-            kubectl -n "${K8S_NAMESPACE}" set image "deployment/${service}" "${service}=${REGISTRY}/${GITHUB_REPOSITORY}/${service}:sha-${DEPLOY_SHA}"
+            kubectl -n "${K8S_NAMESPACE}" set image "deployment/${service}" "${service}=${IMAGE_REGISTRY}/${service}:${IMAGE_TAG}"
+            kubectl -n "${K8S_NAMESPACE}" set env "deployment/${service}" AITUAN_IMAGE_TAG="${IMAGE_TAG}"
           done
-      - name: Wait for all rollouts
+          kubectl -n "${K8S_NAMESPACE}" set image statefulset/mysql "mysql=${IMAGE_REGISTRY}/mysql:${IMAGE_TAG}"
+          kubectl -n "${K8S_NAMESPACE}" set image deployment/aituan-web "web=${IMAGE_REGISTRY}/web:${IMAGE_TAG}"
+      - name: Wait for every workload rollout
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p .aituan-local/deployment-report
-          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
-            kubectl -n "${K8S_NAMESPACE}" rollout status "deployment/${service}" --timeout=300s
+          kubectl -n "${K8S_NAMESPACE}" rollout status statefulset/mysql --timeout=600s
+          for service in identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service api-gateway aituan-web; do
+            kubectl -n "${K8S_NAMESPACE}" rollout status "deployment/${service}" --timeout=600s
           done
-          kubectl -n "${K8S_NAMESPACE}" get pods,svc,hpa -o wide > .aituan-local/deployment-report/resources.txt
-      - name: Gateway health check
+          kubectl -n "${K8S_NAMESPACE}" get pods,svc,hpa,pvc -o wide > .aituan-local/deployment-report/resources.txt
+      - name: Verify all internal services and public three-end site
+        shell: bash
         run: |
-          kubectl -n "${K8S_NAMESPACE}" port-forward service/api-gateway 18080:8080 > .aituan-local/deployment-report/port-forward.log 2>&1 &
-          for attempt in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:18080/actuator/health && exit 0
-            sleep 2
+          set -euo pipefail
+          for endpoint in api-gateway:8080 identity-asset-service:8081 merchant-catalog-service:8082 trade-fulfillment-service:8083 engagement-platform-service:8084; do
+            service="${endpoint%%:*}"
+            port="${endpoint#*:}"
+            for attempt in $(seq 1 24); do
+              pod="health-${service}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}"
+              if kubectl -n "${K8S_NAMESPACE}" run "${pod}" --rm -i --restart=Never --image=curlimages/curl:8.10.1 -- curl -fsS --max-time 10 "http://${service}:${port}/actuator/health"; then
+                break
+              fi
+              [[ "${attempt}" != 24 ]]
+              sleep 5
+            done
           done
-          exit 1
-      - name: Collect diagnostics
+          origin="${SERVER_ORIGIN%/}"
+          for path in actuator/health web/ merchant/ admin/; do
+            curl -fsS --retry 24 --retry-delay 5 --retry-all-errors --max-time 15 "${origin}/${path}" >/dev/null
+          done
+          login_response="$(curl -fsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_user","password":"123456"}' "${origin}/api/open/auth/user/login/password")"
+          test "$(jq -r '.code' <<<"${login_response}")" = 0
+      - name: Collect Kubernetes diagnostics
         if: always()
+        shell: bash
         run: |
           mkdir -p .aituan-local/deployment-report
           kubectl -n "${K8S_NAMESPACE}" get events --sort-by=.lastTimestamp > .aituan-local/deployment-report/events.txt 2>&1 || true
-          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
+          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service aituan-web; do
             kubectl -n "${K8S_NAMESPACE}" describe "deployment/${service}" > ".aituan-local/deployment-report/${service}-describe.txt" 2>&1 || true
             kubectl -n "${K8S_NAMESPACE}" logs "deployment/${service}" --tail=200 > ".aituan-local/deployment-report/${service}.log" 2>&1 || true
           done
-      - name: Upload deployment raw report
+          kubectl -n "${K8S_NAMESPACE}" logs statefulset/mysql --tail=200 > .aituan-local/deployment-report/mysql.log 2>&1 || true
+      - name: Upload deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: microservices-deployment-sha-${{ env.DEPLOY_SHA }}
+          name: microservices-k8s-deployment-${{ needs.quality-gate.outputs.image_tag }}
           path: .aituan-local/deployment-report/
           if-no-files-found: warn
+
+  deploy-compose:
+    name: Deploy and verify Docker Compose fallback
+    runs-on: ubuntu-latest
+    needs: [quality-gate, publish-images]
+    if: needs.quality-gate.outputs.should_deploy == 'true' && needs.quality-gate.outputs.deploy_target == 'compose'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          sparse-checkout: deploy/docker-compose.cicd.yml
+          sparse-checkout-cone-mode: false
+      - name: Prepare SSH access
+        shell: bash
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${SERVER_SSH_KEY}" > ~/.ssh/aituan_deploy_key
+          chmod 600 ~/.ssh/aituan_deploy_key
+          printf '%s\n' "${SERVER_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+      - name: Upload Compose contract and deploy images
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+          IMAGE_REGISTRY: ${{ needs.quality-gate.outputs.image_registry }}
+          IMAGE_TAG: ${{ needs.quality-gate.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          ssh_port="${SERVER_PORT:-22}"
+          ssh -i ~/.ssh/aituan_deploy_key -p "${ssh_port}" "${SERVER_USER}@${SERVER_HOST}" "mkdir -p '${SERVER_APP_DIR}/deploy'"
+          scp -i ~/.ssh/aituan_deploy_key -P "${ssh_port}" deploy/docker-compose.cicd.yml "${SERVER_USER}@${SERVER_HOST}:${SERVER_APP_DIR}/deploy/docker-compose.cicd.yml"
+          printf '%s\n' "${GHCR_TOKEN}" | ssh -i ~/.ssh/aituan_deploy_key -p "${ssh_port}" "${SERVER_USER}@${SERVER_HOST}" "set -eu; docker login ghcr.io -u '${GHCR_USERNAME}' --password-stdin >/dev/null; cd '${SERVER_APP_DIR}'; test -f .config; test -f deploy/.env; sed -i 's|^AITUAN_IMAGE_REGISTRY=.*|AITUAN_IMAGE_REGISTRY=${IMAGE_REGISTRY}|' deploy/.env; sed -i 's|^AITUAN_IMAGE_TAG=.*|AITUAN_IMAGE_TAG=${IMAGE_TAG}|' deploy/.env; docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull; docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans"
+          curl -fsS --retry 24 --retry-delay 5 --retry-all-errors --max-time 15 "${SERVER_ORIGIN%/}/actuator/health"
+
+  pipeline-raw-report:
+    name: Upload microservice deployment raw report
+    runs-on: ubuntu-latest
+    needs: [quality-gate, publish-images, deploy-kubernetes, deploy-compose]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          sparse-checkout: scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+      - name: Generate raw pipeline report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-microservices-deploy 流水线原始报告
+          AITUAN_JOB_STATUS: quality=${{ needs.quality-gate.result }}, publish=${{ needs.publish-images.result }}, k8s=${{ needs.deploy-kubernetes.result }}, compose=${{ needs.deploy-compose.result }}
+          AITUAN_IMAGE_REGISTRY: ${{ needs.quality-gate.outputs.image_registry }}
+          AITUAN_IMAGE_TAG: ${{ needs.quality-gate.outputs.image_tag }}
+          AITUAN_SHOULD_DEPLOY: ${{ needs.quality-gate.outputs.should_deploy }}
+          AITUAN_DEPLOY_TARGET: ${{ needs.quality-gate.outputs.deploy_target }}
+          AITUAN_API_ORIGIN: ${{ env.SERVER_ORIGIN }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/microservices-deploy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aituan-microservices-deploy-pipeline-raw-report
+          path: .aituan-report/microservices-deploy/
+          if-no-files-found: error
+          retention-days: 30

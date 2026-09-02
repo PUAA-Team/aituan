@@ -2,6 +2,9 @@
 # 公开部署必须设置强随机 JWT secret。
 aituan.security.jwt-secret=change-me-to-a-long-random-secret
 
+# 微服务间调用令牌，不得与对外 JWT 混用，公网部署必须改为另一个强随机值。
+aituan.internal.service-token=change-me-to-another-long-random-secret
+
 # AI 助手：复制到 .config 后填写真实 key；不要提交真实密钥。
 aituan.ai.enabled=false
 aituan.ai.api-url=http://cliapi.2b.gs

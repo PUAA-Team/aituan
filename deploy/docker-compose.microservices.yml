@@ -8,10 +8,14 @@ x-service-common: &service-common
       condition: service_healthy
   environment: &service-environment
     SPRING_PROFILES_ACTIVE: prod
+    SPRING_CONFIG_IMPORT: optional:file:/app/.config[.properties]
+    AITUAN_CONFIG_FILE: /app/.config
     AITUAN_JWT_SECRET: ${AITUAN_JWT_SECRET:-local-only-jwt-secret-change-before-deploying}
     AITUAN_INTERNAL_SERVICE_TOKEN: ${AITUAN_INTERNAL_SERVICE_TOKEN:-local-only-internal-token-change-before-deploying}
-    JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+    JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
     TZ: Asia/Shanghai
+  volumes:
+    - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
 
 services:
   mysql:
@@ -52,6 +56,7 @@ services:
     image: aituan/api-gateway:${AITUAN_IMAGE_TAG:-local}
     restart: unless-stopped
     environment:
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
       SERVER_PORT: 8080
       IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
       MERCHANT_CATALOG_SERVICE_URL: http://merchant-catalog-service:8082
@@ -143,6 +148,7 @@ services:
       - "127.0.0.1:${PLATFORM_HOST_PORT:-18084}:8084"
     volumes:
       - platform-uploads:/data/uploads
+      - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
 
 volumes:
   aituan-mysql-data:

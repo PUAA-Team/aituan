@@ -34,13 +34,18 @@ spec:
               valueFrom: {secretKeyRef: {name: aituan-service-secret, key: jwt-secret}}
             - name: AITUAN_INTERNAL_SERVICE_TOKEN
               valueFrom: {secretKeyRef: {name: aituan-service-secret, key: internal-service-token}}
-            - {name: AITUAN_IDENTITY_BASE_URL, value: http://identity-asset-service:8081}
-            - {name: AITUAN_MERCHANT_BASE_URL, value: http://merchant-catalog-service:8082}
-            - {name: AITUAN_PLATFORM_BASE_URL, value: http://engagement-platform-service:8084}
+            - {name: AITUAN_IDENTITY_BASE_URL, value: "http://identity-asset-service:8081"}
+            - {name: AITUAN_MERCHANT_BASE_URL, value: "http://merchant-catalog-service:8082"}
+            - {name: AITUAN_PLATFORM_BASE_URL, value: "http://engagement-platform-service:8084"}
             - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
           startupProbe: &tradeProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
           readinessProbe: *tradeProbe
           livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
           resources:
-            requests: {cpu: 150m, memory: 256Mi}
-            limits: {cpu: 1, memory: 768Mi}
+            requests: {cpu: 75m, memory: 128Mi}
+            limits: {cpu: 750m, memory: 384Mi}
+          volumeMounts:
+            - {name: app-config, mountPath: /app/.config, subPath: .config, readOnly: true}
+      volumes:
+        - name: app-config
+          secret: {secretName: aituan-app-config}

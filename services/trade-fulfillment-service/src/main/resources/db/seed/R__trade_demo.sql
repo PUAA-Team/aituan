@@ -5,7 +5,7 @@ INSERT INTO order_main(
 ) VALUES (
   9001, 'T202609010001', 5001, 1, 1, NULL, '塔斯汀中国汉堡', 'takeaway', '藤椒鸡腿堡',
   'pending', 'paid', 'merchant_pending', 'wechat', 39.80, 4.00,
-  1.00, 0.00, 44.80, '王同学 13800000001 北京市北京市海淀区学院路 37 号',
+  1.00, 0.00, 44.80, '李同学 18800001111 北京市北京市海淀区城市广场 A 座 1208',
   'seed:trade:order:9001', CURRENT_TIMESTAMP
 ) ON DUPLICATE KEY UPDATE
   merchant_id = VALUES(merchant_id), coupon_id = VALUES(coupon_id), store_name = VALUES(store_name),

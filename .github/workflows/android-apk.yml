@@ -88,9 +88,11 @@ jobs:
             exit 1
           fi
 
-          echo "api_origin=${api_origin}" >> "$GITHUB_OUTPUT"
-          echo "apk_name=${apk_name}" >> "$GITHUB_OUTPUT"
-          echo "app_version=${app_version}" >> "$GITHUB_OUTPUT"
+          {
+            echo "api_origin=${api_origin}"
+            echo "apk_name=${apk_name}"
+            echo "app_version=${app_version}"
+          } >> "$GITHUB_OUTPUT"
           echo "Resolved APK file name: ${apk_name}"
 
       - name: Show Flutter app version

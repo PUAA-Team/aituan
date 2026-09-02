@@ -9,7 +9,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: api-gateway, namespace: aituan}
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 5
   selector:
     matchLabels: {app.kubernetes.io/name: api-gateway, app.kubernetes.io/part-of: aituan}
@@ -22,6 +22,7 @@ spec:
         - name: api-gateway
           image: ghcr.io/puaa-team/aituan/api-gateway:sha-placeholder
           ports: [{name: http, containerPort: 8080}]
+          envFrom: [{configMapRef: {name: aituan-microservices-config}}]
           env:
             - {name: SERVER_PORT, value: "8080"}
             - name: IDENTITY_ASSET_SERVICE_URL
@@ -37,5 +38,5 @@ spec:
           readinessProbe: *gatewayProbe
           livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 30, periodSeconds: 20}
           resources:
-            requests: {cpu: 100m, memory: 192Mi}
-            limits: {cpu: 500m, memory: 512Mi}
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 384Mi}

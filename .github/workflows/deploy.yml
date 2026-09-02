@@ -1,9 +1,6 @@
-name: aituan-deploy
+name: aituan-legacy-monolith-deploy-manual
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       deploy:

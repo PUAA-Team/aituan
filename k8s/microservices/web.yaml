@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aituan-downloads
+  namespace: aituan
+  labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: aituan
+  labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+spec:
+  type: LoadBalancer
+  selector: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+  ports:
+    - {name: http, port: 80, targetPort: http}
+    - {name: https, port: 443, targetPort: https}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aituan-web
+  namespace: aituan
+  labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan, app.kubernetes.io/component: frontend}
+    spec:
+      imagePullSecrets: [{name: ghcr-pull-secret}]
+      containers:
+        - name: web
+          image: ghcr.io/puaa-team/aituan/web:sha-placeholder
+          ports:
+            - {name: http, containerPort: 80}
+            - {name: https, containerPort: 443}
+          env:
+            - name: NGINX_SERVER_NAME
+              valueFrom: {configMapKeyRef: {name: aituan-microservices-config, key: NGINX_SERVER_NAME}}
+            - name: TZ
+              valueFrom: {configMapKeyRef: {name: aituan-microservices-config, key: TZ}}
+          readinessProbe:
+            httpGet: {path: /actuator/health, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
+          livenessProbe:
+            tcpSocket: {port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 300m, memory: 128Mi}
+          volumeMounts:
+            - {name: downloads, mountPath: /usr/share/nginx/html/downloads, readOnly: true}
+            - {name: tls-cert, mountPath: /etc/letsencrypt/live/aituan.2b.gs, readOnly: true}
+      volumes:
+        - name: downloads
+          persistentVolumeClaim: {claimName: aituan-downloads}
+        - name: tls-cert
+          secret:
+            secretName: aituan-tls
+            items:
+              - {key: tls.crt, path: fullchain.pem}
+              - {key: tls.key, path: privkey.pem}

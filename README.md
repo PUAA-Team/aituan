@@ -574,9 +574,58 @@ seed 同时初始化以下演示数据：
 - 系统配置、会员等级、优惠券模板、用户优惠券；
 - 系统审计日志。
 
-## 9. 生产环境启动教程
+## 9. 微服务生产部署
 
-### 9.1 生产部署总览
+当前验收版生产拓扑是 `api-gateway` + A/B/C/D 四个业务服务 + MySQL 四个隔离 schema + 三端 Web 入口。服务器使用单节点 k3s，`web` LoadBalancer 直接接管 80/443，Nginx 只把 `/api/**` 和 `/actuator/health` 转发到 `api-gateway:8080`。
+
+生产仍只维护 README 原有的两份用户配置，不增加第三份模板：
+
+- `.config`：JWT、微服务内部令牌、邮箱、AI、图床和地图等业务配置，模板是 `.config.example`。
+- `deploy/.env`：Compose 回退部署的四组 schema 账号、镜像和目录配置，模板是 `deploy/.env.example`。
+
+默认 seed 只恢复课程演示数据，没有压测或验收过程生成的订单。默认账号为 `demo_user` / `demo_merchant` / `demo_admin`，密码均为 `123456`，用户手机号和邮箱为 `18800001111` / `user@example.com`。
+
+### 9.1 GitHub Actions 完整流程
+
+| Workflow | 作用 |
+| --- | --- |
+| `aituan-microservices-ci` | 五个 Java 模块测试、MySQL 8 四 schema 迁移与跨库拒绝、跨服务 smoke、三端单测/分析/构建、UC01–UC13 Playwright、Compose/K8s 合约、五个服务镜像构建。 |
+| `aituan-microservices-deploy` | 再次运行全量质量门，构建五个 Java 镜像、MySQL 初始化镜像和三端 Web 镜像，推送 GHCR，部署 k3s/Compose，等待全部 rollout，验证集群内服务、公网三端和默认用户登录，上传原始报告。 |
+| `aituan-android-apk` | `flutter analyze` + `flutter test` + 生产域名 APK 构建，可选上传到服务器下载目录。 |
+| `aituan-legacy-monolith-deploy-manual` | 仅手动触发的旧单体回滚参考，不再随 main push 自动发布。 |
+
+`KUBE_CONFIG` 保存 kubeconfig 原文，不做 base64 二次编码。Production Secrets 沿用 `KUBE_CONFIG`、`K8S_MYSQL_PASSWORD`、`K8S_MYSQL_ROOT_PASSWORD`、`K8S_APP_CONFIG`、`GHCR_PULL_USERNAME`、`GHCR_PULL_TOKEN`；Compose/APK 回退链路另使用原有 SSH Secrets。
+
+### 9.2 服务器部署与检查
+
+Actions 会在首次微服务发布时识别并移除旧 `aituan-backend`、旧 Web Service/Deployment 和可丢弃的旧 MySQL PVC，保留 TLS Secret、GHCR 拉取 Secret 和 APK 下载 PVC。后续发布只更新 SHA 镜像。
+
+```bash
+kubectl -n aituan get pods,svc,hpa,pvc
+kubectl -n aituan rollout status statefulset/mysql --timeout=600s
+for service in identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service api-gateway aituan-web; do
+  kubectl -n aituan rollout status "deployment/${service}" --timeout=600s
+done
+curl -fsS https://aituan.2b.gs/actuator/health
+```
+
+手动部署时，准备好 K8s Secrets 后执行 `kubectl apply -k k8s/microservices`，再把 5 个后端 Deployment 和 `aituan-web` 固定到同一个 `sha-<完整提交号>` 镜像。生产拓扑细节见 `k8s/microservices/README.md`。
+
+### 9.3 Docker Compose 回退
+
+服务器启用 Docker daemon 且停止 k3s Web 的 80/443 占用后，可使用同样的两份配置文件回退：
+
+```bash
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml config
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml pull
+docker compose --env-file deploy/.env -f deploy/docker-compose.cicd.yml up -d --remove-orphans
+```
+
+## 附录 A：旧单体部署记录（仅回滚参考）
+
+> 下面的 `backend` 单体资源、旧 manifest 和 `aituan-legacy-monolith-deploy-manual` 只用于必要时回滚，不是当前微服务验收版启动方式。
+
+### A.1 生产部署总览
 
 生产服务器 `aituan-new` 当前推荐使用 Kubernetes / k3s：
 
@@ -595,7 +644,7 @@ GitHub Actions
 
 Docker Compose 用于回退部署或没有 k3s 时的部署。注意：同一台服务器上不要同时让 K8s Web Service 和 Docker Compose Nginx 占用 80/443。
 
-### 9.2 Kubernetes 首次启动
+### A.2 Kubernetes 首次启动
 
 以下命令在 `aituan-new` 上执行。真实 secret 值需要在服务器上手动创建，不能提交到仓库。
 
@@ -686,7 +735,7 @@ kubectl -n aituan get pods,svc,ingress
 curl -fsS http://127.0.0.1/actuator/health
 ```
 
-### 9.3 Kubernetes 日常启动、停止、重启和排查
+### A.3 Kubernetes 日常启动、停止、重启和排查
 
 查看状态：
 
@@ -744,7 +793,7 @@ ssh aituan-new "kubectl -n aituan scale deployment/aituan-web --replicas=1"
 
 数据库通常不要随意缩容或删除 PVC。MySQL StatefulSet 的数据在 PVC 中保存，删除 PVC 会丢失数据库数据。
 
-### 9.4 Docker Compose 生产回退启动
+### A.4 Docker Compose 生产回退启动
 
 Docker Compose 回退方案适合暂时不用 k3s 的情况。执行前先确认 K8s 没有占用 80/443，或先停掉 K8s Web：
 
@@ -837,7 +886,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml config
 docker compose --env-file deploy/.env -f deploy/docker-compose.server.yml up -d --build
 ```
 
-### 9.5 GitHub Actions 配置和发布
+### A.5 GitHub Actions 配置和发布
 
 仓库有三个主要 workflow：
 
@@ -896,7 +945,7 @@ ssh aituan-new "kubectl -n aituan get pods,svc,ingress,deploy,statefulset"
 ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
 ```
 
-### 9.6 GitHub Actions 构建 APK 并上传服务器
+### A.6 GitHub Actions 构建 APK 并上传服务器
 
 手动触发 `aituan-android-apk`：
 
@@ -924,7 +973,7 @@ ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
 https://aituan.2b.gs/downloads/<APK 文件名>
 ```
 
-### 9.7 生产发布失败处理
+### A.7 生产发布失败处理
 
 1. 先看 GitHub Actions 的失败 job 和上传的原始报告 artifact。
 2. 如果失败发生在 K8s rollout：
@@ -951,9 +1000,9 @@ ssh aituan-new "cd /opt/aituan/app && docker compose --env-file deploy/.env -f d
 
 5. 数据库结构问题统一通过新的 Flyway 迁移解决。已执行过的迁移版本不要直接改内容。
 
-## 10. 配置要点
+## 附录 B：旧单体配置摘要
 
-### 10.1 后端 `.config`
+### B.1 后端 `.config`
 
 后端默认读取 `.config`。本地没有该文件也能以 demo 默认值启动；生产必须设置强随机 JWT secret。
 
@@ -972,7 +1021,7 @@ aituan.map.provider=local
 
 真实数据库密码、邮箱授权码、AI key、图床 token、SSH 私钥、kubeconfig 和证书私钥不要提交到仓库。
 
-### 10.2 Docker Compose `.env`
+### B.2 Docker Compose `.env`
 
 Compose 生产回退部署使用 `deploy/.env`：
 
@@ -991,7 +1040,7 @@ AITUAN_LETSENCRYPT_DIR=/etc/letsencrypt
 AITUAN_CERTBOT_WEBROOT=/var/www/certbot
 ```
 
-### 10.3 Kubernetes 配置
+### B.3 Kubernetes 配置
 
 Kubernetes 固定命名空间为 `aituan`。核心配置：
 
@@ -1020,7 +1069,7 @@ web Deployment
   -> /actuator/health 反向代理 backend:8080/actuator/health
 ```
 
-### 10.4 数据与证书
+### B.4 数据与证书
 
 - MySQL 数据：K8s 使用 `mysql-data` PVC；Compose 使用 `/opt/aituan/data/mysql`。
 - 上传文件：K8s 使用 `aituan-uploads` PVC，挂载到 `/data/uploads`；Compose 使用 `/opt/aituan/data/uploads`。

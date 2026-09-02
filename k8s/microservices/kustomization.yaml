@@ -8,5 +8,5 @@ resources:
   - merchant-catalog-service.yaml
   - trade-fulfillment-service.yaml
   - engagement-platform-service.yaml
+  - web.yaml
   - merchant-catalog-hpa.yaml
-  - ingress.yaml

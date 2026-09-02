@@ -40,5 +40,10 @@ spec:
           readinessProbe: *merchantProbe
           livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
           resources:
-            requests: {cpu: 100m, memory: 256Mi}
-            limits: {cpu: 750m, memory: 768Mi}
+            requests: {cpu: 75m, memory: 128Mi}
+            limits: {cpu: 750m, memory: 384Mi}
+          volumeMounts:
+            - {name: app-config, mountPath: /app/.config, subPath: .config, readOnly: true}
+      volumes:
+        - name: app-config
+          secret: {secretName: aituan-app-config}

@@ -1,72 +1,145 @@
+name: aituan-microservices-production
+
+x-service-common: &service-common
+  pull_policy: always
+  restart: unless-stopped
+  networks: [aituan]
+  depends_on:
+    mysql:
+      condition: service_healthy
+  environment: &service-environment
+    SPRING_PROFILES_ACTIVE: prod
+    SPRING_CONFIG_IMPORT: optional:file:/app/.config[.properties]
+    AITUAN_CONFIG_FILE: /app/.config
+    JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+    TZ: Asia/Shanghai
+  volumes:
+    - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
+
 services:
   mysql:
-    image: mysql:8.0
-    container_name: aituan-mysql
+    image: ${AITUAN_IMAGE_REGISTRY:?set AITUAN_IMAGE_REGISTRY in deploy/.env}/mysql:${AITUAN_IMAGE_TAG:?set AITUAN_IMAGE_TAG in deploy/.env}
+    pull_policy: always
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-aituan_dev}
-      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in deploy/.env}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in deploy/.env}
+      IDENTITY_DB_USERNAME: ${IDENTITY_DB_USERNAME:?set IDENTITY_DB_USERNAME in deploy/.env}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?set IDENTITY_DB_PASSWORD in deploy/.env}
+      MERCHANT_DB_USERNAME: ${MERCHANT_DB_USERNAME:?set MERCHANT_DB_USERNAME in deploy/.env}
+      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD:?set MERCHANT_DB_PASSWORD in deploy/.env}
+      TRADE_DB_USERNAME: ${TRADE_DB_USERNAME:?set TRADE_DB_USERNAME in deploy/.env}
+      TRADE_DB_PASSWORD: ${TRADE_DB_PASSWORD:?set TRADE_DB_PASSWORD in deploy/.env}
+      PLATFORM_DB_USERNAME: ${PLATFORM_DB_USERNAME:?set PLATFORM_DB_USERNAME in deploy/.env}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:?set PLATFORM_DB_PASSWORD in deploy/.env}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
       - --default-time-zone=+08:00
-      - --innodb-buffer-pool-size=256M
-      - --max-connections=50
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=80
       - --performance-schema=OFF
-      - --table-open-cache=256
-      - --tmp-table-size=32M
-      - --max-heap-table-size=32M
     volumes:
-      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/mysql:/var/lib/mysql
+      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/mysql-microservices:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$${MYSQL_USER}\" -p\"$${MYSQL_PASSWORD}\" --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
       interval: 10s
       timeout: 5s
-      retries: 12
+      retries: 24
       start_period: 30s
-    networks:
-      - aituan
+    networks: [aituan]
 
-  backend:
-    image: ${AITUAN_IMAGE_REGISTRY:?set AITUAN_IMAGE_REGISTRY in deploy/.env}/backend:${AITUAN_IMAGE_TAG:?set AITUAN_IMAGE_TAG in deploy/.env}
-    pull_policy: always
-    container_name: aituan-backend
-    restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
+  identity-asset-service:
+    <<: *service-common
+    image: ${AITUAN_IMAGE_REGISTRY}/identity-asset-service:${AITUAN_IMAGE_TAG}
     environment:
-      SPRING_PROFILES_ACTIVE: dev
-      SERVER_PORT: 8080
-      AITUAN_DATASOURCE_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-aituan_dev}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
-      AITUAN_DATASOURCE_USERNAME: "${MYSQL_USER:?set MYSQL_USER in deploy/.env}"
-      AITUAN_DATASOURCE_PASSWORD: "${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}"
-      AITUAN_CONFIG_FILE: /app/.config
-      AITUAN_UPLOAD_ROOT: /data/uploads
-      AITUAN_UPLOAD_PUBLIC_PREFIX: /api/common/files
-      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
-      TZ: Asia/Shanghai
-    volumes:
-      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/uploads:/data/uploads
-      - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
-    expose:
-      - "8080"
-    networks:
-      - aituan
+      <<: *service-environment
+      SERVER_PORT: 8081
+      AITUAN_IDENTITY_DB_URL: jdbc:mysql://mysql:3306/aituan_identity?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      AITUAN_IDENTITY_DB_USERNAME: ${IDENTITY_DB_USERNAME}
+      AITUAN_IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD}
+      AITUAN_IDENTITY_DB_DRIVER: com.mysql.cj.jdbc.Driver
+      AITUAN_TRADE_SERVICE_URL: http://trade-fulfillment-service:8083
+      AITUAN_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG}
 
-  nginx:
-    image: ${AITUAN_IMAGE_REGISTRY:?set AITUAN_IMAGE_REGISTRY in deploy/.env}/web:${AITUAN_IMAGE_TAG:?set AITUAN_IMAGE_TAG in deploy/.env}
+  merchant-catalog-service:
+    <<: *service-common
+    image: ${AITUAN_IMAGE_REGISTRY}/merchant-catalog-service:${AITUAN_IMAGE_TAG}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8082
+      MERCHANT_DB_URL: jdbc:mysql://mysql:3306/aituan_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      MERCHANT_DB_USERNAME: ${MERCHANT_DB_USERNAME}
+      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD}
+      MERCHANT_DB_DRIVER: com.mysql.cj.jdbc.Driver
+      IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
+      TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083
+      ENGAGEMENT_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG}
+
+  trade-fulfillment-service:
+    <<: *service-common
+    image: ${AITUAN_IMAGE_REGISTRY}/trade-fulfillment-service:${AITUAN_IMAGE_TAG}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8083
+      TRADE_DB_URL: jdbc:mysql://mysql:3306/aituan_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      TRADE_DB_USERNAME: ${TRADE_DB_USERNAME}
+      TRADE_DB_PASSWORD: ${TRADE_DB_PASSWORD}
+      AITUAN_IDENTITY_BASE_URL: http://identity-asset-service:8081
+      AITUAN_MERCHANT_BASE_URL: http://merchant-catalog-service:8082
+      AITUAN_PLATFORM_BASE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG}
+
+  engagement-platform-service:
+    <<: *service-common
+    image: ${AITUAN_IMAGE_REGISTRY}/engagement-platform-service:${AITUAN_IMAGE_TAG}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8084
+      AITUAN_PLATFORM_DATASOURCE_URL: jdbc:mysql://mysql:3306/aituan_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      AITUAN_PLATFORM_DATASOURCE_USERNAME: ${PLATFORM_DB_USERNAME}
+      AITUAN_PLATFORM_DATASOURCE_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      AITUAN_PLATFORM_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+      AITUAN_IDENTITY_BASE_URL: http://identity-asset-service:8081
+      AITUAN_MERCHANT_BASE_URL: http://merchant-catalog-service:8082
+      AITUAN_TRADE_BASE_URL: http://trade-fulfillment-service:8083
+      AITUAN_UPLOAD_ROOT: /data/uploads
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG}
+    volumes:
+      - ${AITUAN_CONFIG_HOST_FILE:-../.config}:/app/.config:ro
+      - ${AITUAN_DATA_DIR:-/opt/aituan/data}/uploads-microservices:/data/uploads
+
+  api-gateway:
+    image: ${AITUAN_IMAGE_REGISTRY}/api-gateway:${AITUAN_IMAGE_TAG}
     pull_policy: always
-    container_name: aituan-nginx
     restart: unless-stopped
     depends_on:
-      - backend
+      identity-asset-service: {condition: service_healthy}
+      merchant-catalog-service: {condition: service_healthy}
+      trade-fulfillment-service: {condition: service_healthy}
+      engagement-platform-service: {condition: service_healthy}
+    environment:
+      SERVER_PORT: 8080
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+      IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
+      MERCHANT_CATALOG_SERVICE_URL: http://merchant-catalog-service:8082
+      TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083
+      ENGAGEMENT_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG}
+      TZ: Asia/Shanghai
+    networks: [aituan]
+
+  web:
+    image: ${AITUAN_IMAGE_REGISTRY}/web:${AITUAN_IMAGE_TAG}
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      api-gateway: {condition: service_healthy}
     environment:
       NGINX_SERVER_NAME: ${AITUAN_NGINX_SERVER_NAME:-aituan.2b.gs}
+      TZ: Asia/Shanghai
     ports:
       - "80:80"
       - "443:443"
@@ -74,9 +147,8 @@ services:
       - ${AITUAN_LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
       - ${AITUAN_CERTBOT_WEBROOT:-/var/www/certbot}:/var/www/certbot:ro
       - ${AITUAN_DOWNLOADS_DIR:-/opt/aituan/data/downloads}:/usr/share/nginx/html/downloads:ro
-    networks:
-      - aituan
+    networks: [aituan]
 
 networks:
   aituan:
-    name: aituan-network
+    name: aituan-microservices-network

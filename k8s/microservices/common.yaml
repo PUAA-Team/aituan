@@ -13,8 +13,10 @@ metadata:
   namespace: aituan
 data:
   SPRING_PROFILES_ACTIVE: prod
-  JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+  SPRING_CONFIG_IMPORT: optional:file:/app/.config[.properties]
+  JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
   TZ: Asia/Shanghai
+  NGINX_SERVER_NAME: aituan.2b.gs
   IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
   MERCHANT_CATALOG_SERVICE_URL: http://merchant-catalog-service:8082
   TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083

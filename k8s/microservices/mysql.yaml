@@ -56,13 +56,17 @@ spec:
         app.kubernetes.io/name: mysql
         app.kubernetes.io/part-of: aituan
     spec:
+      imagePullSecrets: [{name: ghcr-pull-secret}]
       containers:
         - name: mysql
-          image: mysql:8.4
+          image: ghcr.io/puaa-team/aituan/mysql:sha-placeholder
           args:
             - --character-set-server=utf8mb4
             - --collation-server=utf8mb4_0900_ai_ci
             - --default-time-zone=+08:00
+            - --innodb-buffer-pool-size=128M
+            - --max-connections=80
+            - --performance-schema=OFF
           ports:
             - name: mysql
               containerPort: 3306
@@ -94,8 +98,8 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 20
           resources:
-            requests: {cpu: 100m, memory: 256Mi}
-            limits: {cpu: 1, memory: 1Gi}
+            requests: {cpu: 75m, memory: 192Mi}
+            limits: {cpu: 750m, memory: 512Mi}
           volumeMounts:
             - {name: data, mountPath: /var/lib/mysql}
             - {name: init, mountPath: /docker-entrypoint-initdb.d, readOnly: true}
