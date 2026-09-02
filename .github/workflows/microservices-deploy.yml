@@ -411,6 +411,10 @@ jobs:
             echo '::error::Rendered manifest still contains sha-placeholder.'
             exit 1
           fi
+          # Update the stateful database first. Applying every workload at once can
+          # start new Flyway clients while the headless MySQL endpoint is rotating.
+          kubectl apply -f "${manifest}" -l app.kubernetes.io/name=mysql
+          kubectl -n "${K8S_NAMESPACE}" rollout status statefulset/mysql --timeout=600s
           kubectl apply -f "${manifest}"
       - name: Wait for every workload rollout
         shell: bash

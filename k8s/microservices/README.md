@@ -40,7 +40,7 @@ Web 同时只读挂载宿主机 `/var/www/certbot`，用于 HTTP-01 challenge。
 
 ## 发布和验证
 
-manifest 中的 `sha-placeholder` 仅是占位值。发布时必须在 apply 前渲染为同一提交的不可变 SHA tag，覆盖 5 个后端镜像、MySQL 和 Web 镜像。GitHub Actions 会先完成替换并检查没有占位值，再一次性 apply，避免占位镜像短暂拉取失败。
+manifest 中的 `sha-placeholder` 仅是占位值。发布时必须在 apply 前渲染为同一提交的不可变 SHA tag，覆盖 5 个后端镜像、MySQL 和 Web 镜像。GitHub Actions 会先完成替换并检查没有占位值；部署分两阶段先更新并等待 MySQL Ready，再应用 Gateway、A/B/C/D 和 Web，防止 Flyway 客户端与数据库同时滚动。完整清单的第二次 apply 对已就绪的 MySQL 是幂等操作。
 
 ```bash
 kubectl -n aituan rollout status statefulset/mysql --timeout=600s

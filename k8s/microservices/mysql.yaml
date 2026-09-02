@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: aituan-mysql-init
   namespace: aituan
+  labels: {app.kubernetes.io/name: mysql, app.kubernetes.io/part-of: aituan}
 data:
   00-create-service-databases.sh: |
     #!/bin/sh
@@ -28,6 +29,7 @@ kind: Service
 metadata:
   name: mysql
   namespace: aituan
+  labels: {app.kubernetes.io/name: mysql, app.kubernetes.io/part-of: aituan}
 spec:
   clusterIP: None
   selector:
@@ -43,6 +45,7 @@ kind: StatefulSet
 metadata:
   name: mysql
   namespace: aituan
+  labels: {app.kubernetes.io/name: mysql, app.kubernetes.io/part-of: aituan}
 spec:
   serviceName: mysql
   replicas: 1
