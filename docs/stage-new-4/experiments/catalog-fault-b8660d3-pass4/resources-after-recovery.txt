@@ -1,0 +1,23 @@
+NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS                    IMAGES                                                                                              SELECTOR
+deployment.apps/aituan-web                    1/1     1            1           5h30m   web                           ghcr.io/puaa-team/aituan/web:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4                           app.kubernetes.io/name=aituan-web,app.kubernetes.io/part-of=aituan
+deployment.apps/api-gateway                   1/1     1            1           5h30m   api-gateway                   ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4                   app.kubernetes.io/name=api-gateway,app.kubernetes.io/part-of=aituan
+deployment.apps/engagement-platform-service   1/1     1            1           5h30m   engagement-platform-service   ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4   app.kubernetes.io/name=engagement-platform-service,app.kubernetes.io/part-of=aituan
+deployment.apps/identity-asset-service        1/1     1            1           5h30m   identity-asset-service        ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4        app.kubernetes.io/name=identity-asset-service,app.kubernetes.io/part-of=aituan
+deployment.apps/merchant-catalog-service      1/1     1            1           5h30m   merchant-catalog-service      ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4      app.kubernetes.io/name=merchant-catalog-service,app.kubernetes.io/part-of=aituan
+deployment.apps/trade-fulfillment-service     1/1     1            1           5h30m   trade-fulfillment-service     ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4     app.kubernetes.io/name=trade-fulfillment-service,app.kubernetes.io/part-of=aituan
+
+NAME                                               READY   STATUS    RESTARTS   AGE   IP            NODE                      NOMINATED NODE   READINESS GATES
+pod/aituan-web-59b75c5cfd-r6znv                    1/1     Running   0          34m   10.42.0.159   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/api-gateway-7ddddc4f8f-q9pxn                   1/1     Running   0          34m   10.42.0.160   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/engagement-platform-service-7b6df4855b-zflnb   1/1     Running   0          34m   10.42.0.161   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/identity-asset-service-8648977489-86jz5        1/1     Running   0          34m   10.42.0.162   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/merchant-catalog-service-568bf45885-kd96w      1/1     Running   0          31s   10.42.0.220   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/mysql-0                                        1/1     Running   0          35m   10.42.0.157   izj6c1l84z55xbo85st14pz   <none>           <none>
+pod/trade-fulfillment-service-57cc4f96c-kzg2h      1/1     Running   0          34m   10.42.0.164   izj6c1l84z55xbo85st14pz   <none>           <none>
+
+NAME                                                              REFERENCE                                TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/api-gateway                   Deployment/api-gateway                   cpu: 10%/50%         1         4         1          119m
+horizontalpodautoscaler.autoscaling/engagement-platform-service   Deployment/engagement-platform-service   cpu: 4%/50%          1         4         1          119m
+horizontalpodautoscaler.autoscaling/identity-asset-service        Deployment/identity-asset-service        cpu: 4%/50%          1         4         1          119m
+horizontalpodautoscaler.autoscaling/merchant-catalog-service      Deployment/merchant-catalog-service      cpu: <unknown>/50%   1         4         1          5h30m
+horizontalpodautoscaler.autoscaling/trade-fulfillment-service     Deployment/trade-fulfillment-service     cpu: 25%/50%         1         4         1          119m

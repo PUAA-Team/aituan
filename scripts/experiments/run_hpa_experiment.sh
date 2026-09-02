@@ -79,7 +79,14 @@ spec:
       containers:
         - name: load
           image: node:24-alpine
-          command: [node, /scripts/hpa-load.mjs]
+          command: [sh, -ec]
+          args:
+            - |
+              set +e
+              node /scripts/hpa-load.mjs
+              code=\$?
+              echo "\${code}" > /results/.exit-code
+              sleep 900
           env:
             - {name: LOAD_ORIGIN, value: "http://api-gateway:8080"}
             - {name: LOAD_DURATION_SECONDS, value: "${duration_seconds}"}
@@ -101,25 +108,37 @@ spec:
           emptyDir: {}
 YAML
 
+pod_deadline="$(( $(date +%s) + 60 ))"
+pod=""
+while [[ -z "${pod}" ]]; do
+  pod="$(kubectl -n "${namespace}" get pods -l "job-name=${job}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+  [[ -n "${pod}" ]] && break
+  [[ "$(date +%s)" -lt "${pod_deadline}" ]] || { echo "load pod was not created in time" >&2; exit 1; }
+  sleep 2
+done
+
 deadline="$(( $(date +%s) + duration_seconds + 300 ))"
 while true; do
   record_sample load
-  succeeded="$(kubectl -n "${namespace}" get "job/${job}" -o jsonpath='{.status.succeeded}')"
-  failed="$(kubectl -n "${namespace}" get "job/${job}" -o jsonpath='{.status.failed}')"
-  [[ "${succeeded:-0}" -ge 1 ]] && break
-  if [[ "${failed:-0}" -ge 1 ]]; then
-    kubectl -n "${namespace}" logs "job/${job}" > "${output_dir}/load-job.log" 2>&1 || true
-    echo "load job failed" >&2
-    exit 1
+  exit_code="$(kubectl -n "${namespace}" exec "${pod}" -- sh -c 'test -f /results/.exit-code && cat /results/.exit-code' 2>/dev/null || true)"
+  if [[ -n "${exit_code}" ]]; then
+    if [[ "${exit_code}" != 0 ]]; then
+      kubectl -n "${namespace}" logs "${pod}" > "${output_dir}/load-job.log" 2>&1 || true
+      echo "load process failed with exit code ${exit_code}" >&2
+      exit 1
+    fi
+    break
   fi
+  phase="$(kubectl -n "${namespace}" get pod "${pod}" -o jsonpath='{.status.phase}')"
+  [[ "${phase}" = Running || "${phase}" = Pending ]] || { echo "load pod stopped before publishing its exit code (phase=${phase})" >&2; exit 1; }
   [[ "$(date +%s)" -lt "${deadline}" ]] || { echo "load job timed out" >&2; exit 1; }
   sleep 10
 done
 
 record_sample load-finished
-pod="$(kubectl -n "${namespace}" get pods -l "job-name=${job}" -o jsonpath='{.items[0].metadata.name}')"
 kubectl -n "${namespace}" logs "${pod}" > "${output_dir}/load-job.log"
 kubectl -n "${namespace}" cp "${pod}:/results/." "${output_dir}" >/dev/null
+rm -f "${output_dir}/.exit-code"
 kubectl -n "${namespace}" describe hpa > "${output_dir}/hpa-describe-after-load.txt"
 kubectl -n "${namespace}" get events --sort-by=.lastTimestamp > "${output_dir}/events-after-load.txt"
 

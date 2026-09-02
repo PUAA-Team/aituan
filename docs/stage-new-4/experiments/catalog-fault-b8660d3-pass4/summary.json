@@ -1,0 +1,17 @@
+{
+  "experiment": "merchant-catalog dependency failure and recovery",
+  "timestamp": "20260902T123633Z",
+  "origin": "https://aituan.2b.gs",
+  "recoverySeconds": 33,
+  "assertions": {
+    "catalogUnavailable": true,
+    "cachedCartReadable": true,
+    "writesFailFastWithoutPartialMutation": true,
+    "removeStillAvailable": true,
+    "identityHealthy": true,
+    "tradeHealthy": true,
+    "engagementHealthy": true,
+    "catalogRecovered": true,
+    "cartReturnedToNormal": true
+  }
+}

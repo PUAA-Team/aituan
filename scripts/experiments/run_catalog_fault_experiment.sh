@@ -11,6 +11,7 @@ catalog_service="merchant-catalog-service"
 hpa_target=""
 fault_injected=false
 fault_started_epoch=0
+health_pods=()
 mkdir -p "${output_dir}"
 
 cleanup() {
@@ -19,6 +20,9 @@ cleanup() {
     kubectl -n "${namespace}" scale "deployment/${catalog_service}" --replicas=1 >/dev/null 2>&1 || true
     kubectl -n "${namespace}" rollout status "deployment/${catalog_service}" --timeout=300s >/dev/null 2>&1 || true
   fi
+  for health_pod in "${health_pods[@]}"; do
+    kubectl -n "${namespace}" delete pod "${health_pod}" --ignore-not-found --wait=false >/dev/null 2>&1 || true
+  done
 }
 trap cleanup EXIT INT TERM
 
@@ -42,6 +46,28 @@ require_api_code() {
   test "${actual}" = "${expected}" || { echo "${name}: expected API code ${expected}, got ${actual}" >&2; exit 1; }
 }
 
+run_health_probe() {
+  local pod_name="$1" endpoints="$2" result_file="$3" phase=""
+  health_pods+=("${pod_name}")
+  kubectl -n "${namespace}" run "${pod_name}" --restart=Never --image=curlimages/curl:8.10.1 \
+    --env="HEALTH_ENDPOINTS=${endpoints}" --command -- \
+    sh -ec 'for endpoint in $HEALTH_ENDPOINTS; do printf "%s " "$endpoint"; curl -fsS --max-time 5 "http://$endpoint/actuator/health"; echo; done' \
+    >/dev/null
+  for attempt in $(seq 1 30); do
+    phase="$(kubectl -n "${namespace}" get pod "${pod_name}" -o jsonpath='{.status.phase}')"
+    [[ "${phase}" = Succeeded ]] && break
+    if [[ "${phase}" = Failed ]]; then
+      kubectl -n "${namespace}" logs "${pod_name}" >&2 || true
+      echo "health probe pod ${pod_name} failed" >&2
+      return 1
+    fi
+    [[ "${attempt}" != 30 ]] || { echo "health probe pod ${pod_name} timed out in phase ${phase}" >&2; return 1; }
+    sleep 1
+  done
+  kubectl -n "${namespace}" logs "${pod_name}" > "${result_file}"
+  kubectl -n "${namespace}" delete pod "${pod_name}" --wait=true >/dev/null
+}
+
 login_response="$(curl -ksS --max-time 12 -H 'Content-Type: application/json' --data "{\"account\":\"${account}\",\"password\":\"${password}\"}" "${origin}/api/open/auth/user/login/password")"
 token="$(jq -r '.data.accessToken // .data.token // empty' <<<"${login_response}")"
 test -n "${token}" || { echo "fault experiment login failed" >&2; exit 1; }
@@ -57,7 +83,7 @@ request baseline-clear DELETE '/api/app/trade/cart?storeId=1'
 require_api_code baseline-clear 0
 request baseline-add POST '/api/app/trade/cart/items' '{"storeId":1,"itemId":1002,"quantity":2}'
 require_api_code baseline-add 0
-jq -e '.data.catalogAvailable == true and (.data.items | length) == 1 and .data.items[0].itemName == "吮指原味鸡"' "${output_dir}/baseline-add.json" >/dev/null
+jq -e '.data.catalogAvailable == true and (.data.items | length) == 1 and .data.items[0].itemName == "藤椒鸡腿堡"' "${output_dir}/baseline-add.json" >/dev/null
 request baseline-cart GET '/api/app/trade/cart?storeId=1'
 require_api_code baseline-cart 0
 
@@ -82,9 +108,9 @@ fi
 
 request degraded-cart GET '/api/app/trade/cart?storeId=1'
 require_api_code degraded-cart 0
-jq -e '.data.catalogAvailable == false and (.data.notice | contains("商品服务暂不可用")) and (.data.items | length) == 1 and .data.items[0].itemName == "吮指原味鸡" and .data.items[0].quantity == 2' "${output_dir}/degraded-cart.json" >/dev/null
+jq -e '.data.catalogAvailable == false and (.data.notice | contains("商品服务暂不可用")) and (.data.items | length) == 1 and .data.items[0].itemName == "藤椒鸡腿堡" and .data.items[0].quantity == 2' "${output_dir}/degraded-cart.json" >/dev/null
 
-request rejected-add POST '/api/app/trade/cart/items' '{"storeId":1,"itemId":1001,"quantity":1}'
+request rejected-add POST '/api/app/trade/cart/items' '{"storeId":1,"itemId":1004,"quantity":1}'
 require_api_code rejected-add 9999
 jq -e '.message | contains("商品服务暂不可用")' "${output_dir}/rejected-add.json" >/dev/null
 request unchanged-cart GET '/api/app/trade/cart?storeId=1'
@@ -100,9 +126,9 @@ require_api_code engagement-still-works 0
 
 health_pod="fault-health-${timestamp,,}"
 health_pod="${health_pod:0:62}"
-kubectl -n "${namespace}" run "${health_pod}" --rm -i --restart=Never --image=curlimages/curl:8.10.1 -- \
-  sh -ec 'for endpoint in api-gateway:8080 identity-asset-service:8081 trade-fulfillment-service:8083 engagement-platform-service:8084; do printf "%s " "$endpoint"; curl -fsS --max-time 5 "http://$endpoint/actuator/health"; echo; done' \
-  > "${output_dir}/independent-health-during-fault.txt"
+run_health_probe "${health_pod}" \
+  'api-gateway:8080 identity-asset-service:8081 trade-fulfillment-service:8083 engagement-platform-service:8084' \
+  "${output_dir}/independent-health-during-fault.txt"
 
 request degraded-remove DELETE '/api/app/trade/cart/items/1002?storeId=1'
 require_api_code degraded-remove 0
@@ -123,17 +149,17 @@ for attempt in $(seq 1 30); do
 done
 recovery_seconds="$(( $(date +%s) - fault_started_epoch ))"
 
-request recovered-add POST '/api/app/trade/cart/items' '{"storeId":1,"itemId":1001,"quantity":1}'
+request recovered-add POST '/api/app/trade/cart/items' '{"storeId":1,"itemId":1004,"quantity":1}'
 require_api_code recovered-add 0
-jq -e '.data.catalogAvailable == true and (.data.items | length) == 1 and .data.items[0].itemName == "香辣鸡腿堡"' "${output_dir}/recovered-add.json" >/dev/null
+jq -e '.data.catalogAvailable == true and (.data.items | length) == 1 and .data.items[0].itemName == "香辣鸡翅"' "${output_dir}/recovered-add.json" >/dev/null
 request recovered-clear DELETE '/api/app/trade/cart?storeId=1'
 require_api_code recovered-clear 0
 
 health_pod="recovery-health-${timestamp,,}"
 health_pod="${health_pod:0:62}"
-kubectl -n "${namespace}" run "${health_pod}" --rm -i --restart=Never --image=curlimages/curl:8.10.1 -- \
-  sh -ec 'for endpoint in api-gateway:8080 identity-asset-service:8081 merchant-catalog-service:8082 trade-fulfillment-service:8083 engagement-platform-service:8084; do printf "%s " "$endpoint"; curl -fsS --max-time 5 "http://$endpoint/actuator/health"; echo; done' \
-  > "${output_dir}/all-health-after-recovery.txt"
+run_health_probe "${health_pod}" \
+  'api-gateway:8080 identity-asset-service:8081 merchant-catalog-service:8082 trade-fulfillment-service:8083 engagement-platform-service:8084' \
+  "${output_dir}/all-health-after-recovery.txt"
 
 kubectl -n "${namespace}" get deployments,pods,hpa -o wide > "${output_dir}/resources-after-recovery.txt"
 while IFS= read -r trade_pod; do

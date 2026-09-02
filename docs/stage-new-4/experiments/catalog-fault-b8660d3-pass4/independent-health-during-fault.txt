@@ -1,0 +1,4 @@
+api-gateway:8080 {"status":"UP","groups":["liveness","readiness"]}
+identity-asset-service:8081 {"status":"UP","groups":["liveness","readiness"]}
+trade-fulfillment-service:8083 {"status":"UP","groups":["liveness","readiness"]}
+engagement-platform-service:8084 {"status":"UP","groups":["liveness","readiness"]}

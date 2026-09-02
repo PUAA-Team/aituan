@@ -1,0 +1,2 @@
+NAME                      CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+izj6c1l84z55xbo85st14pz   558m         13%      3207Mi          21%
