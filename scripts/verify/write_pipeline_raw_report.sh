@@ -43,6 +43,7 @@ value_or_unset() {
   echo "| 是否部署 | $(value_or_unset "${AITUAN_SHOULD_DEPLOY:-}") |"
   echo "| 镜像仓库 | $(value_or_unset "${AITUAN_IMAGE_REGISTRY:-}") |"
   echo "| 镜像标签 | $(value_or_unset "${AITUAN_IMAGE_TAG:-}") |"
+  echo "| 已验证 CI Run ID | $(value_or_unset "${AITUAN_VERIFIED_CI_RUN_ID:-}") |"
   echo "| APK 名称 | $(value_or_unset "${AITUAN_APK_NAME:-}") |"
   echo "| API Origin | $(value_or_unset "${AITUAN_API_ORIGIN:-}") |"
   echo

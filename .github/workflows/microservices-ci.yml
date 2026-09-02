@@ -10,6 +10,7 @@ on:
       - deploy/docker-compose.cicd.yml
       - deploy/web/**
       - deploy/nginx/**
+      - deploy/landing/**
       - .config.example
       - deploy/.env.example
       - k8s/microservices/**
@@ -17,6 +18,10 @@ on:
       - apps/merchant_web/**
       - apps/user_app/**
       - tests/e2e/**
+      - tests/contracts/**
+      - tests/performance/**
+      - scripts/verify/**
+      - scripts/deploy/**
       - .github/workflows/microservices-*.yml
   push:
     branches: [main, microservices-main, integration/microservices-acceptance]
@@ -28,6 +33,7 @@ on:
       - deploy/docker-compose.cicd.yml
       - deploy/web/**
       - deploy/nginx/**
+      - deploy/landing/**
       - .config.example
       - deploy/.env.example
       - k8s/microservices/**
@@ -35,17 +41,171 @@ on:
       - apps/merchant_web/**
       - apps/user_app/**
       - tests/e2e/**
+      - tests/contracts/**
+      - tests/performance/**
+      - scripts/verify/**
+      - scripts/deploy/**
       - .github/workflows/microservices-*.yml
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: microservices-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  static-regression:
+    name: Static regression checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run legacy acceptance regression checks
+        run: bash scripts/verify/member_e_regression_checks.sh
+
+  legacy-backend:
+    name: Legacy backend compatibility and MySQL migration
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: aituan_test
+          MYSQL_USER: aituan
+          MYSQL_PASSWORD: aituan_password
+          MYSQL_ROOT_PASSWORD: root_password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_password --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run legacy backend tests and coverage
+        run: mvn -B -f services/backend/pom.xml verify
+      - name: Verify legacy Flyway migrations on MySQL 8
+        env:
+          AITUAN_MYSQL_CI_ENABLED: "true"
+          AITUAN_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+          AITUAN_DATASOURCE_USERNAME: aituan
+          AITUAN_DATASOURCE_PASSWORD: aituan_password
+        run: mvn -B -f services/backend/pom.xml -Dtest=MysqlMigrationSmokeTest test
+      - name: Upload legacy backend test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-legacy-backend-test-reports
+          path: |
+            services/backend/target/surefire-reports/
+            services/backend/target/site/jacoco/
+          if-no-files-found: warn
+
+  contract:
+    name: Offline cross-service consumer contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Verify consumer contracts with local mock providers
+        run: node tests/contracts/contract-test.mjs --output tests/contracts/results/ci-offline-contract-report.json
+      - name: Upload offline contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-offline-contract-report
+          path: tests/contracts/results/ci-offline-contract-report.json
+          if-no-files-found: error
+
+  web:
+    name: Web tests, coverage, and build (${{ matrix.app.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - name: merchant
+            path: apps/merchant_web
+            base: /merchant/
+          - name: admin
+            path: apps/admin_web
+            base: /admin/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ${{ matrix.app.path }}/package-lock.json
+      - name: Install dependencies
+        run: npm ci --prefix ${{ matrix.app.path }}
+      - name: Run tests with coverage
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1
+        run: |
+          set -euo pipefail
+          mkdir -p ${{ matrix.app.path }}/test-results
+          npm run test:coverage --prefix ${{ matrix.app.path }} -- --reporter=default --reporter=junit --outputFile=./test-results/vitest.xml
+      - name: Upload web test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-${{ matrix.app.name }}-web-test-reports
+          path: |
+            ${{ matrix.app.path }}/test-results/
+            ${{ matrix.app.path }}/coverage/
+          if-no-files-found: warn
+      - name: Build web application
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1
+        run: npm run build --prefix ${{ matrix.app.path }} -- --base=${{ matrix.app.base }}
+
+  flutter:
+    name: Flutter analyze, tests, coverage, and web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+      - name: Fetch Flutter dependencies
+        working-directory: apps/user_app
+        run: flutter pub get
+      - name: Analyze Flutter application
+        working-directory: apps/user_app
+        run: flutter analyze
+      - name: Run Flutter tests with coverage
+        working-directory: apps/user_app
+        run: |
+          set -euo pipefail
+          mkdir -p test-results
+          flutter test --coverage --machine > test-results/flutter-test.json
+      - name: Upload Flutter test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-flutter-test-reports
+          path: |
+            apps/user_app/test-results/
+            apps/user_app/coverage/
+          if-no-files-found: warn
+      - name: Build Flutter web
+        working-directory: apps/user_app
+        run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=microservices-ci
+
   service-test:
     name: Test ${{ matrix.service }}
     runs-on: ubuntu-latest
@@ -66,13 +226,15 @@ jobs:
           java-version: "17"
           cache: maven
       - name: Test service and dependencies
-        run: mvn -B -f services/pom.xml -pl "${{ matrix.service }}" -am clean test
+        run: mvn -B -f services/pom.xml -pl "${{ matrix.service }}" -am clean verify
       - name: Upload raw test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports-${{ matrix.service }}
-          path: services/**/target/surefire-reports/
+          path: |
+            services/**/target/surefire-reports/
+            services/**/target/site/
           if-no-files-found: warn
 
   mysql-four-schema-smoke:
@@ -165,15 +327,13 @@ jobs:
       - name: Run cross-service business acceptance smoke
         run: deploy/microservices/acceptance-smoke.sh
       - name: Verify schema ownership and cross-schema denial
-        run: |
-          test "$(mysql -N -h127.0.0.1 -uaituan_identity_svc -pidentity_ci -e 'SELECT COUNT(*) FROM aituan_identity.iam_account')" -gt 0
-          test "$(mysql -N -h127.0.0.1 -uaituan_merchant_svc -pmerchant_ci -e 'SELECT COUNT(*) FROM aituan_merchant.merchant_store')" -gt 0
-          test "$(mysql -N -h127.0.0.1 -uaituan_trade_svc -ptrade_ci -e 'SELECT COUNT(*) FROM aituan_trade.order_main')" -gt 0
-          test "$(mysql -N -h127.0.0.1 -uaituan_platform_svc -pplatform_ci -e 'SELECT COUNT(*) FROM aituan_platform.sys_config')" -gt 0
-          if mysql -h127.0.0.1 -uaituan_identity_svc -pidentity_ci -e 'SELECT COUNT(*) FROM aituan_merchant.merchant_store'; then
-            echo 'identity account unexpectedly accessed merchant schema' >&2
-            exit 1
-          fi
+        env:
+          AITUAN_IDENTITY_DB_PASSWORD: identity_ci
+          AITUAN_MERCHANT_DB_PASSWORD: merchant_ci
+          AITUAN_TRADE_DB_PASSWORD: trade_ci
+          AITUAN_PLATFORM_DB_PASSWORD: platform_ci
+          AITUAN_MYSQL_ROOT_PASSWORD: root_password
+        run: bash scripts/verify/verify_mysql_schema_isolation.sh
       - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
@@ -183,16 +343,22 @@ jobs:
             apps/merchant_web/package-lock.json
             apps/admin_web/package-lock.json
             tests/e2e/package-lock.json
-      - name: Test and build merchant and admin web
+      - name: Verify contracts against live providers
+        env:
+          CONTRACT_SERVICE_TOKEN: ci-internal-token-only-for-ephemeral-run
+        run: >-
+          node tests/contracts/contract-test.mjs --live
+          --provider identity-asset-service=http://127.0.0.1:18081
+          --provider merchant-catalog-service=http://127.0.0.1:18082
+          --output tests/contracts/results/ci-live-contract-report.json
+      - name: Build merchant and admin web for gateway E2E
         env:
           VITE_API_BASE_URL: http://127.0.0.1:8090
         run: |
           set -euo pipefail
           npm ci --prefix apps/merchant_web
-          npm test --prefix apps/merchant_web
           npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/merchant" --emptyOutDir
           npm ci --prefix apps/admin_web
-          npm test --prefix apps/admin_web
           npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/admin" --emptyOutDir
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -200,13 +366,11 @@ jobs:
           flutter-version: "3.41.6"
           channel: stable
           cache: true
-      - name: Analyze, test, and build user Flutter web
+      - name: Build user Flutter web for gateway E2E
         working-directory: apps/user_app
         run: |
           set -euo pipefail
           flutter pub get
-          flutter analyze
-          flutter test --coverage
           flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1:8090 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=microservices-ci --output "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/web"
       - name: Install E2E dependencies and Chromium
         working-directory: tests/e2e
@@ -239,7 +403,7 @@ jobs:
           E2E_API_ORIGIN: http://127.0.0.1:18080
           E2E_WEB_ORIGIN: http://127.0.0.1:8090
         run: npx playwright test
-      - name: Validate production web and MySQL images
+      - name: Prepare production image inputs
         run: |
           set -euo pipefail
           rm -rf deploy/artifacts/landing deploy/artifacts/user-web deploy/artifacts/merchant-web deploy/artifacts/admin-web
@@ -248,8 +412,20 @@ jobs:
           cp -R .aituan-local/microservices-ci/web/web deploy/artifacts/user-web
           cp -R .aituan-local/microservices-ci/web/merchant deploy/artifacts/merchant-web
           cp -R .aituan-local/microservices-ci/web/admin deploy/artifacts/admin-web
-          docker build -f deploy/web/Dockerfile -t aituan/web:ci .
-          docker build -t aituan/mysql:ci deploy/microservices/mysql
+      - name: Upload production web image input
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-ci-production-web-bundle
+          path: deploy/artifacts/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload live contract report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-live-contract-report
+          path: tests/contracts/results/ci-live-contract-report.json
+          if-no-files-found: error
       - name: Upload gateway E2E reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -276,6 +452,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Validate Compose
         run: |
+          bash -n scripts/verify/member_e_regression_checks.sh scripts/verify/verify_mysql_schema_isolation.sh scripts/verify/write_pipeline_raw_report.sh scripts/deploy/sync_k8s_tls.sh
           docker compose -f deploy/docker-compose.microservices.yml config --quiet
           docker compose --env-file deploy/.env.example -f deploy/docker-compose.cicd.yml config --quiet
       - name: Render Kubernetes manifests
@@ -285,7 +462,10 @@ jobs:
           test "$(grep -c '^kind: Deployment$' microservices-k8s-rendered.yaml)" -eq 6
           test "$(grep -c '^kind: Service$' microservices-k8s-rendered.yaml)" -eq 7
           test "$(grep -c '^kind: StatefulSet$' microservices-k8s-rendered.yaml)" -eq 1
+          test "$(grep -c '^kind: PersistentVolume$' microservices-k8s-rendered.yaml)" -eq 1
+          test "$(grep -c '^kind: PersistentVolumeClaim$' microservices-k8s-rendered.yaml)" -eq 2
           test "$(grep -c 'secretName: aituan-app-config' microservices-k8s-rendered.yaml)" -eq 4
+          test "$(grep -c 'sha-placeholder' microservices-k8s-rendered.yaml)" -eq 12
           grep -q 'type: LoadBalancer' microservices-k8s-rendered.yaml
       - uses: actions/upload-artifact@v4
         with:
@@ -293,24 +473,58 @@ jobs:
           path: microservices-k8s-rendered.yaml
 
   docker-build:
-    name: Build image ${{ matrix.service }}
+    name: Build image ${{ matrix.image }}
     runs-on: ubuntu-latest
-    needs: [service-test, mysql-four-schema-smoke, deployment-contract]
+    needs: [static-regression, legacy-backend, contract, web, flutter, service-test, mysql-four-schema-smoke, deployment-contract]
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - api-gateway
-          - identity-asset-service
-          - merchant-catalog-service
-          - trade-fulfillment-service
-          - engagement-platform-service
+        include:
+          - {image: api-gateway, context: ., dockerfile: deploy/microservices/api-gateway/Dockerfile}
+          - {image: identity-asset-service, context: ., dockerfile: deploy/microservices/identity-asset-service/Dockerfile}
+          - {image: merchant-catalog-service, context: ., dockerfile: deploy/microservices/merchant-catalog-service/Dockerfile}
+          - {image: trade-fulfillment-service, context: ., dockerfile: deploy/microservices/trade-fulfillment-service/Dockerfile}
+          - {image: engagement-platform-service, context: ., dockerfile: deploy/microservices/engagement-platform-service/Dockerfile}
+          - {image: mysql, context: deploy/microservices/mysql, dockerfile: deploy/microservices/mysql/Dockerfile}
+          - {image: web, context: ., dockerfile: deploy/web/Dockerfile}
     steps:
       - uses: actions/checkout@v4
+      - name: Download production web image input
+        if: matrix.image == 'web'
+        uses: actions/download-artifact@v4
+        with:
+          name: microservices-ci-production-web-bundle
+          path: deploy/artifacts
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
-          context: .
-          file: deploy/microservices/${{ matrix.service }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: false
-          tags: aituan/${{ matrix.service }}:sha-${{ github.sha }}
+          tags: aituan/${{ matrix.image }}:sha-${{ github.sha }}
+
+  pipeline-raw-report:
+    name: Upload microservice CI pipeline raw report
+    runs-on: ubuntu-latest
+    needs: [static-regression, legacy-backend, contract, web, flutter, service-test, mysql-four-schema-smoke, deployment-contract, docker-build]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/verify/write_pipeline_raw_report.sh
+          sparse-checkout-cone-mode: false
+      - name: Generate raw pipeline report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AITUAN_REPORT_TITLE: aituan-microservices-ci 流水线原始报告
+          AITUAN_JOB_STATUS: static=${{ needs.static-regression.result }}, legacy-backend=${{ needs.legacy-backend.result }}, contract=${{ needs.contract.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, services=${{ needs.service-test.result }}, mysql-e2e=${{ needs.mysql-four-schema-smoke.result }}, deployment-contract=${{ needs.deployment-contract.result }}, images=${{ needs.docker-build.result }}
+        run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/microservices-ci
+      - name: Upload raw pipeline report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aituan-microservices-ci-pipeline-raw-report
+          path: .aituan-report/microservices-ci/
+          if-no-files-found: error
+          retention-days: 30

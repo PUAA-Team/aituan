@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "dataset": "R__seed_demo_data.sql",
+  "dataset": "database/microservices/{identity,merchant,trade,platform}/seeds",
   "contracts": [
     {
       "id": "trade-to-identity-address-snapshot-v1",
@@ -8,7 +8,7 @@
       "provider": "identity-asset-service",
       "request": {
         "method": "GET",
-        "path": "/internal/users/1/addresses/1/snapshot",
+        "path": "/internal/users/5001/addresses/7001/snapshot",
         "requiredHeaders": ["X-Request-Id", "X-Caller-Service", "X-Service-Token"],
         "expectedHeaders": {
           "X-Caller-Service": "trade-fulfillment-service"
@@ -20,8 +20,8 @@
           "code": 0,
           "message": "success",
           "data": {
-            "addressId": 1,
-            "userId": 1,
+            "addressId": 7001,
+            "userId": 5001,
             "contactName": "李同学",
             "contactPhone": "18800001111",
             "province": "北京市",

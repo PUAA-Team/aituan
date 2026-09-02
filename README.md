@@ -589,12 +589,12 @@ seed 同时初始化以下演示数据：
 
 | Workflow | 作用 |
 | --- | --- |
-| `aituan-microservices-ci` | 五个 Java 模块测试、MySQL 8 四 schema 迁移与跨库拒绝、跨服务 smoke、三端单测/分析/构建、UC01–UC13 Playwright、Compose/K8s 合约、五个服务镜像构建。 |
-| `aituan-microservices-deploy` | 再次运行全量质量门，构建五个 Java 镜像、MySQL 初始化镜像和三端 Web 镜像，推送 GHCR，部署 k3s/Compose，等待全部 rollout，验证集群内服务、公网三端和默认用户登录，上传原始报告。 |
+| `aituan-microservices-ci` | 保留旧单体的静态回归、后端 JaCoCo 门禁、MySQL 迁移、Vue/Flutter 覆盖率和 UC01–UC13；另外执行五个微服务 `verify`、四 schema 全部 12 项跨库拒绝与跨 schema FK 检查、跨服务 smoke、离线及真实 Provider 契约、Compose/K8s 合约、7 个生产镜像构建，并始终上传原始报告。 |
+| `aituan-microservices-deploy` | 自动或手动发布都必须先验证同一完整 SHA 的 `aituan-microservices-ci` 已成功，再复跑静态回归、全部 Java `verify`/覆盖率和三端测试，构建并推送 5 个 Java 服务、MySQL、Web 共 7 个 SHA 镜像；当前生产目标为 k3s，部署后核验 7 个实际镜像、5 个服务版本/健康、三端页面、三角色登录和 APK 下载，并上传部署证据与原始报告。 |
 | `aituan-android-apk` | `flutter analyze` + `flutter test` + 生产域名 APK 构建，可选上传到服务器下载目录。 |
 | `aituan-legacy-monolith-deploy-manual` | 仅手动触发的旧单体回滚参考，不再随 main push 自动发布。 |
 
-`KUBE_CONFIG` 保存新服务器 kubeconfig 原文，不做 base64 二次编码；工作流通过 SSH 隧道连接服务器本机的 k3s API，因此云安全组不需要开放 6443。自动生产部署只监听 `main`，且仅当仓库 Variable `AUTO_DEPLOY_PRODUCTION=true` 时执行；手动触发不受该开关影响。
+`KUBE_CONFIG` 保存新服务器 kubeconfig 原文，不做 base64 二次编码；工作流通过 SSH 隧道连接服务器本机的 k3s API，因此云安全组不需要开放 6443。自动生产部署只监听 `main`，且仅当仓库 Variable `AUTO_DEPLOY_PRODUCTION=true` 时执行；手动触发不受该开关影响，但也不能绕过同一 SHA 的完整 CI 成功记录。
 
 Production Environment Secrets：
 
