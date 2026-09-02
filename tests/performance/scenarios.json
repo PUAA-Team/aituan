@@ -1,0 +1,36 @@
+{
+  "dataset": "R__seed_demo_data.sql",
+  "description": "单体与微服务 Gateway 共用的三个只读主要接口场景",
+  "scenarios": [
+    {
+      "name": "discovery-home",
+      "method": "GET",
+      "path": "/api/app/discovery/home?latitude=39.9823&longitude=116.3136",
+      "expectedStatus": 200,
+      "expectedJson": {
+        "path": "$.code",
+        "equals": 0
+      }
+    },
+    {
+      "name": "discovery-recommendations",
+      "method": "GET",
+      "path": "/api/app/discovery/recommendations?page=1&pageSize=12&sort=personalized&latitude=39.9823&longitude=116.3136",
+      "expectedStatus": 200,
+      "expectedJson": {
+        "path": "$.code",
+        "equals": 0
+      }
+    },
+    {
+      "name": "discovery-search",
+      "method": "GET",
+      "path": "/api/app/discovery/stores/search?keyword=%E6%B1%89%E5%A0%A1&page=1&pageSize=12&sort=default",
+      "expectedStatus": 200,
+      "expectedJson": {
+        "path": "$.code",
+        "equals": 0
+      }
+    }
+  ]
+}

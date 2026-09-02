@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "dataset": "R__seed_demo_data.sql",
+  "contracts": [
+    {
+      "id": "trade-to-identity-address-snapshot-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "identity-asset-service",
+      "request": {
+        "method": "GET",
+        "path": "/internal/users/1/addresses/1/snapshot",
+        "requiredHeaders": ["X-Request-Id", "X-Caller-Service", "X-Service-Token"],
+        "expectedHeaders": {
+          "X-Caller-Service": "trade-fulfillment-service"
+        }
+      },
+      "response": {
+        "status": 200,
+        "fixture": {
+          "code": 0,
+          "message": "success",
+          "data": {
+            "addressId": 1,
+            "userId": 1,
+            "contactName": "李同学",
+            "contactPhone": "18800001111",
+            "province": "北京市",
+            "city": "北京市",
+            "district": "海淀区",
+            "detailAddress": "城市广场 A 座 1208",
+            "longitude": 116.3136,
+            "latitude": 39.9823,
+            "deliveryNote": "送到前台"
+          }
+        },
+        "assertions": [
+          { "path": "$.code", "type": "number", "equals": 0 },
+          { "path": "$.data.addressId", "type": "number" },
+          { "path": "$.data.userId", "type": "number" },
+          { "path": "$.data.contactName", "type": "string" },
+          { "path": "$.data.contactPhone", "type": "string" },
+          { "path": "$.data.detailAddress", "type": "string" }
+        ]
+      }
+    },
+    {
+      "id": "trade-to-catalog-store-snapshot-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "merchant-catalog-service",
+      "request": {
+        "method": "GET",
+        "path": "/internal/stores/1/snapshot",
+        "requiredHeaders": ["X-Request-Id", "X-Caller-Service", "X-Service-Token"],
+        "expectedHeaders": {
+          "X-Caller-Service": "trade-fulfillment-service"
+        }
+      },
+      "response": {
+        "status": 200,
+        "fixture": {
+          "code": 0,
+          "message": "success",
+          "data": {
+            "storeId": 1,
+            "merchantId": 1,
+            "accountId": 2,
+            "merchantName": "塔斯汀中国汉堡",
+            "storeName": "塔斯汀中国汉堡",
+            "businessType": "takeaway",
+            "status": "open",
+            "longitude": 116.3136,
+            "latitude": 39.9823
+          }
+        },
+        "assertions": [
+          { "path": "$.code", "type": "number", "equals": 0 },
+          { "path": "$.data.storeId", "type": "number" },
+          { "path": "$.data.merchantId", "type": "number" },
+          { "path": "$.data.storeName", "type": "string" },
+          { "path": "$.data.businessType", "type": "string" },
+          { "path": "$.data.status", "type": "string" }
+        ]
+      }
+    },
+    {
+      "id": "trade-to-catalog-checkout-quote-v1",
+      "consumer": "trade-fulfillment-service",
+      "provider": "merchant-catalog-service",
+      "request": {
+        "method": "POST",
+        "path": "/internal/catalog/checkout-quote",
+        "requiredHeaders": ["Content-Type", "X-Request-Id", "X-Caller-Service", "X-Service-Token"],
+        "expectedHeaders": {
+          "Content-Type": "application/json",
+          "X-Caller-Service": "trade-fulfillment-service"
+        },
+        "body": {
+          "storeId": 1,
+          "items": [
+            { "itemId": 1002, "quantity": 2 }
+          ]
+        },
+        "assertions": [
+          { "path": "$.storeId", "type": "number", "equals": 1 },
+          { "path": "$.items", "type": "array" },
+          { "path": "$.items.0.itemId", "type": "number", "equals": 1002 },
+          { "path": "$.items.0.quantity", "type": "number", "equals": 2 }
+        ]
+      },
+      "response": {
+        "status": 200,
+        "fixture": {
+          "code": 0,
+          "message": "success",
+          "data": {
+            "storeId": 1,
+            "storeName": "塔斯汀中国汉堡",
+            "businessType": "takeaway",
+            "items": [
+              {
+                "itemId": 1002,
+                "skuId": 2,
+                "itemName": "藤椒鸡腿堡",
+                "quantity": 2,
+                "unitPrice": 19.9,
+                "totalPrice": 39.8,
+                "stock": 500,
+                "status": "on_sale"
+              }
+            ],
+            "amount": 39.8
+          }
+        },
+        "assertions": [
+          { "path": "$.code", "type": "number", "equals": 0 },
+          { "path": "$.data.storeId", "type": "number" },
+          { "path": "$.data.items", "type": "array" },
+          { "path": "$.data.items.0.itemId", "type": "number" },
+          { "path": "$.data.items.0.skuId", "type": "number" },
+          { "path": "$.data.items.0.unitPrice", "type": "number" },
+          { "path": "$.data.amount", "type": "number" }
+        ]
+      }
+    }
+  ]
+}
