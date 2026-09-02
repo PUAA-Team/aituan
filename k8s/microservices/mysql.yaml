@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aituan-mysql-init
+  namespace: aituan
+data:
+  00-create-service-databases.sh: |
+    #!/bin/sh
+    set -eu
+    mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
+    CREATE DATABASE IF NOT EXISTS aituan_identity CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    CREATE DATABASE IF NOT EXISTS aituan_merchant CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    CREATE DATABASE IF NOT EXISTS aituan_trade CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    CREATE DATABASE IF NOT EXISTS aituan_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+    CREATE USER IF NOT EXISTS '${IDENTITY_DB_USERNAME}'@'%' IDENTIFIED BY '${IDENTITY_DB_PASSWORD}';
+    CREATE USER IF NOT EXISTS '${MERCHANT_DB_USERNAME}'@'%' IDENTIFIED BY '${MERCHANT_DB_PASSWORD}';
+    CREATE USER IF NOT EXISTS '${TRADE_DB_USERNAME}'@'%' IDENTIFIED BY '${TRADE_DB_PASSWORD}';
+    CREATE USER IF NOT EXISTS '${PLATFORM_DB_USERNAME}'@'%' IDENTIFIED BY '${PLATFORM_DB_PASSWORD}';
+    GRANT ALL PRIVILEGES ON aituan_identity.* TO '${IDENTITY_DB_USERNAME}'@'%';
+    GRANT ALL PRIVILEGES ON aituan_merchant.* TO '${MERCHANT_DB_USERNAME}'@'%';
+    GRANT ALL PRIVILEGES ON aituan_trade.* TO '${TRADE_DB_USERNAME}'@'%';
+    GRANT ALL PRIVILEGES ON aituan_platform.* TO '${PLATFORM_DB_USERNAME}'@'%';
+    FLUSH PRIVILEGES;
+    EOSQL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: aituan
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: mysql
+    app.kubernetes.io/part-of: aituan
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: aituan
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+      app.kubernetes.io/part-of: aituan
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mysql
+        app.kubernetes.io/part-of: aituan
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          args:
+            - --character-set-server=utf8mb4
+            - --collation-server=utf8mb4_0900_ai_ci
+            - --default-time-zone=+08:00
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-mysql-root-secret, key: password}}
+            - name: IDENTITY_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-identity-db-secret, key: username}}
+            - name: IDENTITY_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-identity-db-secret, key: password}}
+            - name: MERCHANT_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-merchant-db-secret, key: username}}
+            - name: MERCHANT_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-merchant-db-secret, key: password}}
+            - name: TRADE_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-trade-db-secret, key: username}}
+            - name: TRADE_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-trade-db-secret, key: password}}
+            - name: PLATFORM_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-platform-db-secret, key: username}}
+            - name: PLATFORM_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-platform-db-secret, key: password}}
+          readinessProbe:
+            exec: {command: [sh, -c, 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent']}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            exec: {command: [sh, -c, 'mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD" --silent']}
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 1, memory: 1Gi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/mysql}
+            - {name: init, mountPath: /docker-entrypoint-initdb.d, readOnly: true}
+      volumes:
+        - name: init
+          configMap:
+            name: aituan-mysql-init
+            defaultMode: 0555
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 5Gi}}

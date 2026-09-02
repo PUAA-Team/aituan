@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:aituan_identity_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration,classpath:db/seed
+
+logging:
+  level:
+    com.aituan: WARN
+
+aituan:
+  upload:
+    strategy: local
+  internal:
+    service-token: test-internal-token
+    audit:
+      enabled: false
+  merchant:
+    default-password: test-default-password

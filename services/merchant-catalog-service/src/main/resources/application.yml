@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: merchant-catalog-service
+  datasource:
+    url: ${MERCHANT_DB_URL:jdbc:h2:mem:aituan_merchant;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1}
+    username: ${MERCHANT_DB_USERNAME:sa}
+    password: ${MERCHANT_DB_PASSWORD:}
+    driver-class-name: ${MERCHANT_DB_DRIVER:org.h2.Driver}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration/merchant,classpath:db/seed/merchant
+    baseline-on-migrate: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
 management:
   endpoints:
@@ -19,3 +32,28 @@ management:
 info:
   app:
     name: ${spring.application.name}
+    port: ${server.port}
+    database: aituan_merchant
+    version: ${AITUAN_SERVICE_VERSION:0.0.1-SNAPSHOT}
+    image-tag: ${AITUAN_IMAGE_TAG:local}
+    active-profile: ${spring.profiles.active:default}
+
+aituan:
+  security:
+    jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
+    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
+  internal:
+    service-token: ${AITUAN_INTERNAL_SERVICE_TOKEN:}
+  services:
+    identity-url: ${IDENTITY_ASSET_SERVICE_URL:http://identity-asset-service:8081}
+    trade-url: ${TRADE_FULFILLMENT_SERVICE_URL:http://trade-fulfillment-service:8083}
+    platform-url: ${ENGAGEMENT_PLATFORM_SERVICE_URL:http://engagement-platform-service:8084}
+  map:
+    provider: ${AITUAN_MAP_PROVIDER:local}
+    amap:
+      web-api-key: ${AMAP_WEB_API_KEY:}
+      geocode-url: ${AMAP_GEOCODE_URL:https://restapi.amap.com/v3/geocode/geo}
+      distance-url: ${AMAP_DISTANCE_URL:https://restapi.amap.com/v3/distance}
+      regeo-url: ${AMAP_REGEO_URL:https://restapi.amap.com/v3/geocode/regeo}
+  file:
+    public-prefix: ${AITUAN_FILE_PUBLIC_PREFIX:/api/common/files}

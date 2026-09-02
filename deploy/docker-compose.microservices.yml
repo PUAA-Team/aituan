@@ -1,0 +1,153 @@
+name: aituan-microservices
+
+x-service-common: &service-common
+  restart: unless-stopped
+  networks: [aituan-microservices]
+  depends_on:
+    mysql:
+      condition: service_healthy
+  environment: &service-environment
+    SPRING_PROFILES_ACTIVE: prod
+    AITUAN_JWT_SECRET: ${AITUAN_JWT_SECRET:-local-only-jwt-secret-change-before-deploying}
+    AITUAN_INTERNAL_SERVICE_TOKEN: ${AITUAN_INTERNAL_SERVICE_TOKEN:-local-only-internal-token-change-before-deploying}
+    JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+    TZ: Asia/Shanghai
+
+services:
+  mysql:
+    build:
+      context: ./microservices/mysql
+      dockerfile: Dockerfile
+    image: aituan/mysql:8.0-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aituan-root-local}
+      IDENTITY_DB_USERNAME: ${IDENTITY_DB_USERNAME:-aituan_identity_svc}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity-local-change-me}
+      MERCHANT_DB_USERNAME: ${MERCHANT_DB_USERNAME:-aituan_merchant_svc}
+      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD:-merchant-local-change-me}
+      TRADE_DB_USERNAME: ${TRADE_DB_USERNAME:-aituan_trade_svc}
+      TRADE_DB_PASSWORD: ${TRADE_DB_PASSWORD:-trade-local-change-me}
+      PLATFORM_DB_USERNAME: ${PLATFORM_DB_USERNAME:-aituan_platform_svc}
+      PLATFORM_DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-platform-local-change-me}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - aituan-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+    networks: [aituan-microservices]
+
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: deploy/microservices/api-gateway/Dockerfile
+    image: aituan/api-gateway:${AITUAN_IMAGE_TAG:-local}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8080
+      IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
+      MERCHANT_CATALOG_SERVICE_URL: http://merchant-catalog-service:8082
+      TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083
+      ENGAGEMENT_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG:-local}
+    ports:
+      - "${GATEWAY_HOST_PORT:-18080}:8080"
+    networks: [aituan-microservices]
+
+  identity-asset-service:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: deploy/microservices/identity-asset-service/Dockerfile
+    image: aituan/identity-asset-service:${AITUAN_IMAGE_TAG:-local}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8081
+      AITUAN_IDENTITY_DB_URL: jdbc:mysql://mysql:3306/aituan_identity?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      AITUAN_IDENTITY_DB_USERNAME: ${IDENTITY_DB_USERNAME:-aituan_identity_svc}
+      AITUAN_IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:-identity-local-change-me}
+      AITUAN_IDENTITY_DB_DRIVER: com.mysql.cj.jdbc.Driver
+      AITUAN_MAIL_DEBUG_RETURN_CODE: ${AITUAN_MAIL_DEBUG_RETURN_CODE:-false}
+      AITUAN_TRADE_SERVICE_URL: http://trade-fulfillment-service:8083
+      AITUAN_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${IDENTITY_HOST_PORT:-18081}:8081"
+
+  merchant-catalog-service:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: deploy/microservices/merchant-catalog-service/Dockerfile
+    image: aituan/merchant-catalog-service:${AITUAN_IMAGE_TAG:-local}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8082
+      MERCHANT_DB_URL: jdbc:mysql://mysql:3306/aituan_merchant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      MERCHANT_DB_USERNAME: ${MERCHANT_DB_USERNAME:-aituan_merchant_svc}
+      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD:-merchant-local-change-me}
+      MERCHANT_DB_DRIVER: com.mysql.cj.jdbc.Driver
+      IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
+      TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083
+      ENGAGEMENT_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${MERCHANT_HOST_PORT:-18082}:8082"
+
+  trade-fulfillment-service:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: deploy/microservices/trade-fulfillment-service/Dockerfile
+    image: aituan/trade-fulfillment-service:${AITUAN_IMAGE_TAG:-local}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8083
+      TRADE_DB_URL: jdbc:mysql://mysql:3306/aituan_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      TRADE_DB_USERNAME: ${TRADE_DB_USERNAME:-aituan_trade_svc}
+      TRADE_DB_PASSWORD: ${TRADE_DB_PASSWORD:-trade-local-change-me}
+      AITUAN_IDENTITY_BASE_URL: http://identity-asset-service:8081
+      AITUAN_MERCHANT_BASE_URL: http://merchant-catalog-service:8082
+      AITUAN_PLATFORM_BASE_URL: http://engagement-platform-service:8084
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${TRADE_HOST_PORT:-18083}:8083"
+
+  engagement-platform-service:
+    <<: *service-common
+    build:
+      context: ..
+      dockerfile: deploy/microservices/engagement-platform-service/Dockerfile
+    image: aituan/engagement-platform-service:${AITUAN_IMAGE_TAG:-local}
+    environment:
+      <<: *service-environment
+      SERVER_PORT: 8084
+      AITUAN_PLATFORM_DATASOURCE_URL: jdbc:mysql://mysql:3306/aituan_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      AITUAN_PLATFORM_DATASOURCE_USERNAME: ${PLATFORM_DB_USERNAME:-aituan_platform_svc}
+      AITUAN_PLATFORM_DATASOURCE_PASSWORD: ${PLATFORM_DB_PASSWORD:-platform-local-change-me}
+      AITUAN_PLATFORM_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+      AITUAN_IDENTITY_BASE_URL: http://identity-asset-service:8081
+      AITUAN_MERCHANT_BASE_URL: http://merchant-catalog-service:8082
+      AITUAN_TRADE_BASE_URL: http://trade-fulfillment-service:8083
+      AITUAN_UPLOAD_ROOT: /data/uploads
+      AITUAN_IMAGE_TAG: ${AITUAN_IMAGE_TAG:-local}
+    ports:
+      - "127.0.0.1:${PLATFORM_HOST_PORT:-18084}:8084"
+    volumes:
+      - platform-uploads:/data/uploads
+
+volumes:
+  aituan-mysql-data:
+  platform-uploads:
+
+networks:
+  aituan-microservices:
+    name: aituan-microservices

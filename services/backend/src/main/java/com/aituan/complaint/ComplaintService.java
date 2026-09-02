@@ -9,6 +9,7 @@ import com.aituan.common.security.CurrentUserContext;
 import com.aituan.message.StationMessagePublisher;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +50,7 @@ class ComplaintService {
   ComplaintDetailView supplement(long id, ComplaintSupplementRequest request) {
     CurrentUser current = requireUser();
     ComplaintRepository.TicketRow row = complaintRepository.findById(id)
-        .filter(r -> r.userId() == current.userId())
+        .filter(r -> Objects.equals(r.userId(), current.userId()))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if ("closed".equals(row.status())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "工单已关闭，不能补充意见");

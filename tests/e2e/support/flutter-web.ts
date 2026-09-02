@@ -15,28 +15,29 @@ export async function enableFlutterSemantics(page: Page) {
 export async function loginViaFlutterWeb(page: Page, account: string, password: string) {
   await page.getByText('登录 / 注册', { exact: false }).first().click({ timeout: 60_000 });
   const accountBox = page.getByRole('textbox', { name: '手机号或邮箱' });
-  await accountBox.click({ timeout: 30_000 });
-  await page.keyboard.type(account, { delay: 20 });
+  await enterFlutterText(accountBox, account);
   const passwordBox = page.getByRole('textbox', { name: '密码' });
-  await passwordBox.click({ timeout: 30_000 });
-  await page.keyboard.type(password, { delay: 30 });
-  await page.waitForTimeout(1500);
+  await enterFlutterText(passwordBox, password);
   const loginButton = page.getByRole('button', { name: '登录' });
   const homeHint = page.getByText('搜索外卖、团购、景点、洗脚', { exact: false }).first();
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const box = await loginButton.boundingBox();
-    if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(800);
-    }
-    if (await homeHint.isVisible().catch(() => false)) return;
-    if (await page.getByRole('textbox', { name: '密码' }).isVisible().catch(() => false)) {
-      const passwordBox = page.getByRole('textbox', { name: '密码' });
-      await passwordBox.press('Tab');
-      await page.waitForTimeout(500);
-    }
-  }
+  const loginResponse = page.waitForResponse(
+    (response) => response.url().includes('/api/open/auth/user/login/password')
+      && response.request().method() === 'POST',
+    { timeout: 30_000 },
+  );
+  await loginButton.click({ timeout: 30_000 });
+  expect((await loginResponse).ok()).toBeTruthy();
   await homeHint.waitFor({ state: 'visible', timeout: 60_000 });
+}
+
+async function enterFlutterText(
+  textbox: ReturnType<Page['getByRole']>,
+  value: string,
+) {
+  await textbox.click({ timeout: 30_000 });
+  await textbox.press('ControlOrMeta+A');
+  await textbox.press('Backspace');
+  await textbox.pressSequentially(value, { delay: 20 });
 }
 
 export async function openUserOrdersPage(page: Page) {

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata: {name: trade-fulfillment-service, namespace: aituan}
+spec:
+  selector: {app.kubernetes.io/name: trade-fulfillment-service, app.kubernetes.io/part-of: aituan}
+  ports: [{name: http, port: 8083, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: trade-fulfillment-service, namespace: aituan}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {app.kubernetes.io/name: trade-fulfillment-service, app.kubernetes.io/part-of: aituan}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: trade-fulfillment-service, app.kubernetes.io/part-of: aituan, app.kubernetes.io/component: trade}
+    spec:
+      imagePullSecrets: [{name: ghcr-pull-secret}]
+      containers:
+        - name: trade-fulfillment-service
+          image: ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-placeholder
+          ports: [{name: http, containerPort: 8083}]
+          envFrom: [{configMapRef: {name: aituan-microservices-config}}]
+          env:
+            - {name: SERVER_PORT, value: "8083"}
+            - {name: TRADE_DB_URL, value: "jdbc:mysql://mysql:3306/aituan_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"}
+            - name: TRADE_DB_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-trade-db-secret, key: username}}
+            - name: TRADE_DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-trade-db-secret, key: password}}
+            - name: AITUAN_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: aituan-service-secret, key: jwt-secret}}
+            - name: AITUAN_INTERNAL_SERVICE_TOKEN
+              valueFrom: {secretKeyRef: {name: aituan-service-secret, key: internal-service-token}}
+            - {name: AITUAN_IDENTITY_BASE_URL, value: http://identity-asset-service:8081}
+            - {name: AITUAN_MERCHANT_BASE_URL, value: http://merchant-catalog-service:8082}
+            - {name: AITUAN_PLATFORM_BASE_URL, value: http://engagement-platform-service:8084}
+            - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
+          startupProbe: &tradeProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
+          readinessProbe: *tradeProbe
+          livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
+          resources:
+            requests: {cpu: 150m, memory: 256Mi}
+            limits: {cpu: 1, memory: 768Mi}

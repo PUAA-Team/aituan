@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aituan
+  labels:
+    app.kubernetes.io/name: aituan
+    app.kubernetes.io/part-of: aituan
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aituan-microservices-config
+  namespace: aituan
+data:
+  SPRING_PROFILES_ACTIVE: prod
+  JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+  TZ: Asia/Shanghai
+  IDENTITY_ASSET_SERVICE_URL: http://identity-asset-service:8081
+  MERCHANT_CATALOG_SERVICE_URL: http://merchant-catalog-service:8082
+  TRADE_FULFILLMENT_SERVICE_URL: http://trade-fulfillment-service:8083
+  ENGAGEMENT_PLATFORM_SERVICE_URL: http://engagement-platform-service:8084

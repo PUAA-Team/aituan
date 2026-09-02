@@ -324,9 +324,21 @@ class _PreviewPanel extends StatelessWidget {
                 SizedBox(height: 6),
                 Text('移动端完整服务', style: TextStyle(color: _muted)),
                 SizedBox(height: 18),
-                _PreviewRow(icon: '🥡', title: '外卖点单', text: '起送、配送、下单闭环'),
-                _PreviewRow(icon: '🎟️', title: '团购券码', text: '预约、核销、售后管理'),
-                _PreviewRow(icon: '⭐', title: '真实评价', text: '评价反馈与客服投诉'),
+                _PreviewRow(
+                  icon: Icons.delivery_dining,
+                  title: '外卖点单',
+                  text: '起送、配送、下单闭环',
+                ),
+                _PreviewRow(
+                  icon: Icons.confirmation_number_outlined,
+                  title: '团购券码',
+                  text: '预约、核销、售后管理',
+                ),
+                _PreviewRow(
+                  icon: Icons.star_outline_rounded,
+                  title: '真实评价',
+                  text: '评价反馈与客服投诉',
+                ),
               ],
             ),
           ),
@@ -339,7 +351,7 @@ class _PreviewPanel extends StatelessWidget {
 class _PreviewRow extends StatelessWidget {
   const _PreviewRow({required this.icon, required this.title, required this.text});
 
-  final String icon;
+  final IconData icon;
   final String title;
   final String text;
 
@@ -356,7 +368,7 @@ class _PreviewRow extends StatelessWidget {
             color: _brandSoft,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Text(icon, style: const TextStyle(fontSize: 21)),
+          child: Icon(icon, color: _brand, size: 22),
         ),
         const SizedBox(width: 10),
         Expanded(

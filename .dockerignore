@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+.vscode
+**/target
+**/node_modules
+**/build
+**/.dart_tool
+**/*.log
+.aituan-local
+deploy/artifacts

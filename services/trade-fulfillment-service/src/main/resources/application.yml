@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: trade-fulfillment-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:demo}
+  datasource:
+    url: ${TRADE_DB_URL:jdbc:mysql://localhost:3306/aituan_trade?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${TRADE_DB_USERNAME:root}
+    password: ${TRADE_DB_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+    clean-disabled: true
+  jackson:
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
 
 management:
   endpoints:
@@ -19,3 +32,23 @@ management:
 info:
   app:
     name: ${spring.application.name}
+    version: ${AITUAN_SERVICE_VERSION:0.0.1-SNAPSHOT}
+    image-tag: ${AITUAN_IMAGE_TAG:local}
+    active-profile: ${spring.profiles.active:default}
+
+aituan:
+  internal:
+    service-token: ${AITUAN_INTERNAL_SERVICE_TOKEN:}
+  clients:
+    connect-timeout-ms: ${AITUAN_CLIENT_CONNECT_TIMEOUT_MS:1000}
+    read-timeout-ms: ${AITUAN_CLIENT_READ_TIMEOUT_MS:2000}
+    identity-base-url: ${AITUAN_IDENTITY_BASE_URL:http://localhost:8081}
+    merchant-base-url: ${AITUAN_MERCHANT_BASE_URL:http://localhost:8082}
+    platform-base-url: ${AITUAN_PLATFORM_BASE_URL:http://localhost:8084}
+  security:
+    jwt-secret: ${AITUAN_JWT_SECRET:aituan-demo-secret-change-me}
+    jwt-ttl-seconds: ${AITUAN_JWT_TTL_SECONDS:2592000}
+  trade:
+    delivery-scheduler:
+      enabled: ${AITUAN_TRADE_DELIVERY_SCHEDULER_ENABLED:false}
+    delivery-tick-ms: ${AITUAN_TRADE_DELIVERY_TICK_MS:120000}

@@ -4,6 +4,31 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:2000}
+        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:30s}
+      default-filters:
+        - RemoveRequestHeader=X-Service-Token
+        - RemoveRequestHeader=X-Caller-Service
+      routes:
+        - id: identity-public
+          uri: ${IDENTITY_ASSET_SERVICE_URL:http://identity-asset-service:8081}
+          predicates:
+            - Path=/api/open/auth/**,/api/app/account/**,/api/app/message/**,/api/app/messages/**,/api/admin/account/profile,/api/admin/users,/api/admin/users/**,/api/admin/operation/member-levels,/api/admin/operation/member-levels/**,/api/admin/operation/coupon-templates,/api/admin/operation/coupon-templates/**
+        - id: merchant-public
+          uri: ${MERCHANT_CATALOG_SERVICE_URL:http://merchant-catalog-service:8082}
+          predicates:
+            - Path=/api/open/merchant/**,/api/app/discovery/**,/api/app/location/**,/api/merchant/catalog/**,/api/merchant/profile/**,/api/merchant/stores/**,/api/merchant/certification/**,/api/merchant/ops/dashboard,/api/merchant/trade/stores/**,/api/admin/merchants,/api/admin/merchants/**,/api/admin/stores,/api/admin/stores/**,/api/admin/catalog/**,/api/admin/trade/stores/**
+        - id: trade-public
+          uri: ${TRADE_FULFILLMENT_SERVICE_URL:http://trade-fulfillment-service:8083}
+          predicates:
+            - Path=/api/app/trade/**,/api/merchant/trade/orders,/api/merchant/trade/orders/**,/api/merchant/trade/bookings,/api/merchant/trade/bookings/**,/api/merchant/trade/vouchers,/api/merchant/trade/vouchers/**,/api/admin/trade/orders,/api/admin/trade/orders/**,/api/admin/trade/bookings,/api/admin/trade/bookings/**,/api/admin/trade/vouchers,/api/admin/trade/vouchers/**,/api/admin/delivery/tasks,/api/admin/delivery/tasks/**
+        - id: engagement-public
+          uri: ${ENGAGEMENT_PLATFORM_SERVICE_URL:http://engagement-platform-service:8084}
+          predicates:
+            - Path=/api/app/interaction/**,/api/app/complaints/**,/api/app/support/**,/api/app/ai/**,/api/common/files/**,/api/common/demo-images/**,/api/merchant/ops/complaints,/api/merchant/ops/complaints/**,/api/merchant/ops/reviews,/api/merchant/ops/reviews/**,/api/merchant/ops/sessions,/api/merchant/ops/sessions/**,/api/admin/governance/**,/api/admin/announcements,/api/admin/announcements/**,/api/admin/audit-logs,/api/admin/configs,/api/admin/configs/**,/api/admin/dashboard,/api/admin/delivery/settings
 
 management:
   endpoints:
@@ -19,3 +44,6 @@ management:
 info:
   app:
     name: ${spring.application.name}
+    version: ${AITUAN_SERVICE_VERSION:0.0.1-SNAPSHOT}
+    image-tag: ${AITUAN_IMAGE_TAG:local}
+    active-profile: ${spring.profiles.active:default}

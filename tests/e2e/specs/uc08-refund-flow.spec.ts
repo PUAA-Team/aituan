@@ -37,7 +37,7 @@ test.describe('UC08 取消与退款闭环', () => {
     const beforeItem = beforeItems.find((item) => item.id === 2002);
     expect(beforeItem).toBeDefined();
 
-    const created = await createServiceOrder(api, user.token, marker, { couponId: 9002 });
+    const created = await createServiceOrder(api, user.token, marker, { couponId: 8001 });
     const paid = await payOrder(api, user.token, created.id);
     const booking = await createBooking(api, user.token, created.id);
 
@@ -66,8 +66,8 @@ test.describe('UC08 取消与退款闭环', () => {
       token: user.token,
       params: { status: 'usable' },
     });
-    expect(usableCoupons).toContainEqual(expect.objectContaining({ id: 9002, status: 'unused' }));
-    expect(usableCoupons.find((coupon) => coupon.id === 9002)?.usedOrderId).toBeFalsy();
+    expect(usableCoupons).toContainEqual(expect.objectContaining({ id: 8001, status: 'unused' }));
+    expect(usableCoupons.find((coupon) => coupon.id === 8001)?.usedOrderId).toBeFalsy();
 
     const afterItems = await api.get<CatalogItem[]>('/api/merchant/catalog/items', {
       token: merchant.token,

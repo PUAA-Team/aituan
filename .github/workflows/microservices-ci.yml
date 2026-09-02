@@ -1,0 +1,286 @@
+name: aituan-microservices-ci
+
+on:
+  pull_request:
+    paths:
+      - services/**
+      - database/microservices/**
+      - deploy/microservices/**
+      - deploy/docker-compose.microservices.yml
+      - k8s/microservices/**
+      - apps/admin_web/**
+      - apps/merchant_web/**
+      - apps/user_app/**
+      - tests/e2e/**
+      - .github/workflows/microservices-*.yml
+  push:
+    branches: [main, microservices-main]
+    paths:
+      - services/**
+      - database/microservices/**
+      - deploy/microservices/**
+      - deploy/docker-compose.microservices.yml
+      - k8s/microservices/**
+      - apps/admin_web/**
+      - apps/merchant_web/**
+      - apps/user_app/**
+      - tests/e2e/**
+      - .github/workflows/microservices-*.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: microservices-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  service-test:
+    name: Test ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - identity-asset-service
+          - merchant-catalog-service
+          - trade-fulfillment-service
+          - engagement-platform-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Test service and dependencies
+        run: mvn -B -f services/pom.xml -pl "${{ matrix.service }}" -am clean test
+      - name: Upload raw test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.service }}
+          path: services/**/target/surefire-reports/
+          if-no-files-found: warn
+
+  mysql-four-schema-smoke:
+    name: MySQL 8 four-schema migration, isolation and gateway E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: service-test
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_password --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=24
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Create isolated schemas and accounts
+        run: |
+          mysql -h127.0.0.1 -uroot -proot_password <<'SQL'
+          CREATE DATABASE aituan_identity CHARACTER SET utf8mb4;
+          CREATE DATABASE aituan_merchant CHARACTER SET utf8mb4;
+          CREATE DATABASE aituan_trade CHARACTER SET utf8mb4;
+          CREATE DATABASE aituan_platform CHARACTER SET utf8mb4;
+          CREATE USER 'aituan_identity_svc'@'%' IDENTIFIED BY 'identity_ci';
+          CREATE USER 'aituan_merchant_svc'@'%' IDENTIFIED BY 'merchant_ci';
+          CREATE USER 'aituan_trade_svc'@'%' IDENTIFIED BY 'trade_ci';
+          CREATE USER 'aituan_platform_svc'@'%' IDENTIFIED BY 'platform_ci';
+          GRANT ALL ON aituan_identity.* TO 'aituan_identity_svc'@'%';
+          GRANT ALL ON aituan_merchant.* TO 'aituan_merchant_svc'@'%';
+          GRANT ALL ON aituan_trade.* TO 'aituan_trade_svc'@'%';
+          GRANT ALL ON aituan_platform.* TO 'aituan_platform_svc'@'%';
+          SQL
+      - name: Package all five services
+        run: mvn -B -f services/pom.xml -DskipTests package
+      - name: Start four services against their own MySQL schemas
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+          AITUAN_JWT_SECRET: ci-jwt-secret-only-for-ephemeral-run
+          AITUAN_INTERNAL_SERVICE_TOKEN: ci-internal-token-only-for-ephemeral-run
+          AITUAN_IDENTITY_DB_URL: jdbc:mysql://127.0.0.1:3306/aituan_identity?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          AITUAN_IDENTITY_DB_USERNAME: aituan_identity_svc
+          AITUAN_IDENTITY_DB_PASSWORD: identity_ci
+          AITUAN_IDENTITY_DB_DRIVER: com.mysql.cj.jdbc.Driver
+          MERCHANT_DB_URL: jdbc:mysql://127.0.0.1:3306/aituan_merchant?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          MERCHANT_DB_USERNAME: aituan_merchant_svc
+          MERCHANT_DB_PASSWORD: merchant_ci
+          MERCHANT_DB_DRIVER: com.mysql.cj.jdbc.Driver
+          TRADE_DB_URL: jdbc:mysql://127.0.0.1:3306/aituan_trade?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          TRADE_DB_USERNAME: aituan_trade_svc
+          TRADE_DB_PASSWORD: trade_ci
+          AITUAN_PLATFORM_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/aituan_platform?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+          AITUAN_PLATFORM_DATASOURCE_USERNAME: aituan_platform_svc
+          AITUAN_PLATFORM_DATASOURCE_PASSWORD: platform_ci
+          AITUAN_PLATFORM_DATASOURCE_DRIVER: com.mysql.cj.jdbc.Driver
+          AITUAN_IDENTITY_BASE_URL: http://127.0.0.1:18081
+          AITUAN_MERCHANT_BASE_URL: http://127.0.0.1:18082
+          AITUAN_TRADE_BASE_URL: http://127.0.0.1:18083
+          AITUAN_PLATFORM_BASE_URL: http://127.0.0.1:18084
+          AITUAN_TRADE_SERVICE_URL: http://127.0.0.1:18083
+          AITUAN_PLATFORM_SERVICE_URL: http://127.0.0.1:18084
+          IDENTITY_ASSET_SERVICE_URL: http://127.0.0.1:18081
+          MERCHANT_CATALOG_SERVICE_URL: http://127.0.0.1:18082
+          TRADE_FULFILLMENT_SERVICE_URL: http://127.0.0.1:18083
+          ENGAGEMENT_PLATFORM_SERVICE_URL: http://127.0.0.1:18084
+          AITUAN_MAIL_DEBUG_RETURN_CODE: "true"
+        run: |
+          mkdir -p .aituan-local/microservices-ci
+          java -jar services/api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar --server.port=18080 > .aituan-local/microservices-ci/gateway.log 2>&1 &
+          java -jar services/identity-asset-service/target/identity-asset-service-0.0.1-SNAPSHOT.jar --server.port=18081 > .aituan-local/microservices-ci/identity.log 2>&1 &
+          java -jar services/merchant-catalog-service/target/merchant-catalog-service-0.0.1-SNAPSHOT.jar --server.port=18082 > .aituan-local/microservices-ci/merchant.log 2>&1 &
+          java -jar services/trade-fulfillment-service/target/trade-fulfillment-service-0.0.1-SNAPSHOT.jar --server.port=18083 > .aituan-local/microservices-ci/trade.log 2>&1 &
+          java -jar services/engagement-platform-service/target/engagement-platform-service.jar --server.port=18084 > .aituan-local/microservices-ci/platform.log 2>&1 &
+          for port in 18080 18081 18082 18083 18084; do
+            for attempt in $(seq 1 60); do
+              curl -fsS "http://127.0.0.1:${port}/actuator/health" && break
+              if [[ "${attempt}" == 60 ]]; then
+                echo "service on ${port} failed to become healthy" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+      - name: Run cross-service business acceptance smoke
+        run: deploy/microservices/acceptance-smoke.sh
+      - name: Verify schema ownership and cross-schema denial
+        run: |
+          test "$(mysql -N -h127.0.0.1 -uaituan_identity_svc -pidentity_ci -e 'SELECT COUNT(*) FROM aituan_identity.iam_account')" -gt 0
+          test "$(mysql -N -h127.0.0.1 -uaituan_merchant_svc -pmerchant_ci -e 'SELECT COUNT(*) FROM aituan_merchant.merchant_store')" -gt 0
+          test "$(mysql -N -h127.0.0.1 -uaituan_trade_svc -ptrade_ci -e 'SELECT COUNT(*) FROM aituan_trade.order_main')" -gt 0
+          test "$(mysql -N -h127.0.0.1 -uaituan_platform_svc -pplatform_ci -e 'SELECT COUNT(*) FROM aituan_platform.sys_config')" -gt 0
+          if mysql -h127.0.0.1 -uaituan_identity_svc -pidentity_ci -e 'SELECT COUNT(*) FROM aituan_merchant.merchant_store'; then
+            echo 'identity account unexpectedly accessed merchant schema' >&2
+            exit 1
+          fi
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            apps/merchant_web/package-lock.json
+            apps/admin_web/package-lock.json
+            tests/e2e/package-lock.json
+      - name: Build merchant and admin web
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8090
+        run: |
+          set -euo pipefail
+          npm ci --prefix apps/merchant_web
+          npm run build --prefix apps/merchant_web -- --base=/merchant/ --outDir "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/merchant" --emptyOutDir
+          npm ci --prefix apps/admin_web
+          npm run build --prefix apps/admin_web -- --base=/admin/ --outDir "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/admin" --emptyOutDir
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.41.6"
+          channel: stable
+          cache: true
+      - name: Build user Flutter web
+        working-directory: apps/user_app
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1:8090 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=microservices-ci --output "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/web/web"
+      - name: Install E2E dependencies and Chromium
+        working-directory: tests/e2e
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:18080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+          E2E_ARTIFACTS_ROOT: ${{ github.workspace }}/.aituan-local/microservices-ci/web
+        run: |
+          set -euo pipefail
+          node scripts/static-server.mjs > "$GITHUB_WORKSPACE/.aituan-local/microservices-ci/static-server.log" 2>&1 &
+          for path in web merchant admin; do
+            for attempt in $(seq 1 30); do
+              curl -fsS "http://127.0.0.1:8090/${path}/" > /dev/null && break
+              if [[ "${attempt}" == 30 ]]; then
+                echo "${path} frontend failed to become ready" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+      - name: Run gateway-backed E2E scenarios
+        working-directory: tests/e2e
+        env:
+          E2E_API_ORIGIN: http://127.0.0.1:18080
+          E2E_WEB_ORIGIN: http://127.0.0.1:8090
+        run: npx playwright test
+      - name: Upload gateway E2E reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-gateway-e2e-reports
+          path: |
+            tests/e2e/playwright-report/
+            tests/e2e/test-results/
+          if-no-files-found: warn
+      - name: Upload startup and migration logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mysql-four-schema-smoke-logs
+          path: .aituan-local/microservices-ci/*.log
+          if-no-files-found: warn
+
+  deployment-contract:
+    name: Compose and Kubernetes contract
+    runs-on: ubuntu-latest
+    needs: service-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Validate Compose
+        run: docker compose -f deploy/docker-compose.microservices.yml config --quiet
+      - name: Render Kubernetes manifests
+        run: kubectl kustomize k8s/microservices > microservices-k8s-rendered.yaml
+      - name: Assert five deployable services
+        run: |
+          test "$(grep -c '^kind: Deployment$' microservices-k8s-rendered.yaml)" -eq 5
+          test "$(grep -c '^kind: Service$' microservices-k8s-rendered.yaml)" -eq 6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rendered-microservices-k8s
+          path: microservices-k8s-rendered.yaml
+
+  docker-build:
+    name: Build image ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [service-test, mysql-four-schema-smoke, deployment-contract]
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - identity-asset-service
+          - merchant-catalog-service
+          - trade-fulfillment-service
+          - engagement-platform-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/microservices/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: aituan/${{ matrix.service }}:sha-${{ github.sha }}

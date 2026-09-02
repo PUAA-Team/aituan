@@ -9,6 +9,7 @@ import com.aituan.common.security.CurrentUserContext;
 import com.aituan.message.StationMessagePublisher;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,7 +89,7 @@ class SupportService {
   SupportMessageView userSendMessage(long sessionId, SupportMessageCreateRequest request) {
     CurrentUser current = requireUser();
     SupportRepository.SessionRow row = supportRepository.findById(sessionId)
-        .filter(r -> r.userId() == current.userId())
+        .filter(r -> Objects.equals(r.userId(), current.userId()))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!"open".equals(row.status())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
@@ -110,7 +111,7 @@ class SupportService {
   SupportSessionView userHandoffToHuman(long sessionId) {
     CurrentUser current = requireUser();
     SupportRepository.SessionRow row = supportRepository.findById(sessionId)
-        .filter(r -> r.userId() == current.userId())
+        .filter(r -> Objects.equals(r.userId(), current.userId()))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!"open".equals(row.status())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
@@ -128,7 +129,7 @@ class SupportService {
   SupportSessionView userRequestPlatformIntervention(long sessionId) {
     CurrentUser current = requireUser();
     SupportRepository.SessionRow row = supportRepository.findById(sessionId)
-        .filter(r -> r.userId() == current.userId())
+        .filter(r -> Objects.equals(r.userId(), current.userId()))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if (!"open".equals(row.status())) {
       throw new BusinessException(ErrorCode.ORDER_STATE_INVALID, "会话已关闭");
@@ -151,7 +152,7 @@ class SupportService {
   SupportSessionView userCloseSession(long sessionId, SupportSessionCloseRequest request) {
     CurrentUser current = requireUser();
     SupportRepository.SessionRow row = supportRepository.findById(sessionId)
-        .filter(r -> r.userId() == current.userId())
+        .filter(r -> Objects.equals(r.userId(), current.userId()))
         .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
     if ("closed".equals(row.status())) {
       return toSessionView(row, "user");

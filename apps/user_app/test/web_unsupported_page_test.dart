@@ -20,6 +20,9 @@ void main() {
       find.text('备用下载地址：/downloads/aituan-user-server-debug.apk'),
       findsOneWidget,
     );
+    expect(find.byIcon(Icons.delivery_dining), findsOneWidget);
+    expect(find.byIcon(Icons.confirmation_number_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
 
     await tester.tap(find.text('下载 Android APK'));
     expect(opened, contains(AituanUnsupportedWebApp.apkDownloadPath));

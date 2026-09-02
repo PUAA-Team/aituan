@@ -89,7 +89,7 @@ test.describe('UC11 客服、AI 与平台介入闭环', () => {
 
     const session = await api.post<SupportSession>('/api/app/support/sessions', {
       token: user.token,
-      data: { storeId: 1, topic: marker, relatedOrderId: 9011 },
+      data: { storeId: 1, topic: marker, relatedOrderId: 9001 },
     });
     await api.post<SupportMessage>(`/api/app/support/sessions/${session.id}/messages`, {
       token: user.token,

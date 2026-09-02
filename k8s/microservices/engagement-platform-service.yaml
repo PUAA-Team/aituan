@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata: {name: engagement-platform-service, namespace: aituan}
+spec:
+  selector: {app.kubernetes.io/name: engagement-platform-service, app.kubernetes.io/part-of: aituan}
+  ports: [{name: http, port: 8084, targetPort: http}]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: engagement-platform-uploads, namespace: aituan}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: engagement-platform-service, namespace: aituan}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {app.kubernetes.io/name: engagement-platform-service, app.kubernetes.io/part-of: aituan}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: engagement-platform-service, app.kubernetes.io/part-of: aituan, app.kubernetes.io/component: platform}
+    spec:
+      imagePullSecrets: [{name: ghcr-pull-secret}]
+      containers:
+        - name: engagement-platform-service
+          image: ghcr.io/puaa-team/aituan/engagement-platform-service:sha-placeholder
+          ports: [{name: http, containerPort: 8084}]
+          envFrom: [{configMapRef: {name: aituan-microservices-config}}]
+          env:
+            - {name: SERVER_PORT, value: "8084"}
+            - {name: AITUAN_PLATFORM_DATASOURCE_URL, value: "jdbc:mysql://mysql:3306/aituan_platform?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"}
+            - {name: AITUAN_PLATFORM_DATASOURCE_DRIVER, value: com.mysql.cj.jdbc.Driver}
+            - name: AITUAN_PLATFORM_DATASOURCE_USERNAME
+              valueFrom: {secretKeyRef: {name: aituan-platform-db-secret, key: username}}
+            - name: AITUAN_PLATFORM_DATASOURCE_PASSWORD
+              valueFrom: {secretKeyRef: {name: aituan-platform-db-secret, key: password}}
+            - name: AITUAN_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: aituan-service-secret, key: jwt-secret}}
+            - name: AITUAN_INTERNAL_SERVICE_TOKEN
+              valueFrom: {secretKeyRef: {name: aituan-service-secret, key: internal-service-token}}
+            - {name: AITUAN_IDENTITY_BASE_URL, value: http://identity-asset-service:8081}
+            - {name: AITUAN_MERCHANT_BASE_URL, value: http://merchant-catalog-service:8082}
+            - {name: AITUAN_TRADE_BASE_URL, value: http://trade-fulfillment-service:8083}
+            - {name: AITUAN_UPLOAD_ROOT, value: /data/uploads}
+            - {name: AITUAN_IMAGE_TAG, value: sha-placeholder}
+          startupProbe: &platformProbe {httpGet: {path: /actuator/health, port: http}, failureThreshold: 30, periodSeconds: 5}
+          readinessProbe: *platformProbe
+          livenessProbe: {httpGet: {path: /actuator/health, port: http}, initialDelaySeconds: 45, periodSeconds: 20}
+          resources:
+            requests: {cpu: 150m, memory: 256Mi}
+            limits: {cpu: 1, memory: 768Mi}
+          volumeMounts: [{name: uploads, mountPath: /data/uploads}]
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: {claimName: engagement-platform-uploads}

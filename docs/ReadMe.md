@@ -206,6 +206,8 @@
 
 `./docs/stage-new-3/第二阶段微服务集成准备说明.md`
 
+`./docs/stage-new-3/ABCD微服务完整合拢计划与验收报告.md`
+
 `./docs/stage-new-3/小学期后续看板任务项.md`
 
 ### 11. 期末展示文档
