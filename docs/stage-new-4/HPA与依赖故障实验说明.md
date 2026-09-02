@@ -19,7 +19,7 @@
 
 扩容立即计算，可按 15 秒周期增加 100% 或 2 个 Pod；降容设置 120 秒稳定窗口并分批下降，避免流量抖动造成频繁伸缩。CD 在每次生产部署后检查 HPA 数量、目标绑定和 CPU 指标，不允许“清单存在但 metrics-server 不工作”。
 
-四个业务服务的 Hikari 连接池按 Pod 限制为最大 5、最小空闲 1。即使 A/B/C/D 同时扩到 4 Pod，业务连接池理论上限仍为 80，低于 MySQL 默认连接上限。存活探针使用不含外部依赖的 `/actuator/health/liveness`；数据库或下游拥塞会使完整健康/就绪检查失败并停止接收新流量，但不会引发容器重启风暴。
+四个业务服务的 Hikari 连接池按 Pod 限制为最大 4、最小空闲 1。即使 A/B/C/D 同时扩到 4 Pod，业务连接池理论上限仍为 64，低于生产 MySQL 配置的 80 个连接并保留管理余量。业务 Pod 的初始化容器先等待 MySQL 端口可用，解决 MySQL 与应用同时滚动时的启动时序问题。存活探针使用不含外部依赖的 `/actuator/health/liveness`；数据库或下游拥塞会使完整健康/就绪检查失败并停止接收新流量，但不会引发容器重启风暴。
 
 `scripts/experiments/hpa-load.mjs` 按相同比例请求 A 用户资料、B 首页、C 订单列表和 D 门店评价，所有请求均经 Gateway。`scripts/experiments/run_hpa_experiment.sh` 在集群内创建临时 Node Job，并同步采集 HPA 副本、Pod CPU/内存、节点配置和 Kubernetes 事件。
 

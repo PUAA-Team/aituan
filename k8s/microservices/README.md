@@ -51,7 +51,7 @@ kubectl -n aituan get pods,svc,hpa,pvc
 curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
-资源请求仍保持课程验收所需的轻量配置；4C16G 单节点有充足余量。Gateway 与四个 Java 服务默认 `-Xmx256m`，MySQL buffer pool 为 128 MiB。四个业务服务的 Hikari 连接池按 Pod 限制为最大 5、最小空闲 1；即使四个服务同时扩至 4 Pod，业务连接池理论上限也为 80，不会越过 MySQL 默认连接上限。存活探针只检查进程自身的 `liveness` 状态，数据库或下游短暂故障不会触发容器重启；启动和就绪探针仍检查完整健康状态。
+资源请求仍保持课程验收所需的轻量配置；4C16G 单节点有充足余量。Gateway 与四个 Java 服务默认 `-Xmx256m`，MySQL buffer pool 为 128 MiB。四个业务服务的 Hikari 连接池按 Pod 限制为最大 4、最小空闲 1；即使四个服务同时扩至 4 Pod，业务连接池理论上限也为 64，低于 MySQL 配置的 80 个连接并保留管理余量。业务 Pod 的初始化容器会先等待 MySQL 端口可用，避免数据库同时滚动时应用容器无意义重启。存活探针只检查进程自身的 `liveness` 状态，数据库或下游短暂故障不会触发容器重启；启动和就绪探针仍检查完整健康状态。
 
 Gateway 与 A/B/C/D 五个 Java Deployment 均启用 `autoscaling/v2` HPA：CPU 目标 50%，最少 1、最多 4 个 Pod，扩容无稳定窗口，降容稳定窗口 120 秒。HPA 使用率以 Deployment 中的 CPU request 为分母，因此不可删除各服务的 `resources.requests.cpu`。生产实压与自动恢复实验使用：
 

@@ -471,7 +471,8 @@ jobs:
           test "$(grep -c 'secretName: aituan-app-config' microservices-k8s-rendered.yaml)" -eq 4
           test "$(grep -c 'sha-placeholder' microservices-k8s-rendered.yaml)" -eq 12
           test "$(grep -c 'path: /actuator/health/liveness' microservices-k8s-rendered.yaml)" -eq 5
-          grep -q 'SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: "5"' microservices-k8s-rendered.yaml
+          test "$(grep -c 'name: wait-for-mysql' microservices-k8s-rendered.yaml)" -eq 4
+          grep -q 'SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: "4"' microservices-k8s-rendered.yaml
           grep -q 'SPRING_DATASOURCE_HIKARI_MINIMUMIDLE: "1"' microservices-k8s-rendered.yaml
           grep -q 'SPRING_DATASOURCE_HIKARI_CONNECTIONTIMEOUT: "3000"' microservices-k8s-rendered.yaml
           grep -q 'type: LoadBalancer' microservices-k8s-rendered.yaml

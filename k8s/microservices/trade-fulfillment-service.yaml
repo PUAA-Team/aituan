@@ -18,6 +18,13 @@ spec:
       labels: {app.kubernetes.io/name: trade-fulfillment-service, app.kubernetes.io/part-of: aituan, app.kubernetes.io/component: trade}
     spec:
       imagePullSecrets: [{name: ghcr-pull-secret}]
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36.1
+          command: [sh, -ec, "until nc -z -w 2 mysql 3306; do sleep 2; done"]
+          resources:
+            requests: {cpu: 5m, memory: 8Mi}
+            limits: {cpu: 50m, memory: 32Mi}
       containers:
         - name: trade-fulfillment-service
           image: ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-placeholder
