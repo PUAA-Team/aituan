@@ -594,11 +594,20 @@ seed 同时初始化以下演示数据：
 | `aituan-android-apk` | `flutter analyze` + `flutter test` + 生产域名 APK 构建，可选上传到服务器下载目录。 |
 | `aituan-legacy-monolith-deploy-manual` | 仅手动触发的旧单体回滚参考，不再随 main push 自动发布。 |
 
-`KUBE_CONFIG` 保存 kubeconfig 原文，不做 base64 二次编码。Production Secrets 沿用 `KUBE_CONFIG`、`K8S_MYSQL_PASSWORD`、`K8S_MYSQL_ROOT_PASSWORD`、`K8S_APP_CONFIG`、`GHCR_PULL_USERNAME`、`GHCR_PULL_TOKEN`；Compose/APK 回退链路另使用原有 SSH Secrets。
+`KUBE_CONFIG` 保存新服务器 kubeconfig 原文，不做 base64 二次编码；工作流通过 SSH 隧道连接服务器本机的 k3s API，因此云安全组不需要开放 6443。自动生产部署只监听 `main`，且仅当仓库 Variable `AUTO_DEPLOY_PRODUCTION=true` 时执行；手动触发不受该开关影响。
+
+Production Environment Secrets：
+
+- `KUBE_CONFIG`、`K8S_MYSQL_ROOT_PASSWORD`、`K8S_APP_CONFIG`；
+- `K8S_IDENTITY_DB_PASSWORD`、`K8S_MERCHANT_DB_PASSWORD`、`K8S_TRADE_DB_PASSWORD`、`K8S_PLATFORM_DB_PASSWORD`，四者必须不同；
+- `GHCR_PULL_USERNAME`、`GHCR_PULL_TOKEN`；
+- `SERVER_HOST`、`SERVER_PORT`、`SERVER_USER`、`SERVER_SSH_KEY`、`SERVER_KNOWN_HOSTS`，供 k3s SSH 隧道、Compose 回退和 APK 上传共用。
+
+Repository Variables：`SERVER_ORIGIN=https://aituan.2b.gs`、`AUTO_DEPLOY_PRODUCTION=true`、`DEPLOY_TARGET=k8s`、`K8S_NAMESPACE=aituan`、`SERVER_APP_DIR=/opt/aituan/app`。
 
 ### 9.2 服务器部署与检查
 
-Actions 会在首次微服务发布时识别并移除旧 `aituan-backend`、旧 Web Service/Deployment 和可丢弃的旧 MySQL PVC，保留 TLS Secret、GHCR 拉取 Secret 和 APK 下载 PVC。后续发布只更新 SHA 镜像。
+Actions 会在首次微服务发布时识别并移除旧 `aituan-backend`、旧 Web Service/Deployment 和可丢弃的旧 MySQL PVC，保留 TLS Secret、GHCR 拉取 Secret 和 APK 下载卷。`aituan-downloads` 绑定服务器 `/opt/aituan/data/downloads`，与 APK SSH 上传目录一致。后续发布使用同一完整提交 SHA 的 7 个镜像。
 
 ```bash
 kubectl -n aituan get pods,svc,hpa,pvc
@@ -609,7 +618,9 @@ done
 curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
-手动部署时，准备好 K8s Secrets 后执行 `kubectl apply -k k8s/microservices`，再把 5 个后端 Deployment 和 `aituan-web` 固定到同一个 `sha-<完整提交号>` 镜像。生产拓扑细节见 `k8s/microservices/README.md`。
+手动部署时必须先渲染并替换清单中的全部 `sha-placeholder`，然后一次性 apply；不能把带占位镜像的 Kustomize 输出直接作为最终状态。生产拓扑细节见 `k8s/microservices/README.md`。
+
+域名 A 记录尚未指向服务器时，可先用自签名 `aituan-tls` 完成 `curl -k --resolve` 验证。A 记录切换后，通过 `/var/www/certbot` 申请正式证书，再运行 `scripts/deploy/sync_k8s_tls.sh`；同一脚本应安装为 Certbot deploy hook，以便续期后自动更新 K8s Secret。
 
 ### 9.3 Docker Compose 回退
 

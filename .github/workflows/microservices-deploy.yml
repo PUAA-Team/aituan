@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: [aituan-microservices-ci]
     types: [completed]
-    branches: [main, microservices-main, integration/microservices-acceptance]
+    branches: [main]
   workflow_dispatch:
     inputs:
       deploy:
@@ -60,6 +60,9 @@ jobs:
           image_namespace="${GITHUB_REPOSITORY,,}"
           deploy_target="${{ github.event_name == 'workflow_dispatch' && inputs.deploy_target || vars.DEPLOY_TARGET || 'k8s' }}"
           should_deploy=true
+          if [[ "${GITHUB_EVENT_NAME}" == workflow_run && "${{ vars.AUTO_DEPLOY_PRODUCTION }}" != true ]]; then
+            should_deploy=false
+          fi
           if [[ "${GITHUB_EVENT_NAME}" == workflow_dispatch && "${{ inputs.deploy }}" != true ]]; then
             should_deploy=false
           fi
@@ -210,17 +213,47 @@ jobs:
         shell: bash
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
           test -n "${KUBE_CONFIG_DATA}"
+          test -n "${SERVER_HOST}"
+          test -n "${SERVER_USER}"
+          test -n "${SERVER_SSH_KEY}"
+          test -n "${SERVER_KNOWN_HOSTS}"
           mkdir -p "$HOME/.kube"
-          printf '%s' "${KUBE_CONFIG_DATA}" > "$HOME/.kube/config"
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "${SERVER_SSH_KEY}" > "$HOME/.ssh/aituan_deploy_key"
+          chmod 600 "$HOME/.ssh/aituan_deploy_key"
+          printf '%s\n' "${SERVER_KNOWN_HOSTS}" > "$HOME/.ssh/known_hosts"
+          ssh_port="${SERVER_PORT:-22}"
+          ssh -fNT \
+            -i "$HOME/.ssh/aituan_deploy_key" \
+            -p "${ssh_port}" \
+            -o ExitOnForwardFailure=yes \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=4 \
+            -L 127.0.0.1:16443:127.0.0.1:6443 \
+            "${SERVER_USER}@${SERVER_HOST}"
+          printf '%s' "${KUBE_CONFIG_DATA}" \
+            | sed -E 's#server: https://[^[:space:]]+#server: https://127.0.0.1:16443#' \
+            > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
           kubectl config current-context
+          kubectl cluster-info
       - name: Prepare namespace, application config, and service-owned DB credentials
         shell: bash
         env:
           K8S_MYSQL_PASSWORD: ${{ secrets.K8S_MYSQL_PASSWORD }}
+          K8S_IDENTITY_DB_PASSWORD: ${{ secrets.K8S_IDENTITY_DB_PASSWORD }}
+          K8S_MERCHANT_DB_PASSWORD: ${{ secrets.K8S_MERCHANT_DB_PASSWORD }}
+          K8S_TRADE_DB_PASSWORD: ${{ secrets.K8S_TRADE_DB_PASSWORD }}
+          K8S_PLATFORM_DB_PASSWORD: ${{ secrets.K8S_PLATFORM_DB_PASSWORD }}
           K8S_MYSQL_ROOT_PASSWORD: ${{ secrets.K8S_MYSQL_ROOT_PASSWORD }}
           K8S_APP_CONFIG: ${{ secrets.K8S_APP_CONFIG }}
           GHCR_PULL_USERNAME: ${{ secrets.GHCR_PULL_USERNAME }}
@@ -230,21 +263,29 @@ jobs:
           namespace="${K8S_NAMESPACE}"
           kubectl apply -f k8s/microservices/common.yaml
 
-          db_password="${K8S_MYSQL_PASSWORD}"
           root_password="${K8S_MYSQL_ROOT_PASSWORD}"
-          if [[ -z "${db_password}" ]]; then
-            db_password="$(kubectl -n "${namespace}" get secret aituan-db-secret -o jsonpath='{.data.MYSQL_PASSWORD}' | base64 --decode)"
-          fi
           if [[ -z "${root_password}" ]]; then
             root_password="$(kubectl -n "${namespace}" get secret aituan-db-secret -o jsonpath='{.data.MYSQL_ROOT_PASSWORD}' | base64 --decode)"
           fi
-          test -n "${db_password}"
           test -n "${root_password}"
           kubectl -n "${namespace}" create secret generic aituan-mysql-root-secret --from-literal=password="${root_password}" --dry-run=client -o yaml | kubectl apply -f -
-          for entry in identity:aituan_identity_svc merchant:aituan_merchant_svc trade:aituan_trade_svc platform:aituan_platform_svc; do
-            key="${entry%%:*}"
-            username="${entry#*:}"
-            kubectl -n "${namespace}" create secret generic "aituan-${key}-db-secret" --from-literal=username="${username}" --from-literal=password="${db_password}" --dry-run=client -o yaml | kubectl apply -f -
+
+          identity_password="${K8S_IDENTITY_DB_PASSWORD:-${K8S_MYSQL_PASSWORD}}"
+          merchant_password="${K8S_MERCHANT_DB_PASSWORD:-${K8S_MYSQL_PASSWORD}}"
+          trade_password="${K8S_TRADE_DB_PASSWORD:-${K8S_MYSQL_PASSWORD}}"
+          platform_password="${K8S_PLATFORM_DB_PASSWORD:-${K8S_MYSQL_PASSWORD}}"
+          for key in identity merchant trade platform; do
+            case "${key}" in
+              identity) username=aituan_identity_svc; password="${identity_password}" ;;
+              merchant) username=aituan_merchant_svc; password="${merchant_password}" ;;
+              trade) username=aituan_trade_svc; password="${trade_password}" ;;
+              platform) username=aituan_platform_svc; password="${platform_password}" ;;
+            esac
+            if [[ -z "${password}" ]]; then
+              password="$(kubectl -n "${namespace}" get secret "aituan-${key}-db-secret" -o jsonpath='{.data.password}' | base64 --decode)"
+            fi
+            test -n "${password}"
+            kubectl -n "${namespace}" create secret generic "aituan-${key}-db-secret" --from-literal=username="${username}" --from-literal=password="${password}" --dry-run=client -o yaml | kubectl apply -f -
           done
 
           config_file="$(mktemp)"
@@ -287,13 +328,18 @@ jobs:
           IMAGE_TAG: ${{ needs.quality-gate.outputs.image_tag }}
         run: |
           set -euo pipefail
-          kubectl apply -k k8s/microservices
-          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
-            kubectl -n "${K8S_NAMESPACE}" set image "deployment/${service}" "${service}=${IMAGE_REGISTRY}/${service}:${IMAGE_TAG}"
-            kubectl -n "${K8S_NAMESPACE}" set env "deployment/${service}" AITUAN_IMAGE_TAG="${IMAGE_TAG}"
+          manifest="$(mktemp)"
+          trap 'rm -f "${manifest}"' EXIT
+          kubectl kustomize k8s/microservices > "${manifest}"
+          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service mysql web; do
+            sed -i "s|ghcr.io/puaa-team/aituan/${service}:sha-placeholder|${IMAGE_REGISTRY}/${service}:${IMAGE_TAG}|g" "${manifest}"
           done
-          kubectl -n "${K8S_NAMESPACE}" set image statefulset/mysql "mysql=${IMAGE_REGISTRY}/mysql:${IMAGE_TAG}"
-          kubectl -n "${K8S_NAMESPACE}" set image deployment/aituan-web "web=${IMAGE_REGISTRY}/web:${IMAGE_TAG}"
+          sed -i "s|value: sha-placeholder|value: ${IMAGE_TAG}|g" "${manifest}"
+          if grep -q 'sha-placeholder' "${manifest}"; then
+            echo '::error::Rendered manifest still contains sha-placeholder.'
+            exit 1
+          fi
+          kubectl apply -f "${manifest}"
       - name: Wait for every workload rollout
         shell: bash
         run: |

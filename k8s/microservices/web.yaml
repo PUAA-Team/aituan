@@ -1,4 +1,18 @@
 apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: aituan-downloads
+  labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
+spec:
+  capacity: {storage: 2Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: aituan-hostpath
+  hostPath:
+    path: /opt/aituan/data/downloads
+    type: DirectoryOrCreate
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: aituan-downloads
@@ -6,6 +20,8 @@ metadata:
   labels: {app.kubernetes.io/name: aituan-web, app.kubernetes.io/part-of: aituan}
 spec:
   accessModes: [ReadWriteOnce]
+  storageClassName: aituan-hostpath
+  volumeName: aituan-downloads
   resources:
     requests: {storage: 2Gi}
 ---
@@ -64,10 +80,13 @@ spec:
             limits: {cpu: 300m, memory: 128Mi}
           volumeMounts:
             - {name: downloads, mountPath: /usr/share/nginx/html/downloads, readOnly: true}
+            - {name: certbot-webroot, mountPath: /var/www/certbot, readOnly: true}
             - {name: tls-cert, mountPath: /etc/letsencrypt/live/aituan.2b.gs, readOnly: true}
       volumes:
         - name: downloads
           persistentVolumeClaim: {claimName: aituan-downloads}
+        - name: certbot-webroot
+          hostPath: {path: /var/www/certbot, type: DirectoryOrCreate}
         - name: tls-cert
           secret:
             secretName: aituan-tls
