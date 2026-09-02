@@ -51,4 +51,21 @@ kubectl -n aituan get pods,svc,hpa,pvc
 curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
-资源请求仍保持课程验收所需的轻量配置；4C16G 单节点有充足余量。Gateway 与四个 Java 服务默认 `-Xmx256m`，MySQL buffer pool 为 128 MiB，商家商品服务启用 HPA。
+资源请求仍保持课程验收所需的轻量配置；4C16G 单节点有充足余量。Gateway 与四个 Java 服务默认 `-Xmx256m`，MySQL buffer pool 为 128 MiB。
+
+Gateway 与 A/B/C/D 五个 Java Deployment 均启用 `autoscaling/v2` HPA：CPU 目标 50%，最少 1、最多 4 个 Pod，扩容无稳定窗口，降容稳定窗口 120 秒。HPA 使用率以 Deployment 中的 CPU request 为分母，因此不可删除各服务的 `resources.requests.cpu`。生产实压与自动恢复实验使用：
+
+```bash
+HPA_LOAD_DURATION_SECONDS=180 HPA_LOAD_CONCURRENCY=80 \
+  bash scripts/experiments/run_hpa_experiment.sh
+```
+
+脚本同时对 A/B/C/D 的只读接口施压（全部经过 Gateway），保存逐请求、HPA 副本数、Pod CPU/内存和节点配置，并要求至少两个业务微服务实际扩容且最终五个服务均缩回 1 Pod。
+
+商品服务依赖故障实验使用：
+
+```bash
+bash scripts/experiments/run_catalog_fault_experiment.sh
+```
+
+脚本会短暂停止 B，验证 C 读取持久化购物车快照、拒绝依赖商品实时数据的写操作、仍允许移除/清空，并验证 Gateway/A/C/D 不随 B 崩溃；无论实验成功或中断，退出清理都会恢复 B 的 HPA 绑定和至少 1 个副本。完整口径见 `docs/stage-new-4/HPA与依赖故障实验说明.md`。

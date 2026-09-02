@@ -19,11 +19,30 @@ public class TradeRepository {
     this.jdbcTemplate = jdbcTemplate;
   }
 
-  public long getOrCreateCart(long userId, long storeId) {
-    Optional<Long> existing = findCartId(userId, storeId);
-    if (existing.isPresent()) return existing.get();
-    jdbcTemplate.update("insert into cart(user_id, store_id) values (?, ?)", userId, storeId);
-    return findCartId(userId, storeId).orElseThrow();
+  public long getOrCreateCart(long userId, long storeId, String storeName, String businessType) {
+    Optional<CartRow> existing = findCart(userId, storeId);
+    if (existing.isPresent()) {
+      jdbcTemplate.update(
+          "update cart set store_name_snapshot = ?, business_type_snapshot = ?, updated_at = current_timestamp where id = ?",
+          storeName, businessType, existing.get().id());
+      return existing.get().id();
+    }
+    jdbcTemplate.update(
+        "insert into cart(user_id, store_id, store_name_snapshot, business_type_snapshot) values (?, ?, ?, ?)",
+        userId, storeId, storeName, businessType);
+    return findCart(userId, storeId).orElseThrow().id();
+  }
+
+  public Optional<CartRow> findCart(long userId, long storeId) {
+    List<CartRow> rows = jdbcTemplate.query(
+        "select id, store_id, store_name_snapshot, business_type_snapshot from cart where user_id = ? and store_id = ? and is_deleted = 0 limit 1",
+        (rs, rowNum) -> new CartRow(
+            rs.getLong("id"),
+            rs.getLong("store_id"),
+            rs.getString("store_name_snapshot"),
+            rs.getString("business_type_snapshot")),
+        userId, storeId);
+    return rows.stream().findFirst();
   }
 
   public int findCartItemQuantity(long cartId, long itemId) {
@@ -36,36 +55,79 @@ public class TradeRepository {
   public List<CartItemRow> listCartItems(long cartId) {
     return jdbcTemplate.query(
         """
-        select item_id, quantity
+        select item_id, quantity, item_name_snapshot, item_subtitle_snapshot, category_name_snapshot,
+               unit_price_snapshot, stock_snapshot, status_snapshot
         from cart_item
         where cart_id = ? and is_deleted = 0
         order by updated_at desc, id desc
         """,
-        (rs, rowNum) -> new CartItemRow(rs.getLong("item_id"), rs.getInt("quantity")), cartId);
+        (rs, rowNum) -> new CartItemRow(
+            rs.getLong("item_id"),
+            rs.getInt("quantity"),
+            rs.getString("item_name_snapshot"),
+            rs.getString("item_subtitle_snapshot"),
+            rs.getString("category_name_snapshot"),
+            rs.getBigDecimal("unit_price_snapshot"),
+            rs.getObject("stock_snapshot", Integer.class),
+            rs.getString("status_snapshot")),
+        cartId);
   }
 
-  public void upsertCartItem(long cartId, long itemId, int quantity) {
+  public void upsertCartItem(long cartId, CartItemSnapshot item, int quantity) {
     int updated = jdbcTemplate.update(
-        "update cart_item set quantity = quantity + ?, is_deleted = 0, updated_at = current_timestamp where cart_id = ? and item_id = ?",
-        quantity, cartId, itemId);
+        """
+        update cart_item
+        set quantity = quantity + ?, item_name_snapshot = ?, item_subtitle_snapshot = ?, category_name_snapshot = ?,
+            unit_price_snapshot = ?, stock_snapshot = ?, status_snapshot = ?, is_deleted = 0, updated_at = current_timestamp
+        where cart_id = ? and item_id = ?
+        """,
+        quantity, item.itemName(), item.subtitle(), item.categoryName(), item.unitPrice(), item.stock(), item.status(), cartId, item.itemId());
     if (updated == 0) {
-      jdbcTemplate.update("insert into cart_item(cart_id, item_id, quantity) values (?, ?, ?)", cartId, itemId, quantity);
+      jdbcTemplate.update(
+          """
+          insert into cart_item(cart_id, item_id, quantity, item_name_snapshot, item_subtitle_snapshot,
+                                category_name_snapshot, unit_price_snapshot, stock_snapshot, status_snapshot)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """,
+          cartId, item.itemId(), quantity, item.itemName(), item.subtitle(), item.categoryName(), item.unitPrice(), item.stock(), item.status());
     }
     touchCart(cartId);
   }
 
-  public void setCartItemQuantity(long cartId, long itemId, int quantity) {
+  public void setCartItemQuantity(long cartId, CartItemSnapshot item, int quantity) {
     if (quantity <= 0) {
-      removeCartItem(cartId, itemId);
+      removeCartItem(cartId, item.itemId());
       return;
     }
     int updated = jdbcTemplate.update(
-        "update cart_item set quantity = ?, is_deleted = 0, updated_at = current_timestamp where cart_id = ? and item_id = ?",
-        quantity, cartId, itemId);
+        """
+        update cart_item
+        set quantity = ?, item_name_snapshot = ?, item_subtitle_snapshot = ?, category_name_snapshot = ?,
+            unit_price_snapshot = ?, stock_snapshot = ?, status_snapshot = ?, is_deleted = 0, updated_at = current_timestamp
+        where cart_id = ? and item_id = ?
+        """,
+        quantity, item.itemName(), item.subtitle(), item.categoryName(), item.unitPrice(), item.stock(), item.status(), cartId, item.itemId());
     if (updated == 0) {
-      jdbcTemplate.update("insert into cart_item(cart_id, item_id, quantity) values (?, ?, ?)", cartId, itemId, quantity);
+      jdbcTemplate.update(
+          """
+          insert into cart_item(cart_id, item_id, quantity, item_name_snapshot, item_subtitle_snapshot,
+                                category_name_snapshot, unit_price_snapshot, stock_snapshot, status_snapshot)
+          values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          """,
+          cartId, item.itemId(), quantity, item.itemName(), item.subtitle(), item.categoryName(), item.unitPrice(), item.stock(), item.status());
     }
     touchCart(cartId);
+  }
+
+  public void refreshCartItemSnapshot(long cartId, CartItemSnapshot item) {
+    jdbcTemplate.update(
+        """
+        update cart_item
+        set item_name_snapshot = ?, item_subtitle_snapshot = ?, category_name_snapshot = ?, unit_price_snapshot = ?,
+            stock_snapshot = ?, status_snapshot = ?, updated_at = current_timestamp
+        where cart_id = ? and item_id = ? and is_deleted = 0
+        """,
+        item.itemName(), item.subtitle(), item.categoryName(), item.unitPrice(), item.stock(), item.status(), cartId, item.itemId());
   }
 
   public void removeCartItem(long cartId, long itemId) {
@@ -552,11 +614,6 @@ public class TradeRepository {
     jdbcTemplate.update("update delivery_task set current_stage = 'abnormal', current_stage_text = '订单异常，待处理', abnormal_reason = ?, auto_advance_enabled = 0, updated_at = current_timestamp where id = ? and is_deleted = 0", reason, taskId);
   }
 
-  private Optional<Long> findCartId(long userId, long storeId) {
-    List<Long> rows = jdbcTemplate.query("select id from cart where user_id = ? and store_id = ? and is_deleted = 0 limit 1", (rs, rowNum) -> rs.getLong("id"), userId, storeId);
-    return rows.stream().findFirst();
-  }
-
   private List<OrderRow> queryOrders(String where, Object... args) {
     return jdbcTemplate.query(
         """
@@ -659,7 +716,26 @@ public class TradeRepository {
     return rs.wasNull() ? null : value;
   }
 
-  public record CartItemRow(Long itemId, int quantity) {}
+  public record CartRow(long id, long storeId, String storeName, String businessType) {}
+
+  public record CartItemRow(
+      Long itemId,
+      int quantity,
+      String itemName,
+      String subtitle,
+      String categoryName,
+      BigDecimal unitPrice,
+      Integer stock,
+      String status) {}
+
+  public record CartItemSnapshot(
+      Long itemId,
+      String itemName,
+      String subtitle,
+      String categoryName,
+      BigDecimal unitPrice,
+      Integer stock,
+      String status) {}
 
   public record OrderInsertRow(Long userId, Long storeId, Long merchantId, Long couponId, String storeName, String orderType, String title, String displayStatus,
                                String paymentStatus, String fulfillmentStatus, String paymentMethod, BigDecimal amount, BigDecimal deliveryFee,

@@ -22,6 +22,7 @@ on:
       - tests/performance/**
       - scripts/verify/**
       - scripts/deploy/**
+      - scripts/experiments/**
       - .github/workflows/microservices-*.yml
   push:
     branches: [main, microservices-main, integration/microservices-acceptance]
@@ -45,6 +46,7 @@ on:
       - tests/performance/**
       - scripts/verify/**
       - scripts/deploy/**
+      - scripts/experiments/**
       - .github/workflows/microservices-*.yml
   workflow_dispatch:
 
@@ -452,7 +454,8 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Validate Compose
         run: |
-          bash -n scripts/verify/member_e_regression_checks.sh scripts/verify/verify_mysql_schema_isolation.sh scripts/verify/write_pipeline_raw_report.sh scripts/deploy/sync_k8s_tls.sh
+          bash -n scripts/verify/member_e_regression_checks.sh scripts/verify/verify_mysql_schema_isolation.sh scripts/verify/write_pipeline_raw_report.sh scripts/deploy/sync_k8s_tls.sh scripts/experiments/run_hpa_experiment.sh scripts/experiments/run_catalog_fault_experiment.sh
+          node --check scripts/experiments/hpa-load.mjs
           docker compose -f deploy/docker-compose.microservices.yml config --quiet
           docker compose --env-file deploy/.env.example -f deploy/docker-compose.cicd.yml config --quiet
       - name: Render Kubernetes manifests
@@ -462,6 +465,7 @@ jobs:
           test "$(grep -c '^kind: Deployment$' microservices-k8s-rendered.yaml)" -eq 6
           test "$(grep -c '^kind: Service$' microservices-k8s-rendered.yaml)" -eq 7
           test "$(grep -c '^kind: StatefulSet$' microservices-k8s-rendered.yaml)" -eq 1
+          test "$(grep -c '^kind: HorizontalPodAutoscaler$' microservices-k8s-rendered.yaml)" -eq 5
           test "$(grep -c '^kind: PersistentVolume$' microservices-k8s-rendered.yaml)" -eq 1
           test "$(grep -c '^kind: PersistentVolumeClaim$' microservices-k8s-rendered.yaml)" -eq 2
           test "$(grep -c 'secretName: aituan-app-config' microservices-k8s-rendered.yaml)" -eq 4

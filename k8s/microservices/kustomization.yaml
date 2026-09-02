@@ -10,3 +10,4 @@ resources:
   - engagement-platform-service.yaml
   - web.yaml
   - merchant-catalog-hpa.yaml
+  - additional-hpas.yaml

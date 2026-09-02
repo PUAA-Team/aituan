@@ -36,5 +36,18 @@ class TradeFulfillmentMigrationTest {
           .as("table %s should be created by Flyway", table)
           .doesNotThrowAnyException();
     }
+
+    assertThatCode(() -> jdbcTemplate.queryForList(
+        "SELECT store_name_snapshot, business_type_snapshot FROM cart"))
+        .as("cart should own a durable store snapshot for catalog-outage reads")
+        .doesNotThrowAnyException();
+    assertThatCode(() -> jdbcTemplate.queryForList(
+        """
+        SELECT item_name_snapshot, item_subtitle_snapshot, category_name_snapshot,
+               unit_price_snapshot, stock_snapshot, status_snapshot
+        FROM cart_item
+        """))
+        .as("cart items should own durable product snapshots for catalog-outage reads")
+        .doesNotThrowAnyException();
   }
 }

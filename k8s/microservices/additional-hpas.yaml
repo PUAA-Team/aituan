@@ -1,0 +1,107 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway
+  namespace: aituan
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: api-gateway}
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 100, periodSeconds: 15}
+        - {type: Pods, value: 2, periodSeconds: 15}
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 50, periodSeconds: 30}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: identity-asset-service
+  namespace: aituan
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: identity-asset-service}
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 100, periodSeconds: 15}
+        - {type: Pods, value: 2, periodSeconds: 15}
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 50, periodSeconds: 30}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: trade-fulfillment-service
+  namespace: aituan
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: trade-fulfillment-service}
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 100, periodSeconds: 15}
+        - {type: Pods, value: 2, periodSeconds: 15}
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 50, periodSeconds: 30}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: engagement-platform-service
+  namespace: aituan
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: engagement-platform-service}
+  minReplicas: 1
+  maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 100, periodSeconds: 15}
+        - {type: Pods, value: 2, periodSeconds: 15}
+    scaleDown:
+      stabilizationWindowSeconds: 120
+      selectPolicy: Max
+      policies:
+        - {type: Percent, value: 50, periodSeconds: 30}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 50}

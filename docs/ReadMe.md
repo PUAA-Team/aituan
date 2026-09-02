@@ -214,6 +214,8 @@
 
 `./docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`
 
+`./docs/stage-new-4/HPA与依赖故障实验说明.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

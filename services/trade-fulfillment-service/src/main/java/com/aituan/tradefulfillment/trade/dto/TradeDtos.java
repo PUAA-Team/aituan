@@ -33,7 +33,13 @@ public final class TradeDtos {
       String status,
       Boolean soldOut) {}
 
-  public record CartView(Long storeId, String storeName, BigDecimal amount, List<CartLineView> items) {}
+  public record CartView(
+      Long storeId,
+      String storeName,
+      BigDecimal amount,
+      List<CartLineView> items,
+      Boolean catalogAvailable,
+      String notice) {}
 
   public record CheckoutPreviewRequest(
       @NotNull Long storeId,

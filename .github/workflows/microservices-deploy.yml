@@ -422,6 +422,21 @@ jobs:
             kubectl -n "${K8S_NAMESPACE}" rollout status "deployment/${service}" --timeout=600s
           done
           kubectl -n "${K8S_NAMESPACE}" get pods,svc,hpa,pvc -o wide > .aituan-local/deployment-report/resources.txt
+          test "$(kubectl -n "${K8S_NAMESPACE}" get hpa -o name | wc -l | tr -d ' ')" = 5
+          for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
+            test "$(kubectl -n "${K8S_NAMESPACE}" get "hpa/${service}" -o jsonpath='{.spec.scaleTargetRef.name}')" = "${service}"
+          done
+          for attempt in $(seq 1 24); do
+            unknown="$(kubectl -n "${K8S_NAMESPACE}" get hpa -o json | jq '[.items[] | select(((.status.currentMetrics // []) | length) == 0)] | length')"
+            [[ "${unknown}" = 0 ]] && break
+            if [[ "${attempt}" = 24 ]]; then
+              echo '::error::HPA did not receive CPU metrics for every Java workload.'
+              kubectl -n "${K8S_NAMESPACE}" describe hpa
+              exit 1
+            fi
+            sleep 5
+          done
+          kubectl -n "${K8S_NAMESPACE}" get hpa -o wide > .aituan-local/deployment-report/hpa-metrics.txt
       - name: Verify all internal services and public three-end site
         shell: bash
         env:

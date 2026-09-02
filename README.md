@@ -620,9 +620,18 @@ done
 curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
+Gateway 和 A/B/C/D 均配置 HPA（CPU 50%，1–4 Pod，120 秒降容稳定窗口），不是只对单个服务扩缩容。真实混合流量扩缩容和商品服务故障隔离/恢复可重复执行：
+
+```bash
+bash scripts/experiments/run_hpa_experiment.sh
+bash scripts/experiments/run_catalog_fault_experiment.sh
+```
+
+故障期间，C 的购物车查询从 `aituan_trade` 中的持久化商品快照降级读取并返回 `catalogAvailable=false` 与用户提示；新增商品、修改数量等依赖实时价格/库存的操作快速失败且不产生部分写入，移除和清空仍可用。B 恢复后自动回到实时数据。实验脚本、成功条件、恢复机制和证据目录见 `docs/stage-new-4/HPA与依赖故障实验说明.md`。
+
 手动部署时必须先渲染并替换清单中的全部 `sha-placeholder`，然后一次性 apply；不能把带占位镜像的 Kustomize 输出直接作为最终状态。生产拓扑细节见 `k8s/microservices/README.md`。
 
-软件工程基础实践第二阶段的要求对照、已完成内容和剩余 HPA/故障/性能实验见 `docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`。
+软件工程基础实践第二阶段的要求对照、已完成内容和剩余性能实验见 `docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`。
 
 域名 A 记录尚未指向服务器时，可先用自签名 `aituan-tls` 完成 `curl -k --resolve` 验证。A 记录切换后，通过 `/var/www/certbot` 申请正式证书，再运行 `scripts/deploy/sync_k8s_tls.sh`；同一脚本应安装为 Certbot deploy hook，以便续期后自动更新 K8s Secret。
 

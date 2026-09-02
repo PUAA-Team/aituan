@@ -47,7 +47,8 @@ public class HttpTradeRemoteClients implements CatalogClient, IdentityClient, Co
 
   @Override
   public Optional<StoreSnapshot> findStore(long storeId) {
-    JsonNode data = getOptional(merchantClient, "/internal/stores/{storeId}/snapshot", storeId);
+    JsonNode data = getOptionalWithMessage(
+        merchantClient, "/internal/stores/{storeId}/snapshot", "商品服务暂不可用", storeId);
     if (data == null) return Optional.empty();
     return Optional.of(new StoreSnapshot(
         longValue(data, "storeId", storeId),
@@ -60,7 +61,8 @@ public class HttpTradeRemoteClients implements CatalogClient, IdentityClient, Co
 
   @Override
   public Optional<ItemSnapshot> findItem(long itemId) {
-    JsonNode snapshot = getOptional(merchantClient, "/internal/catalog/items/{itemId}/snapshot", itemId);
+    JsonNode snapshot = getOptionalWithMessage(
+        merchantClient, "/internal/catalog/items/{itemId}/snapshot", "商品服务暂不可用", itemId);
     if (snapshot == null) return Optional.empty();
     long storeId = longValue(snapshot, "storeId", 0);
     JsonNode quote = post(merchantClient, "/internal/catalog/checkout-quote",
@@ -202,8 +204,13 @@ public class HttpTradeRemoteClients implements CatalogClient, IdentityClient, Co
   }
 
   private JsonNode getOptional(RestClient client, String uri, Object... variables) {
+    return getOptionalWithMessage(client, uri, "依赖服务暂不可用", variables);
+  }
+
+  private JsonNode getOptionalWithMessage(
+      RestClient client, String uri, String failureMessage, Object... variables) {
     try {
-      return get(client, uri, "依赖服务暂不可用", variables);
+      return get(client, uri, failureMessage, variables);
     } catch (BusinessException exception) {
       if (exception.getErrorCode() == ErrorCode.NOT_FOUND) return null;
       throw exception;

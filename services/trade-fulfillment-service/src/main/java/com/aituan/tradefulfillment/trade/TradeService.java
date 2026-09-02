@@ -51,6 +51,9 @@ import com.aituan.tradefulfillment.trade.dto.TradeDtos.VoucherLookupView;
 import com.aituan.tradefulfillment.trade.dto.TradeDtos.VoucherView;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.BookingRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.CartItemRow;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.CartItemSnapshot;
+import com.aituan.tradefulfillment.trade.repository.TradeRepository.CartRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.DeliveryTaskRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderInsertRow;
 import com.aituan.tradefulfillment.trade.repository.TradeRepository.OrderItemInsertRow;
@@ -74,6 +77,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TradeService {
   private static final String TAKEAWAY = "takeaway";
+  private static final String CATALOG_UNAVAILABLE_NOTICE =
+      "商品服务暂不可用，已显示最近一次购物车快照；暂不可新增商品或修改数量，仍可移除或清空。";
   private static final BigDecimal DEFAULT_MAX_DELIVERY_DISTANCE_KM = BigDecimal.valueOf(5).setScale(2);
   private static final DateTimeFormatter ARRIVAL_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
   private static final DateTimeFormatter ORDER_NO_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -118,9 +123,7 @@ public class TradeService {
 
   public CartView getCart(long storeId) {
     long userId = CurrentUserContext.required().userId();
-    StoreSnapshot store = requireTakeawayStore(storeId);
-    long cartId = tradeRepository.getOrCreateCart(userId, store.id());
-    return buildCartView(store, cartId);
+    return buildCartView(resolveCartContext(userId, storeId));
   }
 
   @Transactional
@@ -128,13 +131,13 @@ public class TradeService {
     long userId = CurrentUserContext.required().userId();
     StoreSnapshot store = requireTakeawayStore(request.storeId());
     ItemSnapshot item = requireCartItem(store.id(), request.itemId());
-    long cartId = tradeRepository.getOrCreateCart(userId, store.id());
+    long cartId = tradeRepository.getOrCreateCart(userId, store.id(), store.storeName(), store.businessType());
     int nextQuantity = tradeRepository.findCartItemQuantity(cartId, item.id()) + request.quantity();
     if (nextQuantity > stock(item)) {
       throw new BusinessException(ErrorCode.ITEM_STOCK_NOT_ENOUGH);
     }
-    tradeRepository.upsertCartItem(cartId, item.id(), request.quantity());
-    return buildCartView(store, cartId);
+    tradeRepository.upsertCartItem(cartId, cartItemSnapshot(item), request.quantity());
+    return buildCartView(new CartContext(cartId, store.id(), store.storeName(), store.businessType(), true));
   }
 
   @Transactional
@@ -145,27 +148,25 @@ public class TradeService {
     if (request.quantity() > stock(item)) {
       throw new BusinessException(ErrorCode.ITEM_STOCK_NOT_ENOUGH);
     }
-    long cartId = tradeRepository.getOrCreateCart(userId, store.id());
-    tradeRepository.setCartItemQuantity(cartId, item.id(), request.quantity());
-    return buildCartView(store, cartId);
+    long cartId = tradeRepository.getOrCreateCart(userId, store.id(), store.storeName(), store.businessType());
+    tradeRepository.setCartItemQuantity(cartId, cartItemSnapshot(item), request.quantity());
+    return buildCartView(new CartContext(cartId, store.id(), store.storeName(), store.businessType(), true));
   }
 
   @Transactional
   public CartView removeCartItem(long storeId, long itemId) {
     long userId = CurrentUserContext.required().userId();
-    StoreSnapshot store = requireTakeawayStore(storeId);
-    long cartId = tradeRepository.getOrCreateCart(userId, store.id());
-    tradeRepository.removeCartItem(cartId, itemId);
-    return buildCartView(store, cartId);
+    CartContext cart = resolveCartContext(userId, storeId);
+    tradeRepository.removeCartItem(cart.cartId(), itemId);
+    return buildCartView(cart);
   }
 
   @Transactional
   public CartView clearCart(long storeId) {
     long userId = CurrentUserContext.required().userId();
-    StoreSnapshot store = requireTakeawayStore(storeId);
-    long cartId = tradeRepository.getOrCreateCart(userId, store.id());
-    tradeRepository.clearCart(cartId);
-    return buildCartView(store, cartId);
+    CartContext cart = resolveCartContext(userId, storeId);
+    tradeRepository.clearCart(cart.cartId());
+    return buildCartView(cart);
   }
 
   public CheckoutPreviewView preview(CheckoutPreviewRequest request) {
@@ -220,7 +221,11 @@ public class TradeService {
       tradeRepository.insertOrderItem(orderId, toOrderItemInsert(item));
     }
     if (TAKEAWAY.equals(context.store().businessType())) {
-      tradeRepository.clearCart(tradeRepository.getOrCreateCart(userId, context.store().id()));
+      tradeRepository.clearCart(tradeRepository.getOrCreateCart(
+          userId,
+          context.store().id(),
+          context.store().storeName(),
+          context.store().businessType()));
     }
     inventoryClient.deduct(orderId, inventoryLines);
     try {
@@ -765,20 +770,94 @@ public class TradeService {
     return value == null || value.isBlank() ? null : value.trim();
   }
 
-  private CartView buildCartView(StoreSnapshot store, long cartId) {
-    List<CartLineView> items = tradeRepository.listCartItems(cartId).stream()
-        .map(row -> toCartLineView(row.itemId(), row.quantity()))
-        .toList();
-    BigDecimal amount = items.stream().map(CartLineView::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
-    return new CartView(store.id(), store.storeName(), amount, items);
+  private CartContext resolveCartContext(long userId, long storeId) {
+    try {
+      StoreSnapshot store = requireTakeawayStore(storeId);
+      long cartId = tradeRepository.getOrCreateCart(userId, store.id(), store.storeName(), store.businessType());
+      return new CartContext(cartId, store.id(), store.storeName(), store.businessType(), true);
+    } catch (BusinessException exception) {
+      if (exception.getErrorCode() != ErrorCode.INTERNAL_ERROR) {
+        throw exception;
+      }
+      CartRow cached = tradeRepository.findCart(userId, storeId)
+          .orElseThrow(() -> new BusinessException(
+              ErrorCode.INTERNAL_ERROR,
+              "商品服务暂不可用，且当前购物车没有可用快照"));
+      return new CartContext(
+          cached.id(),
+          cached.storeId(),
+          defaultText(cached.storeName(), "门店 " + cached.storeId()),
+          defaultText(cached.businessType(), TAKEAWAY),
+          false);
+    }
   }
 
-  private CartLineView toCartLineView(long itemId, int quantity) {
-    ItemSnapshot item = catalogClient.findItem(itemId)
-        .orElse(new ItemSnapshot(itemId, itemId, null, "已失效商品", null, TAKEAWAY, null, null, BigDecimal.ZERO, "off_sale", 0, null));
+  private CartView buildCartView(CartContext cart) {
+    boolean catalogAvailable = cart.catalogAvailable();
+    List<CartLineView> items = new ArrayList<>();
+    for (CartItemRow row : tradeRepository.listCartItems(cart.cartId())) {
+      ItemSnapshot item;
+      if (catalogAvailable) {
+        try {
+          item = catalogClient.findItem(row.itemId())
+              .orElseGet(() -> unavailableItem(row.itemId()));
+          if (item.storeId() != null) {
+            tradeRepository.refreshCartItemSnapshot(cart.cartId(), cartItemSnapshot(item));
+          }
+        } catch (BusinessException exception) {
+          if (exception.getErrorCode() != ErrorCode.INTERNAL_ERROR) {
+            throw exception;
+          }
+          catalogAvailable = false;
+          item = cachedItem(cart.storeId(), row);
+        }
+      } else {
+        item = cachedItem(cart.storeId(), row);
+      }
+      items.add(toCartLineView(item, row.quantity()));
+    }
+    BigDecimal amount = items.stream().map(CartLineView::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+    return new CartView(
+        cart.storeId(),
+        cart.storeName(),
+        amount,
+        items,
+        catalogAvailable,
+        catalogAvailable ? null : CATALOG_UNAVAILABLE_NOTICE);
+  }
+
+  private CartLineView toCartLineView(ItemSnapshot item, int quantity) {
     BigDecimal totalPrice = valueOrZero(item.price()).multiply(BigDecimal.valueOf(quantity));
     boolean soldOut = stock(item) <= 0 || !"on_sale".equals(item.status());
     return new CartLineView(item.id(), item.itemName(), item.subtitle(), item.categoryName(), valueOrZero(item.price()), quantity, totalPrice, stock(item), item.status(), soldOut);
+  }
+
+  private ItemSnapshot cachedItem(long storeId, CartItemRow row) {
+    return new ItemSnapshot(
+        row.itemId(),
+        row.itemId(),
+        storeId,
+        defaultText(row.itemName(), "商品 " + row.itemId()),
+        row.subtitle(),
+        TAKEAWAY,
+        null,
+        row.categoryName(),
+        valueOrZero(row.unitPrice()),
+        defaultText(row.status(), "snapshot_only"),
+        row.stock() == null ? 0 : row.stock(),
+        null);
+  }
+
+  private ItemSnapshot unavailableItem(long itemId) {
+    return new ItemSnapshot(
+        itemId, itemId, null, "已失效商品", null, TAKEAWAY, null, null,
+        BigDecimal.ZERO, "off_sale", 0, null);
+  }
+
+  private CartItemSnapshot cartItemSnapshot(ItemSnapshot item) {
+    return new CartItemSnapshot(
+        item.id(), item.itemName(), item.subtitle(), item.categoryName(), valueOrZero(item.price()),
+        stock(item), item.status());
   }
 
   private TradeContext loadTradeContext(long userId, long storeId, String businessType, Long addressId, List<CheckoutItemRequest> requests) {
@@ -955,6 +1034,13 @@ public class TradeService {
     }
     return valueOrZero(result.discountAmount());
   }
+
+  private record CartContext(
+      long cartId,
+      long storeId,
+      String storeName,
+      String businessType,
+      boolean catalogAvailable) {}
 
   private DeliveryQuote deliveryQuote(TradeContext context) {
     if (!TAKEAWAY.equals(context.store().businessType())) {
