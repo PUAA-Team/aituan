@@ -1,0 +1,324 @@
+{
+  "summaries": [
+    {
+      "target": "monolith",
+      "baseUrl": "http://performance-monolith:8080",
+      "run": 1,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 56.342,
+      "throughputRps": 266.23,
+      "averageMs": 187.596,
+      "p95Ms": 392.077,
+      "p99Ms": 545.163,
+      "minMs": 6.472,
+      "maxMs": 1240.521,
+      "resources": {
+        "available": true,
+        "sampleCount": 114,
+        "durationSeconds": 56.342,
+        "averageCpuPercent": 140.742,
+        "peakCpuPercent": 168,
+        "averageMemoryMiB": 540.159,
+        "peakMemoryMiB": 546.797
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 88.743,
+          "averageMs": 188.097,
+          "p95Ms": 391.349,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 88.743,
+          "averageMs": 170.721,
+          "p95Ms": 355.175,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 88.743,
+          "averageMs": 203.971,
+          "p95Ms": 403.326,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "target": "monolith",
+      "baseUrl": "http://performance-monolith:8080",
+      "run": 2,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 46.776,
+      "throughputRps": 320.676,
+      "averageMs": 155.77,
+      "p95Ms": 304.441,
+      "p99Ms": 402.577,
+      "minMs": 6.936,
+      "maxMs": 701.094,
+      "resources": {
+        "available": true,
+        "sampleCount": 95,
+        "durationSeconds": 46.776,
+        "averageCpuPercent": 150.676,
+        "peakCpuPercent": 166.667,
+        "averageMemoryMiB": 545.212,
+        "peakMemoryMiB": 556.922
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 106.892,
+          "averageMs": 158.341,
+          "p95Ms": 304.865,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 106.892,
+          "averageMs": 137.079,
+          "p95Ms": 282.148,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 106.892,
+          "averageMs": 171.891,
+          "p95Ms": 333.015,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "target": "monolith",
+      "baseUrl": "http://performance-monolith:8080",
+      "run": 3,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 40.725,
+      "throughputRps": 368.321,
+      "averageMs": 135.562,
+      "p95Ms": 278.093,
+      "p99Ms": 370.478,
+      "minMs": 4.203,
+      "maxMs": 658.323,
+      "resources": {
+        "available": true,
+        "sampleCount": 83,
+        "durationSeconds": 40.725,
+        "averageCpuPercent": 155.242,
+        "peakCpuPercent": 165.669,
+        "averageMemoryMiB": 549.969,
+        "peakMemoryMiB": 556.535
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 122.774,
+          "averageMs": 139.185,
+          "p95Ms": 280.698,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 122.774,
+          "averageMs": 118.282,
+          "p95Ms": 245.298,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 122.774,
+          "averageMs": 149.221,
+          "p95Ms": 294.58,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "target": "microservices",
+      "baseUrl": "http://api-gateway:8080",
+      "run": 1,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 34.192,
+      "throughputRps": 438.702,
+      "averageMs": 113.761,
+      "p95Ms": 270.475,
+      "p99Ms": 364.718,
+      "minMs": 4.936,
+      "maxMs": 682.496,
+      "resources": {
+        "available": true,
+        "sampleCount": 70,
+        "durationSeconds": 34.192,
+        "averageCpuPercent": 166.088,
+        "peakCpuPercent": 182.365,
+        "averageMemoryMiB": 1423.26,
+        "peakMemoryMiB": 1427.293
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 146.234,
+          "averageMs": 116.162,
+          "p95Ms": 275.045,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 146.234,
+          "averageMs": 100.212,
+          "p95Ms": 216.531,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 146.234,
+          "averageMs": 124.911,
+          "p95Ms": 287.92,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "target": "microservices",
+      "baseUrl": "http://api-gateway:8080",
+      "run": 2,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 31.069,
+      "throughputRps": 482.8,
+      "averageMs": 103.388,
+      "p95Ms": 220.381,
+      "p99Ms": 303.153,
+      "minMs": 4.69,
+      "maxMs": 539.864,
+      "resources": {
+        "available": true,
+        "sampleCount": 64,
+        "durationSeconds": 31.069,
+        "averageCpuPercent": 174.92,
+        "peakCpuPercent": 196,
+        "averageMemoryMiB": 1434.997,
+        "peakMemoryMiB": 1438.895
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 160.933,
+          "averageMs": 105.619,
+          "p95Ms": 227.391,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 160.933,
+          "averageMs": 92.821,
+          "p95Ms": 202.277,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 160.933,
+          "averageMs": 111.723,
+          "p95Ms": 237.675,
+          "errors": 0
+        }
+      }
+    },
+    {
+      "target": "microservices",
+      "baseUrl": "http://api-gateway:8080",
+      "run": 3,
+      "concurrency": 50,
+      "requests": 15000,
+      "succeeded": 15000,
+      "failed": 0,
+      "errorRatePercent": 0,
+      "elapsedSeconds": 31.893,
+      "throughputRps": 470.328,
+      "averageMs": 106.145,
+      "p95Ms": 225.608,
+      "p99Ms": 317.198,
+      "minMs": 4.282,
+      "maxMs": 590.927,
+      "resources": {
+        "available": true,
+        "sampleCount": 65,
+        "durationSeconds": 31.893,
+        "averageCpuPercent": 175.229,
+        "peakCpuPercent": 188,
+        "averageMemoryMiB": 1442.795,
+        "peakMemoryMiB": 1444.84
+      },
+      "scenarios": {
+        "discovery-home": {
+          "requests": 5000,
+          "throughputRps": 156.776,
+          "averageMs": 108.479,
+          "p95Ms": 233.594,
+          "errors": 0
+        },
+        "discovery-recommendations": {
+          "requests": 5000,
+          "throughputRps": 156.776,
+          "averageMs": 93.577,
+          "p95Ms": 202.322,
+          "errors": 0
+        },
+        "discovery-search": {
+          "requests": 5000,
+          "throughputRps": 156.776,
+          "averageMs": 116.379,
+          "p95Ms": 248.073,
+          "errors": 0
+        }
+      }
+    }
+  ],
+  "aggregate": [
+    {
+      "target": "monolith",
+      "runCount": 3,
+      "concurrency": 50,
+      "averageThroughputRps": 318.409,
+      "averageResponseMs": 159.643,
+      "averageP95Ms": 324.87,
+      "averageErrorRatePercent": 0,
+      "averageCpuPercent": 148.887,
+      "averageMemoryMiB": 545.113,
+      "peakMemoryMiB": 556.922
+    },
+    {
+      "target": "microservices",
+      "runCount": 3,
+      "concurrency": 50,
+      "averageThroughputRps": 463.943,
+      "averageResponseMs": 107.765,
+      "averageP95Ms": 238.821,
+      "averageErrorRatePercent": 0,
+      "averageCpuPercent": 172.079,
+      "averageMemoryMiB": 1433.684,
+      "peakMemoryMiB": 1444.84
+    }
+  ]
+}

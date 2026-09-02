@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +15,7 @@ const DEFAULTS = {
   timeoutMs: 5000,
   warmupRequests: 1000,
   resourceIntervalMs: 500,
+  cooldownMs: 0,
 };
 
 function usage() {
@@ -26,7 +28,7 @@ function usage() {
     --runs 3 --concurrency 50 --requests 15000
 
 可重复传入 --target 和 --pids。所有目标按相同场景和参数顺序执行。
-可选参数：--scenarios、--output、--timeout-ms、--warmup-requests、--resource-interval-ms。
+可选参数：--scenarios、--output、--timeout-ms、--warmup-requests、--resource-interval-ms、--cooldown-ms、--proc-root。
 `;
 }
 
@@ -57,6 +59,7 @@ function parseArgs(argv) {
     ...DEFAULTS,
     targets: [],
     pids: new Map(),
+    procRoot: '/proc',
     scenariosPath: path.resolve('tests/performance/scenarios.json'),
     outputPath: path.resolve(`tests/performance/results/${timestamp}`),
   };
@@ -100,6 +103,12 @@ function parseArgs(argv) {
         break;
       case '--resource-interval-ms':
         options.resourceIntervalMs = parsePositiveInteger(value, option);
+        break;
+      case '--cooldown-ms':
+        options.cooldownMs = parsePositiveInteger(value, option);
+        break;
+      case '--proc-root':
+        options.procRoot = path.resolve(value);
         break;
       case '--scenarios':
         options.scenariosPath = path.resolve(value);
@@ -170,6 +179,27 @@ function machineInfo() {
   };
 }
 
+let linuxClockTicks;
+
+function parseLinuxProcessSample(pids, procRoot) {
+  linuxClockTicks ??= Number(execFileSync('getconf', ['CLK_TCK'], { encoding: 'utf8' }).trim()) || 100;
+  return pids.flatMap((pid) => {
+    try {
+      const stat = readFileSync(path.join(procRoot, String(pid), 'stat'), 'utf8');
+      const fields = stat.slice(stat.lastIndexOf(')') + 2).trim().split(/\s+/);
+      const status = readFileSync(path.join(procRoot, String(pid), 'status'), 'utf8');
+      const rssMatch = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+      return [{
+        pid,
+        cpuSeconds: (Number(fields[11]) + Number(fields[12])) / linuxClockTicks,
+        memoryBytes: Number(rssMatch?.[1] ?? 0) * 1024,
+      }];
+    } catch {
+      return [];
+    }
+  });
+}
+
 function parseUnixProcessSample(pids) {
   const output = execFileSync('ps', ['-o', 'pid=,%cpu=,rss=', '-p', pids.join(',')], {
     encoding: 'utf8',
@@ -202,13 +232,21 @@ function parseWindowsProcessSample(pids) {
   }));
 }
 
-function sampleProcesses(pids) {
+function sampleProcesses(pids, procRoot = '/proc') {
   if (!pids?.length) return null;
   try {
     const processes = process.platform === 'win32'
       ? parseWindowsProcessSample(pids)
-      : parseUnixProcessSample(pids);
-    return { capturedAt: new Date().toISOString(), processes };
+      : process.platform === 'linux'
+        ? parseLinuxProcessSample(pids, procRoot)
+        : parseUnixProcessSample(pids);
+    const found = new Set(processes.map((item) => item.pid));
+    const missingPids = pids.filter((pid) => !found.has(pid));
+    return {
+      capturedAt: new Date().toISOString(),
+      processes,
+      error: missingPids.length ? `未找到 PID：${missingPids.join(',')}` : undefined,
+    };
   } catch (error) {
     return { capturedAt: new Date().toISOString(), processes: [], error: error.message };
   }
@@ -279,13 +317,13 @@ async function runRequests(baseUrl, scenarios, totalRequests, concurrency, timeo
 }
 
 function summarizeResources(samples, durationSeconds) {
-  const validSamples = samples.filter((sample) => sample?.processes?.length);
+  const validSamples = samples.filter((sample) => !sample?.error && sample?.processes?.length);
   if (validSamples.length === 0) {
     return { sampleCount: samples.length, available: false };
   }
   const memoryTotals = validSamples.map((sample) => sample.processes.reduce((sum, item) => sum + item.memoryBytes, 0));
-  let cpuTotals;
-  if (process.platform === 'win32') {
+  let cpuTotals = [];
+  if (validSamples.some((sample) => sample.processes.some((item) => item.cpuSeconds !== undefined))) {
     cpuTotals = [];
     for (let index = 1; index < validSamples.length; index += 1) {
       const previous = validSamples[index - 1];
@@ -293,7 +331,7 @@ function summarizeResources(samples, durationSeconds) {
       const previousCpu = previous.processes.reduce((sum, item) => sum + (item.cpuSeconds ?? 0), 0);
       const currentCpu = current.processes.reduce((sum, item) => sum + (item.cpuSeconds ?? 0), 0);
       const elapsed = (new Date(current.capturedAt) - new Date(previous.capturedAt)) / 1000;
-      if (elapsed > 0) cpuTotals.push(((currentCpu - previousCpu) / elapsed) * 100);
+      if (elapsed > 0 && currentCpu >= previousCpu) cpuTotals.push(((currentCpu - previousCpu) / elapsed) * 100);
     }
   } else {
     cpuTotals = validSamples.map((sample) => sample.processes.reduce((sum, item) => sum + (item.cpuPercent ?? 0), 0));
@@ -421,7 +459,9 @@ async function main() {
     timeoutMs: options.timeoutMs,
     warmupRequests: options.warmupRequests,
     resourceIntervalMs: options.resourceIntervalMs,
+    cooldownMs: options.cooldownMs,
     pids: Object.fromEntries(options.pids),
+    procRoot: options.procRoot,
   }, null, 2)}\n`);
 
   const summaries = [];
@@ -440,11 +480,19 @@ async function main() {
     }
 
     for (let runNumber = 1; runNumber <= options.runs; runNumber += 1) {
+      if (runNumber > 1 && options.cooldownMs > 0) {
+        console.log(`[${target.label}] 冷却 ${options.cooldownMs} ms 后开始下一轮`);
+        await new Promise((resolve) => setTimeout(resolve, options.cooldownMs));
+      }
       console.log(`[${target.label}] 第 ${runNumber}/${options.runs} 轮：并发 ${options.concurrency}，请求 ${options.requests}`);
       const resourceSamples = [];
       const pids = options.pids.get(target.label);
-      if (pids?.length) resourceSamples.push(sampleProcesses(pids));
-      const sampler = pids?.length ? setInterval(() => resourceSamples.push(sampleProcesses(pids)), options.resourceIntervalMs) : null;
+      if (pids?.length) {
+        const initialSample = sampleProcesses(pids, options.procRoot);
+        if (initialSample.error) throw new Error(`[${target.label}] 资源采样失败：${initialSample.error}`);
+        resourceSamples.push(initialSample);
+      }
+      const sampler = pids?.length ? setInterval(() => resourceSamples.push(sampleProcesses(pids, options.procRoot)), options.resourceIntervalMs) : null;
       const started = performance.now();
       const records = await runRequests(
         target.baseUrl,
@@ -455,7 +503,9 @@ async function main() {
       );
       const elapsedMs = performance.now() - started;
       if (sampler) clearInterval(sampler);
-      if (pids?.length) resourceSamples.push(sampleProcesses(pids));
+      if (pids?.length) resourceSamples.push(sampleProcesses(pids, options.procRoot));
+      const resourceFailure = resourceSamples.find((sample) => sample?.error);
+      if (resourceFailure) throw new Error(`[${target.label}] 资源采样失败：${resourceFailure.error}`);
       const summary = summarizeRun(target, runNumber, records, elapsedMs, resourceSamples, options);
       summaries.push(summary);
       const runId = `${target.label}-run-${String(runNumber).padStart(2, '0')}`;

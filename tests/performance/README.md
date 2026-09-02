@@ -5,12 +5,13 @@
 ## 默认口径
 
 - 场景：主页、推荐列表、门店搜索三个主要只读接口。
-- 数据：`database/seeds/R__seed_demo_data.sql`。
+- 数据：`database/microservices/merchant/seeds/R__seed_merchant_catalog_demo.sql`；单体测试时复制到隔离 schema，不能直接使用数据量更大的旧单体 seed。
 - 并发：50。
 - 每轮：15000 个请求，另有 1000 个预热请求。
 - 重复：每个版本至少 3 轮。
 - 指标：吞吐量、平均/P95/P99、错误率；指定服务 PID 后同时记录 CPU 和常驻内存。
 - 原始数据：每个请求和每次资源采样各保存一行 JSONL，同时生成 JSON/CSV 汇总及机器配置。
+- 稳定性：可通过 `--cooldown-ms` 设置轮间冷却；Linux/K3s 可通过 `--proc-root` 从只读宿主 `/proc` 计算进程 CPU 时间增量。
 
 ## 运行示例
 
@@ -37,10 +38,13 @@ node tests/performance/load-test.mjs `
   --runs 3 `
   --concurrency 50 `
   --requests 15000 `
+  --cooldown-ms 10000 `
   --output tests/performance/results/comparison-20260901
 ```
 
-`--pids` 可省略，但 CPU/内存会标记为不可用。PID 必须是被测 Java 进程；微服务应包含 Gateway 及实际承载三个场景的服务。脚本不会自动启动或停止服务，防止把构建、启动预热时间计入业务性能。
+`--pids` 可省略，但 CPU/内存会标记为不可用。课程最终口径中，单体 PID 应包含单体 Java 与 MySQL，微服务 PID 应包含 Gateway、A/B/C/D 与 MySQL，才能同时反映热链路和整套架构资源代价。脚本不会自动启动或停止服务，防止把构建、启动时间计入业务性能。
+
+K3s 隔离单体和集群内压测器清单位于 `tests/performance/k8s/`。压测器可只读挂载宿主 `/proc`，通过 `--proc-root /host-proc` 采集 K3s 容器进程；正式测试时应临时固定副本数，结束后恢复 HPA。
 
 ## 输出结构
 
@@ -54,4 +58,4 @@ results/<test-id>/
 └─ resources/<target>-run-01.jsonl
 ```
 
-只有单体和微服务均完成至少三轮、错误率可接受，且机器和数据条件一致时，才能据此写“性能提升”。当前微服务主线只有服务骨架时，不应生成或填写微服务性能结论。
+只有单体和微服务均完成至少三轮、错误率可接受，且机器、数据、业务响应和副本条件一致时，才能据此写“性能提升”。提交 `65ddbf8` 的正式结果已归档为 `tests/performance/results/aituan-performance-comparison-20260902-server-final.tar.gz`，结论见 `docs/stage-new-4/单体与微服务同条件三轮性能对比报告.md`；旧 `monolith-20260901-final.zip` 来自 Apple M5 + H2，不得与服务器微服务结果直接比较。

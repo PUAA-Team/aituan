@@ -216,6 +216,8 @@
 
 `./docs/stage-new-4/HPA与依赖故障实验说明.md`
 
+`./docs/stage-new-4/单体与微服务同条件三轮性能对比报告.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

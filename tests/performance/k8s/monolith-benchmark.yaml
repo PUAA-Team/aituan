@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-monolith
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: performance-monolith
+    app.kubernetes.io/part-of: aituan-performance
+spec:
+  selector:
+    app.kubernetes.io/name: performance-monolith
+    app.kubernetes.io/part-of: aituan-performance
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-monolith
+  namespace: aituan
+  labels:
+    app.kubernetes.io/name: performance-monolith
+    app.kubernetes.io/part-of: aituan-performance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: performance-monolith
+      app.kubernetes.io/part-of: aituan-performance
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: performance-monolith
+        app.kubernetes.io/part-of: aituan-performance
+    spec:
+      containers:
+        - name: backend
+          image: aituan-backend:performance-local
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: AITUAN_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/aituan_performance_monolith?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+            - name: AITUAN_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-performance-monolith-db
+                  key: username
+            - name: AITUAN_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: aituan-performance-monolith-db
+                  key: password
+            - name: SPRING_FLYWAY_LOCATIONS
+              value: classpath:db/migration,filesystem:/benchmark-seed
+            - name: AITUAN_MAP_PROVIDER
+              value: local
+            - name: AITUAN_MAIL_ENABLED
+              value: "false"
+            - name: MANAGEMENT_HEALTH_MAIL_ENABLED
+              value: "false"
+            - name: AITUAN_AI_ENABLED
+              value: "false"
+            - name: AITUAN_UPLOAD_ROOT
+              value: /tmp/aituan-performance-uploads
+            - name: JAVA_TOOL_OPTIONS
+              value: -Xms128m -Xmx512m -XX:+ExitOnOutOfMemoryError -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai
+          startupProbe: &probe
+            httpGet:
+              path: /actuator/health
+              port: http
+            timeoutSeconds: 3
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe: *probe
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 45
+            timeoutSeconds: 3
+            failureThreshold: 5
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          volumeMounts:
+            - name: benchmark-seed
+              mountPath: /benchmark-seed
+              readOnly: true
+      volumes:
+        - name: benchmark-seed
+          configMap:
+            name: aituan-performance-monolith-seed

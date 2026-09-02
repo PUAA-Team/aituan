@@ -1,5 +1,5 @@
 {
-  "dataset": "R__seed_demo_data.sql",
+  "dataset": "database/microservices/merchant/seeds/R__seed_merchant_catalog_demo.sql（复制到隔离单体 schema）",
   "description": "单体与微服务 Gateway 共用的三个只读主要接口场景",
   "scenarios": [
     {

@@ -1,0 +1,74 @@
+2026-09-02T21:48:10+08:00
+gitCommit=65ddbf8e2fa0b4149552c4223d68f60a1ef9d468
+Linux iZj6c1l84z55xbo85st14pZ 6.8.0-137-generic #137-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 17 20:28:23 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           46 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  4
+On-line CPU(s) list:                     0-3
+Vendor ID:                               GenuineIntel
+BIOS Vendor ID:                          Alibaba Cloud
+Model name:                              Intel(R) Xeon(R) Platinum
+BIOS Model name:                         pc-i440fx-2.1  CPU @ 0.0GHz
+BIOS CPU family:                         1
+CPU family:                              6
+Model:                                   85
+Thread(s) per core:                      2
+Core(s) per socket:                      2
+Socket(s):                               1
+Stepping:                                4
+BogoMIPS:                                4999.99
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch pti fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves arat
+Hypervisor vendor:                       KVM
+Virtualization type:                     full
+L1d cache:                               64 KiB (2 instances)
+L1i cache:                               64 KiB (2 instances)
+L2 cache:                                2 MiB (2 instances)
+L3 cache:                                33 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-3
+Vulnerability Gather data sampling:      Unknown: Dependent on hypervisor status
+Vulnerability Indirect target selection: Mitigation; Aligned branch/return thunks
+Vulnerability Itlb multihit:             KVM: Mitigation: VMX unsupported
+Vulnerability L1tf:                      Mitigation; PTE Inversion
+Vulnerability Mds:                       Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+Vulnerability Meltdown:                  Mitigation; PTI
+Vulnerability Mmio stale data:           Vulnerable: Clear CPU buffers attempted, no microcode; SMT Host state unknown
+Vulnerability Reg file data sampling:    Not affected
+Vulnerability Retbleed:                  Vulnerable
+Vulnerability Spec rstack overflow:      Not affected
+Vulnerability Spec store bypass:         Vulnerable
+Vulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization
+Vulnerability Spectre v2:                Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Retpoline
+Vulnerability Srbds:                     Not affected
+Vulnerability Tsa:                       Not affected
+Vulnerability Tsx async abort:           Not affected
+Vulnerability Vmscape:                   Not affected
+               total        used        free      shared  buff/cache   available
+Mem:            14Gi       2.8Gi       5.2Gi       4.9Mi       7.0Gi        11Gi
+Swap:             0B          0B          0B
+--- deployments ---
+NAME                          IMAGE                                                                                               CPU_REQ   CPU_LIMIT   MEM_REQ   MEM_LIMIT
+performance-monolith          aituan-backend:performance-local                                                                    200m      1           256Mi     768Mi
+api-gateway                   ghcr.io/puaa-team/aituan/api-gateway:sha-65ddbf8e2fa0b4149552c4223d68f60a1ef9d468                   50m       500m        96Mi      384Mi
+identity-asset-service        ghcr.io/puaa-team/aituan/identity-asset-service:sha-65ddbf8e2fa0b4149552c4223d68f60a1ef9d468        75m       750m        128Mi     384Mi
+merchant-catalog-service      ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-65ddbf8e2fa0b4149552c4223d68f60a1ef9d468      75m       750m        128Mi     384Mi
+trade-fulfillment-service     ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-65ddbf8e2fa0b4149552c4223d68f60a1ef9d468     75m       750m        128Mi     384Mi
+engagement-platform-service   ghcr.io/puaa-team/aituan/engagement-platform-service:sha-65ddbf8e2fa0b4149552c4223d68f60a1ef9d468   75m       750m        128Mi     384Mi
+--- hpa locked ---
+NAME                          REFERENCE                                TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+api-gateway                   Deployment/api-gateway                   cpu: 4%/50%   1         1         1          3h10m
+engagement-platform-service   Deployment/engagement-platform-service   cpu: 2%/50%   1         1         1          3h10m
+identity-asset-service        Deployment/identity-asset-service        cpu: 2%/50%   1         1         1          3h10m
+merchant-catalog-service      Deployment/merchant-catalog-service      cpu: 2%/50%   1         1         1          6h41m
+trade-fulfillment-service     Deployment/trade-fulfillment-service     cpu: 4%/50%   1         1         1          3h10m
+--- process map ---
+role	pid	rssKiB
+monolith	245584	237844
+gateway	217174	227176
+identity	217646	231652
+merchant	217561	267060
+trade	217811	206984
+engagement	217735	231200
+mysql	215671	276400

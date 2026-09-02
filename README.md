@@ -631,7 +631,7 @@ bash scripts/experiments/run_catalog_fault_experiment.sh
 
 手动部署时必须先渲染并替换清单中的全部 `sha-placeholder`，然后一次性 apply；不能把带占位镜像的 Kustomize 输出直接作为最终状态。生产拓扑细节见 `k8s/microservices/README.md`。
 
-软件工程基础实践第二阶段的要求对照、已完成内容和剩余性能实验见 `docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`。
+软件工程基础实践第二阶段的要求对照与完成状态见 `docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`。单体与微服务已在同一 4C16G 节点、同一 MySQL 和同一业务响应条件下各完成 3 轮性能测试，完整结果、资源代价与屏障点分析见 `docs/stage-new-4/单体与微服务同条件三轮性能对比报告.md`。
 
 域名 A 记录尚未指向服务器时，可先用自签名 `aituan-tls` 完成 `curl -k --resolve` 验证。A 记录切换后，通过 `/var/www/certbot` 申请正式证书，再运行 `scripts/deploy/sync_k8s_tls.sh`；同一脚本应安装为 Certbot deploy hook，以便续期后自动更新 K8s Secret。
 

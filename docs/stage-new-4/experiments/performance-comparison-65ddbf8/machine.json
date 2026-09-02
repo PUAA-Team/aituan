@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-09-02T13:48:12.793Z",
+  "hostname": "performance-load-generator",
+  "platform": "linux",
+  "release": "6.8.0-137-generic",
+  "architecture": "x64",
+  "cpuModel": "Intel(R) Xeon(R) Platinum",
+  "logicalCpuCount": 4,
+  "totalMemoryBytes": 15802593280,
+  "totalMemoryGiB": 14.717,
+  "nodeVersion": "v22.23.2",
+  "javaVersion": null,
+  "mavenVersion": null,
+  "gitCommit": null
+}

@@ -32,7 +32,9 @@ tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 tests/contracts/results/
-tests/performance/results/
+tests/performance/results/*
+!tests/performance/results/monolith-20260901-final.zip
+!tests/performance/results/aituan-performance-comparison-20260902-server-final.tar.gz
 
 # Local runtime/build handoff directories
 .aituan-local/
