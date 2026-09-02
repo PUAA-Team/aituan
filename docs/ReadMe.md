@@ -212,6 +212,8 @@
 
 `./docs/stage-new-1/性能对比与跨服务契约测试交付说明.md`
 
+`./docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

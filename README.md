@@ -594,6 +594,8 @@ seed 同时初始化以下演示数据：
 | `aituan-android-apk` | `flutter analyze` + `flutter test` + 生产域名 APK 构建，可选上传到服务器下载目录。 |
 | `aituan-legacy-monolith-deploy-manual` | 仅手动触发的旧单体回滚参考，不再随 main push 自动发布。 |
 
+CD 是两段式完整流程：先执行包含真实 MySQL 四库、跨服务链路和 UC01–UC13 的全量 CI，成功后才允许同一 SHA 进入 deployment workflow。部署段再复跑静态检查、全部 Java `verify`、Vue 覆盖率测试和 Flutter analyze/test，然后发布并部署 Gateway+A/B/C/D+MySQL+Web 共 7 个镜像。上游的 MySQL/E2E 门禁不在 deployment job 里重复运行，但任一失败都会阻止发布。
+
 `KUBE_CONFIG` 保存新服务器 kubeconfig 原文，不做 base64 二次编码；工作流通过 SSH 隧道连接服务器本机的 k3s API，因此云安全组不需要开放 6443。自动生产部署只监听 `main`，且仅当仓库 Variable `AUTO_DEPLOY_PRODUCTION=true` 时执行；手动触发不受该开关影响，但也不能绕过同一 SHA 的完整 CI 成功记录。
 
 Production Environment Secrets：
@@ -619,6 +621,8 @@ curl -fsS https://aituan.2b.gs/actuator/health
 ```
 
 手动部署时必须先渲染并替换清单中的全部 `sha-placeholder`，然后一次性 apply；不能把带占位镜像的 Kustomize 输出直接作为最终状态。生产拓扑细节见 `k8s/microservices/README.md`。
+
+软件工程基础实践第二阶段的要求对照、已完成内容和剩余 HPA/故障/性能实验见 `docs/stage-new-4/软件工程基础实践第二阶段完成情况与剩余工作.md`。
 
 域名 A 记录尚未指向服务器时，可先用自签名 `aituan-tls` 完成 `curl -k --resolve` 验证。A 记录切换后，通过 `/var/www/certbot` 申请正式证书，再运行 `scripts/deploy/sync_k8s_tls.sh`；同一脚本应安装为 Certbot deploy hook，以便续期后自动更新 K8s Secret。
 
