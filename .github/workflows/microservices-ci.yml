@@ -285,7 +285,7 @@ jobs:
           test "$(grep -c '^kind: Deployment$' microservices-k8s-rendered.yaml)" -eq 6
           test "$(grep -c '^kind: Service$' microservices-k8s-rendered.yaml)" -eq 7
           test "$(grep -c '^kind: StatefulSet$' microservices-k8s-rendered.yaml)" -eq 1
-          grep -q 'name: aituan-app-config' microservices-k8s-rendered.yaml
+          test "$(grep -c 'secretName: aituan-app-config' microservices-k8s-rendered.yaml)" -eq 4
           grep -q 'type: LoadBalancer' microservices-k8s-rendered.yaml
       - uses: actions/upload-artifact@v4
         with:
