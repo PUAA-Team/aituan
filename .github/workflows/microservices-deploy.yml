@@ -458,17 +458,21 @@ jobs:
             actual_image="$(kubectl -n "${K8S_NAMESPACE}" get "${resource}" -o jsonpath='{.spec.template.spec.containers[0].image}')"
             test "${actual_image}" = "${IMAGE_REGISTRY}/${image}:${IMAGE_TAG}"
           done
-          origin="${SERVER_ORIGIN%/}"
+          kubectl -n "${K8S_NAMESPACE}" port-forward service/web 18443:443 \
+            > .aituan-local/deployment-report/web-port-forward.log 2>&1 &
+          port_forward_pid=$!
+          trap 'kill "${port_forward_pid}" >/dev/null 2>&1 || true' EXIT
+          origin=https://127.0.0.1:18443
           for path in actuator/health web/ merchant/ admin/; do
-            curl -fsS --retry 24 --retry-delay 5 --retry-all-errors --max-time 15 "${origin}/${path}" >/dev/null
+            curl -kfsS --retry 24 --retry-delay 5 --retry-all-errors --max-time 15 "${origin}/${path}" >/dev/null
           done
-          login_response="$(curl -fsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_user","password":"123456"}' "${origin}/api/open/auth/user/login/password")"
+          login_response="$(curl -kfsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_user","password":"123456"}' "${origin}/api/open/auth/user/login/password")"
           test "$(jq -r '.code' <<<"${login_response}")" = 0
-          login_response="$(curl -fsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_merchant","password":"123456"}' "${origin}/api/open/auth/merchant/login/password")"
+          login_response="$(curl -kfsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_merchant","password":"123456"}' "${origin}/api/open/auth/merchant/login/password")"
           test "$(jq -r '.code' <<<"${login_response}")" = 0
-          login_response="$(curl -fsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_admin","password":"123456"}' "${origin}/api/open/auth/admin/login/password")"
+          login_response="$(curl -kfsS --max-time 15 -H 'Content-Type: application/json' -d '{"account":"demo_admin","password":"123456"}' "${origin}/api/open/auth/admin/login/password")"
           test "$(jq -r '.code' <<<"${login_response}")" = 0
-          curl -fsSI --max-time 15 "${origin}/downloads/aituan-user-server-debug.apk" >/dev/null
+          curl -kfsSI --max-time 15 "${origin}/downloads/aituan-user-server-debug.apk" >/dev/null
       - name: Collect Kubernetes diagnostics
         if: always()
         shell: bash
