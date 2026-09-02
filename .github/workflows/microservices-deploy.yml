@@ -423,8 +423,9 @@ jobs:
           done
           kubectl -n "${K8S_NAMESPACE}" get pods,svc,hpa,pvc -o wide > .aituan-local/deployment-report/resources.txt
           test "$(kubectl -n "${K8S_NAMESPACE}" get hpa -o name | wc -l | tr -d ' ')" = 5
-          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}')" = 5
-          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}')" = 1
+          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE}')" = 5
+          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_MINIMUMIDLE}')" = 1
+          test "$(kubectl -n "${K8S_NAMESPACE}" get configmap aituan-microservices-config -o jsonpath='{.data.SPRING_DATASOURCE_HIKARI_CONNECTIONTIMEOUT}')" = 3000
           for service in api-gateway identity-asset-service merchant-catalog-service trade-fulfillment-service engagement-platform-service; do
             test "$(kubectl -n "${K8S_NAMESPACE}" get "hpa/${service}" -o jsonpath='{.spec.scaleTargetRef.name}')" = "${service}"
             test "$(kubectl -n "${K8S_NAMESPACE}" get "deployment/${service}" -o jsonpath='{.spec.template.spec.containers[0].livenessProbe.httpGet.path}')" = /actuator/health/liveness
