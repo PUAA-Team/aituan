@@ -953,7 +953,7 @@ ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
 | --- | --- | --- |
 | `api_origin` | 留空或 `https://aituan.2b.gs` | 留空时使用 `SERVER_ORIGIN` |
 | `upload_to_server` | `true` | 是否上传到服务器下载目录 |
-| `apk_name` | `aituan-user-server-debug.apk` 或留默认 | 默认会按版本号生成 `aituan-user-版本-server-debug.apk` |
+| `apk_name` | `aituan-user-server-debug.apk` 或留默认 | 默认使用下载页固定文件名；如需归档版本，可手动填写带版本号的名称 |
 
 流程会执行：
 
@@ -970,7 +970,7 @@ ssh aituan-new "curl -fsS http://127.0.0.1/actuator/health"
 生产下载入口：
 
 ```text
-https://aituan.2b.gs/downloads/<APK 文件名>
+https://aituan.2b.gs/downloads/aituan-user-server-debug.apk
 ```
 
 ### A.7 生产发布失败处理

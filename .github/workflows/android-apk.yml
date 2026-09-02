@@ -79,10 +79,6 @@ jobs:
             apk_name="aituan-user-server-debug.apk"
           fi
           app_version="$(sed -n 's/^version: //p' apps/user_app/pubspec.yaml)"
-          safe_app_version="${app_version//+/-}"
-          if [[ "${apk_name}" == "aituan-user-server-debug.apk" ]]; then
-            apk_name="aituan-user-${safe_app_version}-server-debug.apk"
-          fi
           if [[ "${apk_name}" == */* || "${apk_name}" == *\\* ]]; then
             echo "::error::apk_name must be a file name, not a path."
             exit 1
