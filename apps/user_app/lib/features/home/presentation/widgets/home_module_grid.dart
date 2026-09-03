@@ -19,7 +19,7 @@ class HomeModuleGrid extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('爱团服务', style: Theme.of(context).textTheme.titleMedium),
+            Text('生活服务', style: Theme.of(context).textTheme.titleMedium),
             const Spacer(),
             const Text(
               '附近生活',

@@ -3,7 +3,7 @@ CLAUDE.md
 
 # Backend build outputs
 services/*/target/
-services/backend/bin/
+services/*/bin/
 
 # Web build outputs
 apps/*/node_modules/
