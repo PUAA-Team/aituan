@@ -222,9 +222,15 @@
 
 `./docs/stage-new-4/微服务测试三分类与课程要求对照.md`
 
+`./docs/stage-new-4/微服务版本测试计划.md`
+
+`./docs/stage-new-4/微服务版本测试报告.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`
+
+`./docs/爱团技术总结报告.md`
 
 ### 12. 后续计划与长期待办
 

@@ -59,6 +59,54 @@ K8S_MYSQL_ROOT_PASSWORD=<MySQL root 密码>
 K8S_APP_CONFIG=<后端 /app/.config 文件完整内容>
 ```
 
+`K8S_APP_CONFIG` 对应集群内的 `aituan-app-config` Secret，后端通过 `AITUAN_CONFIG_FILE=/app/.config` 读取。更换服务器（例如 `aituan-weifuwu`）时，如果代码和 CI/CD 已迁移但配置没迁移，优先检查这个 GitHub Secret 或集群 Secret 是否仍缺邮件、地图、AI、图床等配置。
+
+推荐按下面模板准备 `K8S_APP_CONFIG`，只把真实值填在 GitHub Secrets 或服务器集群 Secret 中，不要写回仓库：
+
+```properties
+aituan.security.jwt-secret=<替换为强随机JWT密钥>
+
+# AI 助手：当前 fake API 口径；默认关闭，api-key 可留空。
+aituan.ai.enabled=false
+aituan.ai.api-url=http://cliapi.2b.gs
+aituan.ai.api-key=
+aituan.ai.model=pp/gpt-5.5
+aituan.ai.timeout-seconds=20
+aituan.ai.max-tokens=800
+aituan.ai.temperature=0.25
+
+# 邮箱验证码：启用 SMTP 时把 enabled 改为 true，并关闭 debug-return-code。
+aituan.mail.enabled=false
+aituan.mail.debug-return-code=false
+spring.mail.host=smtp.qq.com
+spring.mail.port=465
+spring.mail.username=<邮箱账号>
+spring.mail.password=<SMTP授权码>
+spring.mail.properties.mail.smtp.ssl.enable=true
+spring.mail.properties.mail.smtp.starttls.enable=false
+aituan.mail.from=<发件邮箱>
+aituan.mail.from-name=爱团
+
+# 图片上传：默认 local；启用 lskypro 时填写 token 或 email/password。
+aituan.upload.strategy=local
+aituan.upload.lskypro.api-url=https://p.2b.gs/api/v1
+aituan.upload.lskypro.token=
+aituan.upload.lskypro.email=
+aituan.upload.lskypro.password=
+aituan.upload.lskypro.token-url=https://p.2b.gs/api/v1/tokens
+aituan.upload.lskypro.strategy-id=
+aituan.upload.lskypro.album-id=
+aituan.upload.lskypro.permission=1
+
+# 地图服务：默认 local；启用高德时改为 amap 并填写 Web 服务 Key。
+aituan.map.provider=local
+aituan.map.amap.web-api-key=
+aituan.map.amap.geocode-url=https://restapi.amap.com/v3/geocode/geo
+aituan.map.amap.distance-url=https://restapi.amap.com/v3/distance
+aituan.map.amap.regeo-url=https://restapi.amap.com/v3/geocode/regeo
+aituan.map.amap.route-url=https://restapi.amap.com/v5/direction/electrobike
+```
+
 如果 GHCR 镜像是私有包，还需要：
 
 ```text
