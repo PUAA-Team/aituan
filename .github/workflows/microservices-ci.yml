@@ -208,6 +208,50 @@ jobs:
         working-directory: apps/user_app
         run: flutter build web --base-href /web/ --dart-define=API_BASE_URL=http://127.0.0.1 --dart-define=AITUAN_BUILD_COMMIT=${{ github.sha }} --dart-define=AITUAN_BUILD_SOURCE=microservices-ci
 
+  microservice-unit:
+    name: Classified microservice unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run isolated Gateway and A/B/C/D unit tests
+        run: bash scripts/verify/test_microservices_unit.sh
+      - name: Upload classified unit test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-classified-unit-test-reports
+          path: |
+            services/**/target/surefire-reports/
+            services/**/target/site/jacoco/
+          if-no-files-found: warn
+
+  microservice-integration-api:
+    name: Classified microservice integration and API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Run controller, API, contract, migration, and boundary tests
+        run: bash scripts/verify/test_microservices_integration_api.sh
+      - name: Upload classified integration and API test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: microservices-classified-integration-api-test-reports
+          path: |
+            services/**/target/surefire-reports/
+            services/**/target/site/jacoco/
+          if-no-files-found: warn
+
   service-test:
     name: Test ${{ matrix.service }}
     runs-on: ubuntu-latest
@@ -243,7 +287,7 @@ jobs:
     name: MySQL 8 four-schema migration, isolation and gateway E2E
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: service-test
+    needs: [microservice-unit, microservice-integration-api, service-test]
     services:
       mysql:
         image: mysql:8.4
@@ -400,11 +444,10 @@ jobs:
             done
           done
       - name: Run gateway-backed E2E scenarios
-        working-directory: tests/e2e
         env:
           E2E_API_ORIGIN: http://127.0.0.1:18080
           E2E_WEB_ORIGIN: http://127.0.0.1:8090
-        run: npx playwright test
+        run: bash scripts/verify/test_microservices_e2e.sh
       - name: Prepare production image inputs
         run: |
           set -euo pipefail
@@ -454,7 +497,7 @@ jobs:
       - uses: azure/setup-kubectl@v4
       - name: Validate Compose
         run: |
-          bash -n scripts/verify/member_e_regression_checks.sh scripts/verify/verify_mysql_schema_isolation.sh scripts/verify/write_pipeline_raw_report.sh scripts/deploy/sync_k8s_tls.sh scripts/experiments/run_hpa_experiment.sh scripts/experiments/run_catalog_fault_experiment.sh
+          bash -n scripts/verify/member_e_regression_checks.sh scripts/verify/test_microservices_unit.sh scripts/verify/test_microservices_integration_api.sh scripts/verify/test_microservices_e2e.sh scripts/verify/verify_mysql_schema_isolation.sh scripts/verify/write_pipeline_raw_report.sh scripts/deploy/sync_k8s_tls.sh scripts/experiments/run_hpa_experiment.sh scripts/experiments/run_catalog_fault_experiment.sh
           node --check scripts/experiments/hpa-load.mjs
           docker compose -f deploy/docker-compose.microservices.yml config --quiet
           docker compose --env-file deploy/.env.example -f deploy/docker-compose.cicd.yml config --quiet
@@ -484,7 +527,7 @@ jobs:
   docker-build:
     name: Build image ${{ matrix.image }}
     runs-on: ubuntu-latest
-    needs: [static-regression, legacy-backend, contract, web, flutter, service-test, mysql-four-schema-smoke, deployment-contract]
+    needs: [static-regression, legacy-backend, contract, web, flutter, microservice-unit, microservice-integration-api, service-test, mysql-four-schema-smoke, deployment-contract]
     strategy:
       fail-fast: false
       matrix:
@@ -515,7 +558,7 @@ jobs:
   pipeline-raw-report:
     name: Upload microservice CI pipeline raw report
     runs-on: ubuntu-latest
-    needs: [static-regression, legacy-backend, contract, web, flutter, service-test, mysql-four-schema-smoke, deployment-contract, docker-build]
+    needs: [static-regression, legacy-backend, contract, web, flutter, microservice-unit, microservice-integration-api, service-test, mysql-four-schema-smoke, deployment-contract, docker-build]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -527,7 +570,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           AITUAN_REPORT_TITLE: aituan-microservices-ci 流水线原始报告
-          AITUAN_JOB_STATUS: static=${{ needs.static-regression.result }}, legacy-backend=${{ needs.legacy-backend.result }}, contract=${{ needs.contract.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, services=${{ needs.service-test.result }}, mysql-e2e=${{ needs.mysql-four-schema-smoke.result }}, deployment-contract=${{ needs.deployment-contract.result }}, images=${{ needs.docker-build.result }}
+          AITUAN_JOB_STATUS: static=${{ needs.static-regression.result }}, legacy-backend=${{ needs.legacy-backend.result }}, contract=${{ needs.contract.result }}, web=${{ needs.web.result }}, flutter=${{ needs.flutter.result }}, unit=${{ needs.microservice-unit.result }}, integration-api=${{ needs.microservice-integration-api.result }}, services=${{ needs.service-test.result }}, mysql-e2e=${{ needs.mysql-four-schema-smoke.result }}, deployment-contract=${{ needs.deployment-contract.result }}, images=${{ needs.docker-build.result }}
         run: bash scripts/verify/write_pipeline_raw_report.sh .aituan-report/microservices-ci
       - name: Upload raw pipeline report
         if: always()

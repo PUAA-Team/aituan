@@ -218,6 +218,10 @@
 
 `./docs/stage-new-4/单体与微服务同条件三轮性能对比报告.md`
 
+`./docs/stage-new-4/微服务CICD流程简明讲解.md`
+
+`./docs/stage-new-4/微服务测试三分类与课程要求对照.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

@@ -115,6 +115,28 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: maven
+      - name: Re-run classified microservice unit tests
+        run: bash scripts/verify/test_microservices_unit.sh
+      - name: Upload classified unit test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-classified-unit-test-reports
+          path: |
+            services/**/target/surefire-reports/
+            services/**/target/site/jacoco/
+          if-no-files-found: warn
+      - name: Re-run classified microservice integration and API tests
+        run: bash scripts/verify/test_microservices_integration_api.sh
+      - name: Upload classified integration and API test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-classified-integration-api-test-reports
+          path: |
+            services/**/target/surefire-reports/
+            services/**/target/site/jacoco/
+          if-no-files-found: warn
       - name: Run all Java tests, packaging, and coverage gates
         run: mvn -B -f services/pom.xml clean verify
       - name: Upload Java test evidence
