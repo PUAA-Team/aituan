@@ -91,12 +91,14 @@ class TakeawayFoodRow extends StatelessWidget {
     required this.count,
     required this.onAdd,
     required this.onRemove,
+    this.catalogAvailable = true,
   });
 
   final ItemModel item;
   final int count;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final bool catalogAvailable;
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +154,8 @@ class TakeawayFoodRow extends StatelessWidget {
                     Expanded(child: PriceText(item.price, size: 18)),
                     TakeawayQuantityStepper(
                       count: count,
-                      canAdd: !item.soldOut && !limitReached,
+                      canAdd:
+                          catalogAvailable && !item.soldOut && !limitReached,
                       onAdd: onAdd,
                       onRemove: onRemove,
                     ),
@@ -176,6 +179,7 @@ class TakeawayCartBar extends StatelessWidget {
     required this.startPrice,
     required this.onOpen,
     required this.onSubmit,
+    this.catalogAvailable = true,
   });
 
   final double total;
@@ -184,6 +188,7 @@ class TakeawayCartBar extends StatelessWidget {
   final double startPrice;
   final VoidCallback onOpen;
   final VoidCallback onSubmit;
+  final bool catalogAvailable;
 
   @override
   Widget build(BuildContext context) {
@@ -220,9 +225,15 @@ class TakeawayCartBar extends StatelessWidget {
             PriceText(payable, size: 20),
             const SizedBox(width: 12),
             FilledButton(
-              onPressed: total > 0 && missing <= 0 ? onSubmit : null,
+              onPressed: catalogAvailable && total > 0 && missing <= 0
+                  ? onSubmit
+                  : null,
               child: Text(
-                missing > 0 ? '差￥${takeawayMoneyText(missing)}起送' : '提交',
+                !catalogAvailable
+                    ? '服务恢复后结算'
+                    : missing > 0
+                    ? '差￥${takeawayMoneyText(missing)}起送'
+                    : '提交',
               ),
             ),
           ],

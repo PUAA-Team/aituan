@@ -226,6 +226,24 @@
 
 `./docs/stage-new-4/微服务版本测试报告.md`
 
+`./docs/stage-new-4/两个云原生实验简明讲解.md`
+
+`./docs/stage-new-4/性能测试简明讲解.md`
+
+`./docs/stage-new-4/答辩三个代表性业务流程-模型测试一致性修订稿.md`
+
+`./docs/stage-new-4/现场演示视频方案与逐段脚本.md`
+
+`./docs/stage-new-4/现场演示命令与实验操作手册.md`
+
+`./docs/stage-new-4/视频03-HPA扩缩容完整命令与录制流程.md`
+
+`./docs/stage-new-4/视频03-HPA扩缩容-SSH服务器录制版.md`
+
+`./docs/stage-new-4/视频04-依赖故障隔离-前端与SSH录制版.md`
+
+`./docs/stage-new-4/组内分工与大模型使用说明.md`
+
 ### 11. 期末展示文档
 
 `./docs/stage-final/期末展示PPT大纲.md`

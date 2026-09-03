@@ -161,6 +161,50 @@ class BackendAppRepository {
         ),
       );
 
+  Future<TradeCartData> fetchCart(int storeId) async {
+    final json = await _get('/api/app/trade/cart?storeId=$storeId');
+    return TradeCartData.fromApi(_map(json['data']));
+  }
+
+  Future<TradeCartData> addCartItem({
+    required int storeId,
+    required int itemId,
+  }) async {
+    final json = await _post('/api/app/trade/cart/items', {
+      'storeId': storeId,
+      'itemId': itemId,
+      'quantity': 1,
+    });
+    return TradeCartData.fromApi(_map(json['data']));
+  }
+
+  Future<TradeCartData> updateCartItem({
+    required int storeId,
+    required int itemId,
+    required int quantity,
+  }) async {
+    final json = await _put('/api/app/trade/cart/items/$itemId', {
+      'storeId': storeId,
+      'quantity': quantity,
+    });
+    return TradeCartData.fromApi(_map(json['data']));
+  }
+
+  Future<TradeCartData> removeCartItem({
+    required int storeId,
+    required int itemId,
+  }) async {
+    final json = await _delete(
+      '/api/app/trade/cart/items/$itemId?storeId=$storeId',
+    );
+    return TradeCartData.fromApi(_map(json['data']));
+  }
+
+  Future<TradeCartData> clearCart(int storeId) async {
+    final json = await _delete('/api/app/trade/cart?storeId=$storeId');
+    return TradeCartData.fromApi(_map(json['data']));
+  }
+
   Future<ItemDetailData> fetchItem(int itemId) async {
     final json = await _get(_withLocation('/api/app/discovery/items/$itemId'));
     final data = _map(json['data']);
@@ -550,6 +594,75 @@ class BackendAppRepository {
       _client.put(path, body);
 
   Future<Map<String, dynamic>> _delete(String path) => _client.delete(path);
+}
+
+class TradeCartData {
+  const TradeCartData({
+    required this.storeId,
+    required this.storeName,
+    required this.amount,
+    required this.items,
+    required this.catalogAvailable,
+    this.notice,
+  });
+
+  final int storeId;
+  final String storeName;
+  final double amount;
+  final List<TradeCartLineData> items;
+  final bool catalogAvailable;
+  final String? notice;
+
+  factory TradeCartData.fromApi(Map<String, dynamic> json) => TradeCartData(
+    storeId: _int(json['storeId']),
+    storeName: _string(json['storeName']),
+    amount: _double(json['amount']),
+    items: _list(
+      json['items'],
+    ).map((entry) => TradeCartLineData.fromApi(_map(entry))).toList(),
+    catalogAvailable: json['catalogAvailable'] != false,
+    notice: _nullableString(json['notice']),
+  );
+}
+
+class TradeCartLineData {
+  const TradeCartLineData({
+    required this.itemId,
+    required this.itemName,
+    required this.subtitle,
+    required this.categoryName,
+    required this.unitPrice,
+    required this.quantity,
+    required this.totalPrice,
+    required this.stock,
+    required this.status,
+    required this.soldOut,
+  });
+
+  final int itemId;
+  final String itemName;
+  final String subtitle;
+  final String categoryName;
+  final double unitPrice;
+  final int quantity;
+  final double totalPrice;
+  final int stock;
+  final String status;
+  final bool soldOut;
+
+  factory TradeCartLineData.fromApi(Map<String, dynamic> json) =>
+      TradeCartLineData(
+        itemId: _int(json['itemId']),
+        itemName: _string(json['itemName']),
+        subtitle: _string(json['subtitle']),
+        categoryName: _string(json['categoryName']),
+        unitPrice: _double(json['unitPrice']),
+        quantity: _int(json['quantity']),
+        totalPrice: _double(json['totalPrice']),
+        stock: _int(json['stock']),
+        status: _string(json['status'], fallback: 'on_sale'),
+        soldOut: json['soldOut'] == true,
+      );
 }
 
 class AuthSession {

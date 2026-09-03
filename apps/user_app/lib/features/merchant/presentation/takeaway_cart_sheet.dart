@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/price_text.dart';
 import '../../../shared/models/item_model.dart';
 import 'takeaway_amount_utils.dart';
+import 'takeaway_catalog_fallback_notice.dart';
 import 'takeaway_quantity_stepper.dart';
 
 class TakeawayCartSheet extends StatefulWidget {
@@ -17,22 +18,28 @@ class TakeawayCartSheet extends StatefulWidget {
     required this.onRemove,
     required this.onClear,
     required this.onSubmit,
+    this.catalogAvailable = true,
+    this.notice,
   });
 
   final List<ItemModel> items;
   final Map<String, int> cart;
   final double deliveryFee;
   final double startPrice;
-  final ValueChanged<ItemModel> onAdd;
-  final ValueChanged<ItemModel> onRemove;
-  final VoidCallback onClear;
+  final Future<void> Function(ItemModel) onAdd;
+  final Future<void> Function(ItemModel) onRemove;
+  final Future<void> Function() onClear;
   final VoidCallback onSubmit;
+  final bool catalogAvailable;
+  final String? notice;
 
   @override
   State<TakeawayCartSheet> createState() => _TakeawayCartSheetState();
 }
 
 class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
+  bool _updating = false;
+
   double get _total => widget.items.fold(
     0,
     (sum, item) => sum + item.price * (widget.cart[item.id] ?? 0),
@@ -62,14 +69,16 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
                 const Spacer(),
                 if (selectedItems.isNotEmpty)
                   TextButton(
-                    onPressed: () {
-                      widget.onClear();
-                      setState(() {});
-                    },
+                    onPressed: _updating ? null : () => _run(widget.onClear),
                     child: const Text('清空'),
                   ),
               ],
             ),
+            if (!widget.catalogAvailable)
+              TakeawayCatalogFallbackNotice(
+                notice: widget.notice,
+                compact: true,
+              ),
             if (selectedItems.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 18),
@@ -84,14 +93,11 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
                   itemBuilder: (_, index) => _CartLine(
                     item: selectedItems[index],
                     count: widget.cart[selectedItems[index].id] ?? 0,
-                    onAdd: () {
-                      widget.onAdd(selectedItems[index]);
-                      setState(() {});
-                    },
-                    onRemove: () {
-                      widget.onRemove(selectedItems[index]);
-                      setState(() {});
-                    },
+                    catalogAvailable: widget.catalogAvailable,
+                    updating: _updating,
+                    onAdd: () => _run(() => widget.onAdd(selectedItems[index])),
+                    onRemove: () =>
+                        _run(() => widget.onRemove(selectedItems[index])),
                   ),
                 ),
               ),
@@ -121,14 +127,19 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: _total > 0 && _missing <= 0
+                onPressed:
+                    widget.catalogAvailable && _total > 0 && _missing <= 0
                     ? () {
                         Navigator.of(context).pop();
                         widget.onSubmit();
                       }
                     : null,
                 child: Text(
-                  _missing > 0 ? '差￥${takeawayMoneyText(_missing)}起送' : '去确认订单',
+                  !widget.catalogAvailable
+                      ? '商品服务恢复后可结算'
+                      : _missing > 0
+                      ? '差￥${takeawayMoneyText(_missing)}起送'
+                      : '去确认订单',
                 ),
               ),
             ),
@@ -136,6 +147,14 @@ class _TakeawayCartSheetState extends State<TakeawayCartSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _run(Future<void> Function() operation) async {
+    if (_updating) return;
+    setState(() => _updating = true);
+    await operation();
+    if (!mounted) return;
+    setState(() => _updating = false);
   }
 }
 
@@ -145,12 +164,16 @@ class _CartLine extends StatelessWidget {
     required this.count,
     required this.onAdd,
     required this.onRemove,
+    required this.catalogAvailable,
+    required this.updating,
   });
 
   final ItemModel item;
   final int count;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final bool catalogAvailable;
+  final bool updating;
 
   @override
   Widget build(BuildContext context) {
@@ -174,12 +197,19 @@ class _CartLine extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        TakeawayQuantityStepper(
-          count: count,
-          canAdd: canAdd,
-          onAdd: onAdd,
-          onRemove: onRemove,
-        ),
+        if (!catalogAvailable)
+          TextButton.icon(
+            onPressed: updating ? null : onRemove,
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('移除商品'),
+          )
+        else
+          TakeawayQuantityStepper(
+            count: count,
+            canAdd: canAdd && !updating,
+            onAdd: onAdd,
+            onRemove: onRemove,
+          ),
       ],
     );
   }

@@ -41,6 +41,7 @@ class TakeawayOrderPanel extends StatelessWidget {
     required this.onSelected,
     required this.onAdd,
     required this.onRemove,
+    this.catalogAvailable = true,
   });
 
   final Map<String, List<ItemModel>> groups;
@@ -49,6 +50,7 @@ class TakeawayOrderPanel extends StatelessWidget {
   final ValueChanged<String> onSelected;
   final ValueChanged<ItemModel> onAdd;
   final ValueChanged<ItemModel> onRemove;
+  final bool catalogAvailable;
 
   @override
   Widget build(BuildContext context) => CategoryGroupedList(
@@ -59,6 +61,7 @@ class TakeawayOrderPanel extends StatelessWidget {
     itemBuilder: (_, item) => TakeawayFoodRow(
       item: item,
       count: cart[item.id] ?? 0,
+      catalogAvailable: catalogAvailable,
       onAdd: () => onAdd(item),
       onRemove: () => onRemove(item),
     ),
@@ -210,13 +213,17 @@ class _ReviewCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.thumb_up_alt_outlined, size: 16, color: AppColors.textSub),
+              const Icon(
+                Icons.thumb_up_alt_outlined,
+                size: 16,
+                color: AppColors.textSub,
+              ),
               const SizedBox(width: 4),
               Text(
                 '${review.helpfulCount} 人觉得有用',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSub,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSub),
               ),
             ],
           ),

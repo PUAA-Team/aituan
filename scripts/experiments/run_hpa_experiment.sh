@@ -19,7 +19,11 @@ top_samples="${output_dir}/pod-resource-timeline.txt"
 mkdir -p "${output_dir}"
 
 cleanup() {
-  kubectl -n "${namespace}" delete job "${job}" configmap "${configmap}" secret "${secret}" --ignore-not-found --wait=false >/dev/null 2>&1 || true
+  kubectl -n "${namespace}" delete \
+    "job/${job}" \
+    "configmap/${configmap}" \
+    "secret/${secret}" \
+    --ignore-not-found --wait=false >/dev/null 2>&1 || true
 }
 trap cleanup EXIT INT TERM
 
