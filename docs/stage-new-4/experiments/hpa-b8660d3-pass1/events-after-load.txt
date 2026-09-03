@@ -1,0 +1,905 @@
+LAST SEEN   TYPE      REASON                         OBJECT                                                   MESSAGE
+46m         Normal    Scheduled                      pod/health-identity-asset-service-33624446793-1-1        Successfully assigned aituan/health-identity-asset-service-33624446793-1-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-2sb8h         Successfully assigned aituan/engagement-platform-service-7b6df4855b-2sb8h to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/trade-fulfillment-service-b94c4db85-8vgkg            Successfully assigned aituan/trade-fulfillment-service-b94c4db85-8vgkg to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-5h89f         Successfully assigned aituan/engagement-platform-service-7b6df4855b-5h89f to izj6c1l84z55xbo85st14pz
+9m32s       Normal    Scheduled                      pod/identity-asset-service-8648977489-tffdj              Successfully assigned aituan/identity-asset-service-8648977489-tffdj to izj6c1l84z55xbo85st14pz
+9m48s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-6fzd4            Successfully assigned aituan/merchant-catalog-service-568bf45885-6fzd4 to izj6c1l84z55xbo85st14pz
+3m12s       Normal    Scheduled                      pod/aituan-hpa-load-1788351408-v66s9                     Successfully assigned aituan/aituan-hpa-load-1788351408-v66s9 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/wait-mysql-smoke-1788348829                          Successfully assigned aituan/wait-mysql-smoke-1788348829 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/version-trade-fulfillment-service-33627149918-1      Successfully assigned aituan/version-trade-fulfillment-service-33627149918-1 to izj6c1l84z55xbo85st14pz
+2m32s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-cpr7h            Successfully assigned aituan/merchant-catalog-service-568bf45885-cpr7h to izj6c1l84z55xbo85st14pz
+9m17s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-f9z8f            Successfully assigned aituan/merchant-catalog-service-568bf45885-f9z8f to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/aituan-web-59b75c5cfd-r6znv                          Successfully assigned aituan/aituan-web-59b75c5cfd-r6znv to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-m9l55            Successfully assigned aituan/merchant-catalog-service-568bf45885-m9l55 to izj6c1l84z55xbo85st14pz
+2m46s       Normal    Scheduled                      pod/identity-asset-service-8648977489-t2s5t              Successfully assigned aituan/identity-asset-service-8648977489-t2s5t to izj6c1l84z55xbo85st14pz
+2m47s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-mjkjh            Successfully assigned aituan/merchant-catalog-service-568bf45885-mjkjh to izj6c1l84z55xbo85st14pz
+9m48s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-pzvks            Successfully assigned aituan/merchant-catalog-service-568bf45885-pzvks to izj6c1l84z55xbo85st14pz
+2m47s       Normal    Scheduled                      pod/merchant-catalog-service-568bf45885-t646w            Successfully assigned aituan/merchant-catalog-service-568bf45885-t646w to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/engagement-platform-service-57c9877df4-xxt4j         Successfully assigned aituan/engagement-platform-service-57c9877df4-xxt4j to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/trade-fulfillment-service-b94c4db85-t9npq            Successfully assigned aituan/trade-fulfillment-service-b94c4db85-t9npq to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/aituan-web-9db46b55c-z89pk                           Successfully assigned aituan/aituan-web-9db46b55c-z89pk to izj6c1l84z55xbo85st14pz
+2m46s       Normal    Scheduled                      pod/identity-asset-service-8648977489-rnsgx              Successfully assigned aituan/identity-asset-service-8648977489-rnsgx to izj6c1l84z55xbo85st14pz
+9m33s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-6dr48         Successfully assigned aituan/engagement-platform-service-7b6df4855b-6dr48 to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/trade-fulfillment-service-5f9dd448d4-5w64w           Successfully assigned aituan/trade-fulfillment-service-5f9dd448d4-5w64w to izj6c1l84z55xbo85st14pz
+2m32s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-d9fq4         Successfully assigned aituan/engagement-platform-service-7b6df4855b-d9fq4 to izj6c1l84z55xbo85st14pz
+9m30s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-xdjb7            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-xdjb7 to izj6c1l84z55xbo85st14pz
+31m         Normal    Scheduled                      pod/merchant-catalog-service-5d6858cd97-54cfb            Successfully assigned aituan/merchant-catalog-service-5d6858cd97-54cfb to izj6c1l84z55xbo85st14pz
+2m31s       Normal    Scheduled                      pod/identity-asset-service-8648977489-lbk6h              Successfully assigned aituan/identity-asset-service-8648977489-lbk6h to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/aituan-web-dd89ff558-h6vkz                           Successfully assigned aituan/aituan-web-dd89ff558-h6vkz to izj6c1l84z55xbo85st14pz
+9m15s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-lp8w6            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-lp8w6 to izj6c1l84z55xbo85st14pz
+9m18s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-fhj5l         Successfully assigned aituan/engagement-platform-service-7b6df4855b-fhj5l to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-kzg2h            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-kzg2h to izj6c1l84z55xbo85st14pz
+2m29s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-hqfvj            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-hqfvj to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/merchant-catalog-service-5d6858cd97-qgnk6            Successfully assigned aituan/merchant-catalog-service-5d6858cd97-qgnk6 to izj6c1l84z55xbo85st14pz
+2m15s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-hknrn            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-hknrn to izj6c1l84z55xbo85st14pz
+9m32s       Normal    Scheduled                      pod/identity-asset-service-8648977489-gbrsc              Successfully assigned aituan/identity-asset-service-8648977489-gbrsc to izj6c1l84z55xbo85st14pz
+9m30s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-cmvxf            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-cmvxf to izj6c1l84z55xbo85st14pz
+2m32s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-g4qzm         Successfully assigned aituan/engagement-platform-service-7b6df4855b-g4qzm to izj6c1l84z55xbo85st14pz
+10m         Normal    Scheduled                      pod/aituan-hpa-load-1788350998-clh4w                     Successfully assigned aituan/aituan-hpa-load-1788350998-clh4w to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/identity-asset-service-8648977489-86jz5              Successfully assigned aituan/identity-asset-service-8648977489-86jz5 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-9bwqw            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-9bwqw to izj6c1l84z55xbo85st14pz
+45m         Normal    Scheduled                      pod/identity-asset-service-7cf5978966-mcrv8              Successfully assigned aituan/identity-asset-service-7cf5978966-mcrv8 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/api-gateway-6487dd55d9-2kvjq                         Successfully assigned aituan/api-gateway-6487dd55d9-2kvjq to izj6c1l84z55xbo85st14pz
+2m30s       Normal    Scheduled                      pod/trade-fulfillment-service-57cc4f96c-5pr7c            Successfully assigned aituan/trade-fulfillment-service-57cc4f96c-5pr7c to izj6c1l84z55xbo85st14pz
+2m17s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-mcbpd         Successfully assigned aituan/engagement-platform-service-7b6df4855b-mcbpd to izj6c1l84z55xbo85st14pz
+18m         Normal    Scheduled                      pod/mysql-0                                              Successfully assigned aituan/mysql-0 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/version-api-gateway-33624446793-1                    Successfully assigned aituan/version-api-gateway-33624446793-1 to izj6c1l84z55xbo85st14pz
+9m33s       Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-s575d         Successfully assigned aituan/engagement-platform-service-7b6df4855b-s575d to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/version-api-gateway-33625864450-1                    Successfully assigned aituan/version-api-gateway-33625864450-1 to izj6c1l84z55xbo85st14pz
+45m         Normal    Scheduled                      pod/api-gateway-6487dd55d9-lzsp7                         Successfully assigned aituan/api-gateway-6487dd55d9-lzsp7 to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/identity-asset-service-7cf5978966-h4rxp              Successfully assigned aituan/identity-asset-service-7cf5978966-h4rxp to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/mysql-0                                              Successfully assigned aituan/mysql-0 to izj6c1l84z55xbo85st14pz
+9m33s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-zwk58                         Successfully assigned aituan/api-gateway-7ddddc4f8f-zwk58 to izj6c1l84z55xbo85st14pz
+16m         Normal    Scheduled                      pod/version-api-gateway-33627149918-1                    Successfully assigned aituan/version-api-gateway-33627149918-1 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/version-engagement-platform-service-33624446793-1    Successfully assigned aituan/version-engagement-platform-service-33624446793-1 to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/identity-asset-service-54fddb66c9-cdgcw              Successfully assigned aituan/identity-asset-service-54fddb66c9-cdgcw to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/api-gateway-6487dd55d9-rqth9                         Successfully assigned aituan/api-gateway-6487dd55d9-rqth9 to izj6c1l84z55xbo85st14pz
+2m33s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-x6qmd                         Successfully assigned aituan/api-gateway-7ddddc4f8f-x6qmd to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/mysql-0                                              Successfully assigned aituan/mysql-0 to izj6c1l84z55xbo85st14pz
+31m         Normal    Scheduled                      pod/version-engagement-platform-service-33625864450-1    Successfully assigned aituan/version-engagement-platform-service-33625864450-1 to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/engagement-platform-service-7b6df4855b-zflnb         Successfully assigned aituan/engagement-platform-service-7b6df4855b-zflnb to izj6c1l84z55xbo85st14pz
+2m18s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-wwjh2                         Successfully assigned aituan/api-gateway-7ddddc4f8f-wwjh2 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/health-trade-fulfillment-service-33627149918-1-1     Successfully assigned aituan/health-trade-fulfillment-service-33627149918-1-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/version-engagement-platform-service-33627149918-1    Successfully assigned aituan/version-engagement-platform-service-33627149918-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/health-trade-fulfillment-service-33625864450-1-1     Successfully assigned aituan/health-trade-fulfillment-service-33625864450-1-1 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/health-trade-fulfillment-service-33624446793-1-1     Successfully assigned aituan/health-trade-fulfillment-service-33624446793-1-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/health-merchant-catalog-service-33627149918-1-1      Successfully assigned aituan/health-merchant-catalog-service-33627149918-1-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/health-merchant-catalog-service-33625864450-1-1      Successfully assigned aituan/health-merchant-catalog-service-33625864450-1-1 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/health-merchant-catalog-service-33624446793-1-1      Successfully assigned aituan/health-merchant-catalog-service-33624446793-1-1 to izj6c1l84z55xbo85st14pz
+31m         Normal    Scheduled                      pod/api-gateway-67454f875f-2jlxk                         Successfully assigned aituan/api-gateway-67454f875f-2jlxk to izj6c1l84z55xbo85st14pz
+16m         Normal    Scheduled                      pod/health-identity-asset-service-33627149918-1-1        Successfully assigned aituan/health-identity-asset-service-33627149918-1-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/health-identity-asset-service-33625864450-1-1        Successfully assigned aituan/health-identity-asset-service-33625864450-1-1 to izj6c1l84z55xbo85st14pz
+9m17s       Normal    Scheduled                      pod/identity-asset-service-8648977489-wxtjh              Successfully assigned aituan/identity-asset-service-8648977489-wxtjh to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/merchant-catalog-service-65bd4fcf56-25hf8            Successfully assigned aituan/merchant-catalog-service-65bd4fcf56-25hf8 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/health-engagement-platform-service-33627149918-1-1   Successfully assigned aituan/health-engagement-platform-service-33627149918-1-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/health-engagement-platform-service-33625864450-1-1   Successfully assigned aituan/health-engagement-platform-service-33625864450-1-1 to izj6c1l84z55xbo85st14pz
+34m         Normal    Scheduled                      pod/api-gateway-67454f875f-x74n8                         Successfully assigned aituan/api-gateway-67454f875f-x74n8 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/health-engagement-platform-service-33624446793-1-1   Successfully assigned aituan/health-engagement-platform-service-33624446793-1-1 to izj6c1l84z55xbo85st14pz
+16m         Normal    Scheduled                      pod/health-api-gateway-33627149918-1-1                   Successfully assigned aituan/health-api-gateway-33627149918-1-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/health-api-gateway-33625864450-1-1                   Successfully assigned aituan/health-api-gateway-33625864450-1-1 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/version-identity-asset-service-33624446793-1         Successfully assigned aituan/version-identity-asset-service-33624446793-1 to izj6c1l84z55xbo85st14pz
+2m33s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-tbghr                         Successfully assigned aituan/api-gateway-7ddddc4f8f-tbghr to izj6c1l84z55xbo85st14pz
+17m         Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-q9pxn                         Successfully assigned aituan/api-gateway-7ddddc4f8f-q9pxn to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/health-api-gateway-33624446793-1-1                   Successfully assigned aituan/health-api-gateway-33624446793-1-1 to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/merchant-catalog-service-65bd4fcf56-8b7vs            Successfully assigned aituan/merchant-catalog-service-65bd4fcf56-8b7vs to izj6c1l84z55xbo85st14pz
+48m         Normal    Scheduled                      pod/engagement-platform-service-b6f9bd8c9-mmpz7          Successfully assigned aituan/engagement-platform-service-b6f9bd8c9-mmpz7 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/version-identity-asset-service-33625864450-1         Successfully assigned aituan/version-identity-asset-service-33625864450-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-mh6bz                         Successfully assigned aituan/api-gateway-7ddddc4f8f-mh6bz to izj6c1l84z55xbo85st14pz
+16m         Normal    Scheduled                      pod/version-identity-asset-service-33627149918-1         Successfully assigned aituan/version-identity-asset-service-33627149918-1 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/version-merchant-catalog-service-33624446793-1       Successfully assigned aituan/version-merchant-catalog-service-33624446793-1 to izj6c1l84z55xbo85st14pz
+52m         Normal    Scheduled                      pod/api-gateway-6b89d8fb99-dm4r5                         Successfully assigned aituan/api-gateway-6b89d8fb99-dm4r5 to izj6c1l84z55xbo85st14pz
+9m33s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-ldmqm                         Successfully assigned aituan/api-gateway-7ddddc4f8f-ldmqm to izj6c1l84z55xbo85st14pz
+45m         Normal    Scheduled                      pod/engagement-platform-service-b6f9bd8c9-vdf7d          Successfully assigned aituan/engagement-platform-service-b6f9bd8c9-vdf7d to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/version-merchant-catalog-service-33625864450-1       Successfully assigned aituan/version-merchant-catalog-service-33625864450-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/version-merchant-catalog-service-33627149918-1       Successfully assigned aituan/version-merchant-catalog-service-33627149918-1 to izj6c1l84z55xbo85st14pz
+15m         Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-8jmc2                         Successfully assigned aituan/api-gateway-7ddddc4f8f-8jmc2 to izj6c1l84z55xbo85st14pz
+46m         Normal    Scheduled                      pod/version-trade-fulfillment-service-33624446793-1      Successfully assigned aituan/version-trade-fulfillment-service-33624446793-1 to izj6c1l84z55xbo85st14pz
+32m         Normal    Scheduled                      pod/version-trade-fulfillment-service-33625864450-1      Successfully assigned aituan/version-trade-fulfillment-service-33625864450-1 to izj6c1l84z55xbo85st14pz
+9m18s       Normal    Scheduled                      pod/api-gateway-7ddddc4f8f-79wtx                         Successfully assigned aituan/api-gateway-7ddddc4f8f-79wtx to izj6c1l84z55xbo85st14pz
+59m         Normal    SuccessfulDelete               replicaset/api-gateway-6b89d8fb99                        Deleted pod: api-gateway-6b89d8fb99-qnwsb
+59m         Normal    Killing                        pod/api-gateway-6b89d8fb99-jbljp                         Stopping container api-gateway
+59m         Normal    SuccessfulDelete               replicaset/api-gateway-6b89d8fb99                        Deleted pod: api-gateway-6b89d8fb99-jbljp
+59m         Normal    Killing                        pod/api-gateway-6b89d8fb99-qnwsb                         Stopping container api-gateway
+59m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-6b89d8fb99 from 4 to 2
+59m         Warning   Unhealthy                      pod/api-gateway-6b89d8fb99-qnwsb                         Readiness probe failed: Get "http://10.42.0.113:8080/actuator/health": dial tcp 10.42.0.113:8080: connect: connection refused
+59m         Warning   Unhealthy                      pod/api-gateway-6b89d8fb99-jbljp                         Readiness probe failed: Get "http://10.42.0.107:8080/actuator/health": dial tcp 10.42.0.107:8080: connect: connection refused
+57m         Normal    SuccessfulDelete               replicaset/api-gateway-6b89d8fb99                        Deleted pod: api-gateway-6b89d8fb99-6nhwn
+57m         Normal    Killing                        pod/api-gateway-6b89d8fb99-6nhwn                         Stopping container api-gateway
+57m         Warning   Unhealthy                      pod/api-gateway-6b89d8fb99-6nhwn                         Readiness probe failed: Get "http://10.42.0.108:8080/actuator/health": dial tcp 10.42.0.108:8080: connect: connection refused
+52m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled up replica set api-gateway-6b89d8fb99 from 1 to 2
+52m         Normal    Started                        pod/api-gateway-6b89d8fb99-dm4r5                         Container started
+52m         Normal    Created                        pod/api-gateway-6b89d8fb99-dm4r5                         Container created
+52m         Normal    SuccessfulCreate               replicaset/api-gateway-6b89d8fb99                        Created pod: api-gateway-6b89d8fb99-dm4r5
+52m         Normal    Pulled                         pod/api-gateway-6b89d8fb99-dm4r5                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-984e97e3afa45a17783643cf9ba2a3fa4442c1f6" already present on machine and can be accessed by the pod
+52m         Warning   Unhealthy                      pod/api-gateway-6b89d8fb99-dm4r5                         Startup probe failed: Get "http://10.42.0.114:8080/actuator/health": dial tcp 10.42.0.114:8080: connect: connection refused
+50m         Normal    SuccessfulDelete               replicaset/api-gateway-6b89d8fb99                        Deleted pod: api-gateway-6b89d8fb99-dm4r5
+50m         Normal    Killing                        pod/api-gateway-6b89d8fb99-dm4r5                         Stopping container api-gateway
+50m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-6b89d8fb99 from 2 to 1
+50m         Warning   Unhealthy                      pod/api-gateway-6b89d8fb99-dm4r5                         Readiness probe failed: Get "http://10.42.0.114:8080/actuator/health": dial tcp 10.42.0.114:8080: connect: connection refused
+48m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled up replica set aituan-web-dd89ff558 from 0 to 1
+48m         Normal    SuccessfulCreate               replicaset/api-gateway-6487dd55d9                        Created pod: api-gateway-6487dd55d9-rqth9
+48m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled up replica set api-gateway-6487dd55d9 from 0 to 1
+48m         Normal    Pulling                        pod/aituan-web-dd89ff558-h6vkz                           Pulling image "ghcr.io/puaa-team/aituan/web:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    SuccessfulCreate               replicaset/aituan-web-dd89ff558                          Created pod: aituan-web-dd89ff558-h6vkz
+48m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-b6f9bd8c9         Created pod: engagement-platform-service-b6f9bd8c9-mmpz7
+48m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-b6f9bd8c9 from 0 to 1
+48m         Normal    Pulling                        pod/api-gateway-6487dd55d9-rqth9                         Pulling image "ghcr.io/puaa-team/aituan/api-gateway:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    Pulling                        pod/engagement-platform-service-b6f9bd8c9-mmpz7          Pulling image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-7cf5978966 from 0 to 1
+48m         Normal    SuccessfulCreate               replicaset/identity-asset-service-7cf5978966             Created pod: identity-asset-service-7cf5978966-h4rxp
+48m         Normal    Pulling                        pod/identity-asset-service-7cf5978966-h4rxp              Pulling image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    SuccessfulCreate               replicaset/merchant-catalog-service-65bd4fcf56           Created pod: merchant-catalog-service-65bd4fcf56-8b7vs
+48m         Normal    Pulling                        pod/merchant-catalog-service-65bd4fcf56-8b7vs            Pulling image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-65bd4fcf56 from 0 to 1
+48m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-5f9dd448d4 from 0 to 1
+48m         Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-5f9dd448d4          Created pod: trade-fulfillment-service-5f9dd448d4-5w64w
+48m         Normal    Pulling                        pod/trade-fulfillment-service-5f9dd448d4-5w64w           Pulling image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    Killing                        pod/mysql-0                                              Stopping container mysql
+48m         Warning   Unhealthy                      pod/trade-fulfillment-service-5f577b56fd-lvp98           Readiness probe failed: HTTP probe failed with statuscode: 503
+48m         Warning   Unhealthy                      pod/mysql-0                                              Readiness probe errored and resulted in unknown state: rpc error: code = Canceled desc = context canceled
+48m         Normal    Created                        pod/aituan-web-dd89ff558-h6vkz                           Container created
+48m         Normal    Pulled                         pod/aituan-web-dd89ff558-h6vkz                           Successfully pulled image "ghcr.io/puaa-team/aituan/web:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 6.932s (6.932s including waiting). Image size: 34352887 bytes.
+48m         Normal    Started                        pod/aituan-web-dd89ff558-h6vkz                           Container started
+48m         Normal    Pulling                        pod/mysql-0                                              Pulling image "ghcr.io/puaa-team/aituan/mysql:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f"
+48m         Normal    Started                        pod/api-gateway-6487dd55d9-rqth9                         Container started
+48m         Normal    Created                        pod/api-gateway-6487dd55d9-rqth9                         Container created
+48m         Normal    Pulled                         pod/api-gateway-6487dd55d9-rqth9                         Successfully pulled image "ghcr.io/puaa-team/aituan/api-gateway:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 12.733s (12.733s including waiting). Image size: 127093612 bytes.
+48m         Normal    Killing                        pod/aituan-web-6944d46997-jg5z4                          Stopping container web
+48m         Normal    SuccessfulDelete               replicaset/aituan-web-6944d46997                         Deleted pod: aituan-web-6944d46997-jg5z4
+48m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled down replica set aituan-web-6944d46997 from 1 to 0
+48m         Normal    Pulled                         pod/identity-asset-service-7cf5978966-h4rxp              Successfully pulled image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 17.542s (17.542s including waiting). Image size: 131474668 bytes.
+48m         Normal    Pulled                         pod/merchant-catalog-service-65bd4fcf56-8b7vs            Successfully pulled image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 18.031s (18.031s including waiting). Image size: 130637007 bytes.
+48m         Normal    Pulled                         pod/engagement-platform-service-b6f9bd8c9-mmpz7          Successfully pulled image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 22.219s (22.219s including waiting). Image size: 130689192 bytes.
+48m         Normal    Created                        pod/mysql-0                                              Container created
+48m         Normal    Pulled                         pod/mysql-0                                              Successfully pulled image "ghcr.io/puaa-team/aituan/mysql:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 15.074s (15.074s including waiting). Image size: 233592656 bytes.
+48m         Normal    Started                        pod/mysql-0                                              Container started
+48m         Normal    Pulled                         pod/trade-fulfillment-service-5f9dd448d4-5w64w           Successfully pulled image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" in 20.711s (20.711s including waiting). Image size: 123123457 bytes.
+47m         Warning   Unhealthy                      pod/api-gateway-6487dd55d9-rqth9                         Startup probe failed: Get "http://10.42.0.116:8080/actuator/health": dial tcp 10.42.0.116:8080: connect: connection refused
+47m         Normal    Pulled                         pod/merchant-catalog-service-65bd4fcf56-8b7vs            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+47m         Normal    Pulled                         pod/identity-asset-service-7cf5978966-h4rxp              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+47m         Normal    Started                        pod/merchant-catalog-service-65bd4fcf56-8b7vs            Container started
+47m         Normal    Created                        pod/identity-asset-service-7cf5978966-h4rxp              Container created
+47m         Normal    Started                        pod/identity-asset-service-7cf5978966-h4rxp              Container started
+47m         Normal    Created                        pod/merchant-catalog-service-65bd4fcf56-8b7vs            Container created
+47m         Normal    Created                        pod/trade-fulfillment-service-5f9dd448d4-5w64w           Container created
+47m         Normal    Pulled                         pod/trade-fulfillment-service-5f9dd448d4-5w64w           Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+47m         Normal    Started                        pod/trade-fulfillment-service-5f9dd448d4-5w64w           Container started
+47m         Normal    SuccessfulDelete               replicaset/api-gateway-6b89d8fb99                        Deleted pod: api-gateway-6b89d8fb99-kkhfv
+47m         Normal    Created                        pod/engagement-platform-service-b6f9bd8c9-mmpz7          Container created
+47m         Normal    Pulled                         pod/engagement-platform-service-b6f9bd8c9-mmpz7          Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+47m         Normal    Killing                        pod/api-gateway-6b89d8fb99-kkhfv                         Stopping container api-gateway
+47m         Normal    Started                        pod/engagement-platform-service-b6f9bd8c9-mmpz7          Container started
+47m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-6b89d8fb99 from 1 to 0
+47m         Warning   Unhealthy                      pod/engagement-platform-service-84f955bd9-xwhn2          Readiness probe failed: Get "http://10.42.0.96:8084/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+47m         Warning   Unhealthy                      pod/identity-asset-service-6f5d854d8d-jtcg2              Readiness probe failed: Get "http://10.42.0.97:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+47m         Warning   Unhealthy                      pod/merchant-catalog-service-5bcbb4bd8d-tq8p7            Readiness probe failed: Get "http://10.42.0.98:8082/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+47m         Warning   Unhealthy                      pod/trade-fulfillment-service-5f577b56fd-lvp98           Readiness probe failed: Get "http://10.42.0.99:8083/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+47m         Warning   Unhealthy                      pod/merchant-catalog-service-65bd4fcf56-8b7vs            Startup probe failed: Get "http://10.42.0.119:8082/actuator/health": dial tcp 10.42.0.119:8082: connect: connection refused
+47m         Warning   Unhealthy                      pod/trade-fulfillment-service-5f9dd448d4-5w64w           Startup probe failed: Get "http://10.42.0.120:8083/actuator/health": dial tcp 10.42.0.120:8083: connect: connection refused
+47m         Warning   Unhealthy                      pod/engagement-platform-service-b6f9bd8c9-mmpz7          Startup probe failed: Get "http://10.42.0.117:8084/actuator/health": dial tcp 10.42.0.117:8084: connect: connection refused
+47m         Warning   Unhealthy                      pod/identity-asset-service-7cf5978966-h4rxp              Startup probe failed: Get "http://10.42.0.118:8081/actuator/health": dial tcp 10.42.0.118:8081: connect: connection refused
+47m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-5bcbb4bd8d from 1 to 0
+47m         Normal    SuccessfulDelete               replicaset/merchant-catalog-service-5bcbb4bd8d           Deleted pod: merchant-catalog-service-5bcbb4bd8d-tq8p7
+47m         Warning   Unhealthy                      pod/merchant-catalog-service-5bcbb4bd8d-tq8p7            Readiness probe failed: Get "http://10.42.0.98:8082/actuator/health": dial tcp 10.42.0.98:8082: connect: connection refused
+47m         Normal    Killing                        pod/merchant-catalog-service-5bcbb4bd8d-tq8p7            Stopping container merchant-catalog-service
+47m         Warning   Unhealthy                      pod/trade-fulfillment-service-5f577b56fd-lvp98           Readiness probe failed: Get "http://10.42.0.99:8083/actuator/health": dial tcp 10.42.0.99:8083: connect: connection refused
+47m         Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-5f577b56fd          Deleted pod: trade-fulfillment-service-5f577b56fd-lvp98
+47m         Normal    Killing                        pod/trade-fulfillment-service-5f577b56fd-lvp98           Stopping container trade-fulfillment-service
+47m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-5f577b56fd from 1 to 0
+47m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-84f955bd9         Deleted pod: engagement-platform-service-84f955bd9-xwhn2
+47m         Warning   Unhealthy                      pod/engagement-platform-service-84f955bd9-xwhn2          Readiness probe failed: Get "http://10.42.0.96:8084/actuator/health": dial tcp 10.42.0.96:8084: connect: connection refused
+47m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-84f955bd9 from 1 to 0
+47m         Normal    Killing                        pod/engagement-platform-service-84f955bd9-xwhn2          Stopping container engagement-platform-service
+47m         Normal    SuccessfulDelete               replicaset/identity-asset-service-6f5d854d8d             Deleted pod: identity-asset-service-6f5d854d8d-jtcg2
+47m         Warning   Unhealthy                      pod/identity-asset-service-6f5d854d8d-jtcg2              Readiness probe failed: Get "http://10.42.0.97:8081/actuator/health": dial tcp 10.42.0.97:8081: connect: connection refused
+47m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-6f5d854d8d from 1 to 0
+47m         Normal    Killing                        pod/identity-asset-service-6f5d854d8d-jtcg2              Stopping container identity-asset-service
+46m         Normal    Pulled                         pod/health-api-gateway-33624446793-1-1                   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Created                        pod/health-api-gateway-33624446793-1-1                   Container created
+46m         Normal    Started                        pod/health-api-gateway-33624446793-1-1                   Container started
+46m         Normal    Created                        pod/version-api-gateway-33624446793-1                    Container created
+46m         Normal    Started                        pod/version-api-gateway-33624446793-1                    Container started
+46m         Normal    Pulled                         pod/version-api-gateway-33624446793-1                    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Pulled                         pod/health-identity-asset-service-33624446793-1-1        Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Created                        pod/health-identity-asset-service-33624446793-1-1        Container created
+46m         Normal    Started                        pod/health-identity-asset-service-33624446793-1-1        Container started
+46m         Normal    Started                        pod/version-identity-asset-service-33624446793-1         Container started
+46m         Normal    Created                        pod/version-identity-asset-service-33624446793-1         Container created
+46m         Normal    Pulled                         pod/version-identity-asset-service-33624446793-1         Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Pulled                         pod/health-merchant-catalog-service-33624446793-1-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Created                        pod/health-merchant-catalog-service-33624446793-1-1      Container created
+46m         Normal    Started                        pod/health-merchant-catalog-service-33624446793-1-1      Container started
+46m         Normal    Started                        pod/version-merchant-catalog-service-33624446793-1       Container started
+46m         Normal    Pulled                         pod/version-merchant-catalog-service-33624446793-1       Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Created                        pod/version-merchant-catalog-service-33624446793-1       Container created
+46m         Normal    Started                        pod/health-trade-fulfillment-service-33624446793-1-1     Container started
+46m         Normal    SuccessfulCreate               replicaset/api-gateway-6487dd55d9                        Created pod: api-gateway-6487dd55d9-2kvjq
+46m         Normal    Created                        pod/health-trade-fulfillment-service-33624446793-1-1     Container created
+46m         Normal    Pulled                         pod/health-trade-fulfillment-service-33624446793-1-1     Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Pulled                         pod/api-gateway-6487dd55d9-2kvjq                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+46m         Normal    Started                        pod/api-gateway-6487dd55d9-2kvjq                         Container started
+46m         Normal    Created                        pod/api-gateway-6487dd55d9-2kvjq                         Container created
+46m         Normal    Pulled                         pod/version-trade-fulfillment-service-33624446793-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Started                        pod/version-trade-fulfillment-service-33624446793-1      Container started
+46m         Normal    Created                        pod/version-trade-fulfillment-service-33624446793-1      Container created
+46m         Normal    Pulling                        pod/wait-mysql-smoke-1788348829                          Pulling image "busybox:1.36.1"
+46m         Normal    Pulled                         pod/health-engagement-platform-service-33624446793-1-1   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Started                        pod/health-engagement-platform-service-33624446793-1-1   Container started
+46m         Normal    Created                        pod/health-engagement-platform-service-33624446793-1-1   Container created
+46m         Normal    Pulled                         pod/wait-mysql-smoke-1788348829                          Successfully pulled image "busybox:1.36.1" in 3.87s (3.87s including waiting). Image size: 2217006 bytes.
+46m         Normal    Started                        pod/wait-mysql-smoke-1788348829                          Container started
+46m         Normal    Created                        pod/wait-mysql-smoke-1788348829                          Container created
+46m         Normal    Pulled                         pod/version-engagement-platform-service-33624446793-1    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+46m         Normal    Created                        pod/version-engagement-platform-service-33624446793-1    Container created
+46m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-65bd4fcf56 from 1 to 2
+46m         Normal    SuccessfulCreate               replicaset/merchant-catalog-service-65bd4fcf56           Created pod: merchant-catalog-service-65bd4fcf56-25hf8
+46m         Normal    Started                        pod/version-engagement-platform-service-33624446793-1    Container started
+46m         Normal    Created                        pod/merchant-catalog-service-65bd4fcf56-25hf8            Container created
+46m         Normal    Pulled                         pod/merchant-catalog-service-65bd4fcf56-25hf8            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+46m         Normal    Started                        pod/merchant-catalog-service-65bd4fcf56-25hf8            Container started
+45m         Warning   Unhealthy                      pod/api-gateway-6487dd55d9-2kvjq                         Startup probe failed: Get "http://10.42.0.129:8080/actuator/health": dial tcp 10.42.0.129:8080: connect: connection refused
+45m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-b6f9bd8c9         Created pod: engagement-platform-service-b6f9bd8c9-vdf7d
+45m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-b6f9bd8c9 from 1 to 2
+45m         Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 2; reason: cpu resource utilization (percentage of request) above target
+45m         Normal    Started                        pod/engagement-platform-service-b6f9bd8c9-vdf7d          Container started
+45m         Normal    Created                        pod/engagement-platform-service-b6f9bd8c9-vdf7d          Container created
+45m         Normal    Pulled                         pod/engagement-platform-service-b6f9bd8c9-vdf7d          Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+45m         Warning   Unhealthy                      pod/merchant-catalog-service-65bd4fcf56-25hf8            Startup probe failed: Get "http://10.42.0.134:8082/actuator/health": dial tcp 10.42.0.134:8082: connect: connection refused
+45m         Warning   Unhealthy                      pod/engagement-platform-service-b6f9bd8c9-vdf7d          Startup probe failed: Get "http://10.42.0.135:8084/actuator/health": dial tcp 10.42.0.135:8084: connect: connection refused
+45m         Normal    Started                        pod/api-gateway-6487dd55d9-lzsp7                         Container started
+45m         Normal    Pulled                         pod/api-gateway-6487dd55d9-lzsp7                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+45m         Normal    Created                        pod/api-gateway-6487dd55d9-lzsp7                         Container created
+45m         Normal    SuccessfulCreate               replicaset/api-gateway-6487dd55d9                        Created pod: api-gateway-6487dd55d9-lzsp7
+45m         Normal    SuccessfulRescale              horizontalpodautoscaler/identity-asset-service           New size: 2; reason: cpu resource utilization (percentage of request) above target
+45m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-7cf5978966 from 1 to 2
+45m         Normal    SuccessfulCreate               replicaset/identity-asset-service-7cf5978966             Created pod: identity-asset-service-7cf5978966-mcrv8
+45m         Normal    Pulled                         pod/identity-asset-service-7cf5978966-mcrv8              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-c55161efcc4719d97a8f0e59a054c6abbfbcb75f" already present on machine and can be accessed by the pod
+45m         Normal    Created                        pod/identity-asset-service-7cf5978966-mcrv8              Container created
+45m         Normal    Started                        pod/identity-asset-service-7cf5978966-mcrv8              Container started
+45m         Warning   Unhealthy                      pod/api-gateway-6487dd55d9-lzsp7                         Startup probe failed: Get "http://10.42.0.136:8080/actuator/health": dial tcp 10.42.0.136:8080: connect: connection refused
+44m         Warning   Unhealthy                      pod/identity-asset-service-7cf5978966-mcrv8              Startup probe failed: Get "http://10.42.0.137:8081/actuator/health": dial tcp 10.42.0.137:8081: connect: connection refused
+43m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-65bd4fcf56 from 2 to 1
+43m         Normal    Killing                        pod/merchant-catalog-service-65bd4fcf56-25hf8            Stopping container merchant-catalog-service
+43m         Normal    SuccessfulDelete               replicaset/merchant-catalog-service-65bd4fcf56           Deleted pod: merchant-catalog-service-65bd4fcf56-25hf8
+43m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-b6f9bd8c9 from 2 to 1
+43m         Normal    Killing                        pod/engagement-platform-service-b6f9bd8c9-vdf7d          Stopping container engagement-platform-service
+43m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-b6f9bd8c9         Deleted pod: engagement-platform-service-b6f9bd8c9-vdf7d
+43m         Normal    Killing                        pod/api-gateway-6487dd55d9-2kvjq                         Stopping container api-gateway
+43m         Normal    Killing                        pod/api-gateway-6487dd55d9-lzsp7                         Stopping container api-gateway
+43m         Normal    SuccessfulDelete               replicaset/api-gateway-6487dd55d9                        Deleted pod: api-gateway-6487dd55d9-2kvjq
+43m         Normal    SuccessfulDelete               replicaset/api-gateway-6487dd55d9                        Deleted pod: api-gateway-6487dd55d9-lzsp7
+43m         Warning   Unhealthy                      pod/api-gateway-6487dd55d9-2kvjq                         Readiness probe failed: Get "http://10.42.0.129:8080/actuator/health": dial tcp 10.42.0.129:8080: connect: connection refused
+43m         Normal    Killing                        pod/identity-asset-service-7cf5978966-mcrv8              Stopping container identity-asset-service
+43m         Warning   Unhealthy                      pod/api-gateway-6487dd55d9-lzsp7                         Readiness probe failed: Get "http://10.42.0.136:8080/actuator/health": dial tcp 10.42.0.136:8080: connect: connection refused
+43m         Normal    SuccessfulDelete               replicaset/identity-asset-service-7cf5978966             Deleted pod: identity-asset-service-7cf5978966-mcrv8
+43m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-7cf5978966 from 2 to 1
+34m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled up replica set aituan-web-9db46b55c from 0 to 1
+34m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-57c9877df4        Created pod: engagement-platform-service-57c9877df4-xxt4j
+34m         Normal    SuccessfulCreate               replicaset/api-gateway-67454f875f                        Created pod: api-gateway-67454f875f-x74n8
+34m         Normal    SuccessfulCreate               replicaset/aituan-web-9db46b55c                          Created pod: aituan-web-9db46b55c-z89pk
+34m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-57c9877df4 from 0 to 1
+34m         Normal    Pulling                        pod/api-gateway-67454f875f-x74n8                         Pulling image "ghcr.io/puaa-team/aituan/api-gateway:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    Pulling                        pod/aituan-web-9db46b55c-z89pk                           Pulling image "ghcr.io/puaa-team/aituan/web:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    SuccessfulCreate               replicaset/identity-asset-service-54fddb66c9             Created pod: identity-asset-service-54fddb66c9-cdgcw
+34m         Normal    Started                        pod/engagement-platform-service-57c9877df4-xxt4j         Container started
+34m         Normal    Pulling                        pod/engagement-platform-service-57c9877df4-xxt4j         Pulling image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    Created                        pod/engagement-platform-service-57c9877df4-xxt4j         Container created
+34m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-54fddb66c9 from 0 to 1
+34m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-5d6858cd97 from 0 to 1
+34m         Normal    Started                        pod/identity-asset-service-54fddb66c9-cdgcw              Container started
+34m         Normal    Created                        pod/identity-asset-service-54fddb66c9-cdgcw              Container created
+34m         Normal    Pulled                         pod/identity-asset-service-54fddb66c9-cdgcw              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+34m         Normal    SuccessfulCreate               replicaset/merchant-catalog-service-5d6858cd97           Created pod: merchant-catalog-service-5d6858cd97-qgnk6
+34m         Normal    Pulled                         pod/engagement-platform-service-57c9877df4-xxt4j         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+34m         Normal    Created                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Container created
+34m         Normal    Started                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Container started
+34m         Normal    Created                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Container created
+34m         Normal    Pulled                         pod/trade-fulfillment-service-b94c4db85-8vgkg            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+34m         Normal    Pulling                        pod/identity-asset-service-54fddb66c9-cdgcw              Pulling image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    Pulled                         pod/merchant-catalog-service-5d6858cd97-qgnk6            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+34m         Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-b94c4db85           Created pod: trade-fulfillment-service-b94c4db85-8vgkg
+34m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-b94c4db85 from 0 to 1
+34m         Normal    Pulling                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Pulling image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    Started                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Container started
+34m         Warning   Unhealthy                      pod/mysql-0                                              Readiness probe errored and resulted in unknown state: rpc error: code = Canceled desc = context canceled
+34m         Normal    Killing                        pod/mysql-0                                              Stopping container mysql
+34m         Warning   Unhealthy                      pod/engagement-platform-service-b6f9bd8c9-mmpz7          Readiness probe failed: HTTP probe failed with statuscode: 503
+34m         Normal    Pulling                        pod/mysql-0                                              Pulling image "ghcr.io/puaa-team/aituan/mysql:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+34m         Normal    Pulled                         pod/api-gateway-67454f875f-x74n8                         Successfully pulled image "ghcr.io/puaa-team/aituan/api-gateway:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 8.844s (8.844s including waiting). Image size: 127093605 bytes.
+34m         Normal    Started                        pod/aituan-web-9db46b55c-z89pk                           Container started
+34m         Normal    Started                        pod/api-gateway-67454f875f-x74n8                         Container started
+34m         Normal    Created                        pod/api-gateway-67454f875f-x74n8                         Container created
+34m         Normal    Created                        pod/aituan-web-9db46b55c-z89pk                           Container created
+34m         Normal    Pulled                         pod/aituan-web-9db46b55c-z89pk                           Successfully pulled image "ghcr.io/puaa-team/aituan/web:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 8.644s (8.644s including waiting). Image size: 34352912 bytes.
+33m         Normal    Pulled                         pod/engagement-platform-service-57c9877df4-xxt4j         Successfully pulled image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 14.978s (14.978s including waiting). Image size: 130689286 bytes.
+33m         Normal    Pulled                         pod/merchant-catalog-service-5d6858cd97-qgnk6            Successfully pulled image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 15.645s (15.645s including waiting). Image size: 130636971 bytes.
+33m         Normal    Created                        pod/mysql-0                                              Container created
+33m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled down replica set aituan-web-dd89ff558 from 1 to 0
+33m         Normal    Started                        pod/mysql-0                                              Container started
+33m         Normal    Killing                        pod/aituan-web-dd89ff558-h6vkz                           Stopping container web
+33m         Normal    Pulled                         pod/mysql-0                                              Successfully pulled image "ghcr.io/puaa-team/aituan/mysql:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 11.219s (11.219s including waiting). Image size: 233592653 bytes.
+33m         Normal    SuccessfulDelete               replicaset/aituan-web-dd89ff558                          Deleted pod: aituan-web-dd89ff558-h6vkz
+33m         Normal    Pulled                         pod/identity-asset-service-54fddb66c9-cdgcw              Successfully pulled image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 25.515s (25.515s including waiting). Image size: 131474465 bytes.
+33m         Normal    Started                        pod/identity-asset-service-54fddb66c9-cdgcw              Container started
+33m         Normal    Created                        pod/identity-asset-service-54fddb66c9-cdgcw              Container created
+33m         Warning   Unhealthy                      pod/api-gateway-67454f875f-x74n8                         Startup probe failed: Get "http://10.42.0.139:8080/actuator/health": dial tcp 10.42.0.139:8080: connect: connection refused
+33m         Normal    Pulled                         pod/merchant-catalog-service-5d6858cd97-qgnk6            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" already present on machine and can be accessed by the pod
+33m         Normal    Started                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Container started
+33m         Normal    Created                        pod/engagement-platform-service-57c9877df4-xxt4j         Container created
+33m         Normal    Started                        pod/engagement-platform-service-57c9877df4-xxt4j         Container started
+33m         Normal    Pulled                         pod/engagement-platform-service-57c9877df4-xxt4j         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" already present on machine and can be accessed by the pod
+33m         Normal    Created                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Container created
+33m         Normal    SuccessfulDelete               replicaset/api-gateway-6487dd55d9                        Deleted pod: api-gateway-6487dd55d9-rqth9
+33m         Normal    Killing                        pod/api-gateway-6487dd55d9-rqth9                         Stopping container api-gateway
+33m         Normal    Pulling                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Pulling image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6"
+33m         Warning   Unhealthy                      pod/merchant-catalog-service-65bd4fcf56-8b7vs            Readiness probe failed: Get "http://10.42.0.119:8082/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+33m         Warning   Unhealthy                      pod/trade-fulfillment-service-5f9dd448d4-5w64w           Readiness probe failed: Get "http://10.42.0.120:8083/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+33m         Warning   Unhealthy                      pod/identity-asset-service-54fddb66c9-cdgcw              Startup probe failed: Get "http://10.42.0.141:8081/actuator/health": dial tcp 10.42.0.141:8081: connect: connection refused
+33m         Warning   Unhealthy                      pod/engagement-platform-service-b6f9bd8c9-mmpz7          Readiness probe failed: Get "http://10.42.0.117:8084/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+33m         Warning   Unhealthy                      pod/identity-asset-service-7cf5978966-h4rxp              Readiness probe failed: Get "http://10.42.0.118:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+33m         Normal    Pulled                         pod/trade-fulfillment-service-b94c4db85-8vgkg            Successfully pulled image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" in 6.932s (6.932s including waiting). Image size: 123123464 bytes.
+33m         Normal    Created                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Container created
+33m         Normal    Started                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Container started
+33m         Normal    SuccessfulDelete               replicaset/identity-asset-service-7cf5978966             Deleted pod: identity-asset-service-7cf5978966-h4rxp
+33m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-7cf5978966 from 1 to 0
+33m         Warning   Unhealthy                      pod/merchant-catalog-service-5d6858cd97-qgnk6            Startup probe failed: Get "http://10.42.0.142:8082/actuator/health": dial tcp 10.42.0.142:8082: connect: connection refused
+33m         Normal    Killing                        pod/identity-asset-service-7cf5978966-h4rxp              Stopping container identity-asset-service
+33m         Warning   Unhealthy                      pod/engagement-platform-service-57c9877df4-xxt4j         Startup probe failed: Get "http://10.42.0.140:8084/actuator/health": dial tcp 10.42.0.140:8084: connect: connection refused
+33m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-65bd4fcf56 from 1 to 0
+33m         Normal    Killing                        pod/merchant-catalog-service-65bd4fcf56-8b7vs            Stopping container merchant-catalog-service
+33m         Normal    SuccessfulDelete               replicaset/merchant-catalog-service-65bd4fcf56           Deleted pod: merchant-catalog-service-65bd4fcf56-8b7vs
+33m         Normal    Killing                        pod/engagement-platform-service-b6f9bd8c9-mmpz7          Stopping container engagement-platform-service
+33m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-b6f9bd8c9 from 1 to 0
+33m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-b6f9bd8c9         Deleted pod: engagement-platform-service-b6f9bd8c9-mmpz7
+33m         Warning   Unhealthy                      pod/trade-fulfillment-service-b94c4db85-8vgkg            Startup probe failed: Get "http://10.42.0.143:8083/actuator/health": dial tcp 10.42.0.143:8083: connect: connection refused
+32m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-5f9dd448d4 from 1 to 0
+32m         Normal    Killing                        pod/trade-fulfillment-service-5f9dd448d4-5w64w           Stopping container trade-fulfillment-service
+32m         Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-5f9dd448d4          Deleted pod: trade-fulfillment-service-5f9dd448d4-5w64w
+32m         Normal    Started                        pod/health-api-gateway-33625864450-1-1                   Container started
+32m         Normal    Created                        pod/health-api-gateway-33625864450-1-1                   Container created
+32m         Normal    Pulled                         pod/health-api-gateway-33625864450-1-1                   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/version-api-gateway-33625864450-1                    Container created
+32m         Normal    Started                        pod/version-api-gateway-33625864450-1                    Container started
+32m         Normal    Pulled                         pod/version-api-gateway-33625864450-1                    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Started                        pod/health-identity-asset-service-33625864450-1-1        Container started
+32m         Normal    Pulled                         pod/health-identity-asset-service-33625864450-1-1        Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/health-identity-asset-service-33625864450-1-1        Container created
+32m         Normal    Created                        pod/version-identity-asset-service-33625864450-1         Container created
+32m         Normal    Pulled                         pod/version-identity-asset-service-33625864450-1         Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Started                        pod/version-identity-asset-service-33625864450-1         Container started
+32m         Normal    Pulled                         pod/health-merchant-catalog-service-33625864450-1-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/health-merchant-catalog-service-33625864450-1-1      Container created
+32m         Normal    Started                        pod/health-merchant-catalog-service-33625864450-1-1      Container started
+32m         Normal    Started                        pod/version-merchant-catalog-service-33625864450-1       Container started
+32m         Normal    Pulled                         pod/version-merchant-catalog-service-33625864450-1       Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/version-merchant-catalog-service-33625864450-1       Container created
+32m         Normal    Pulled                         pod/health-trade-fulfillment-service-33625864450-1-1     Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/health-trade-fulfillment-service-33625864450-1-1     Container created
+32m         Normal    Started                        pod/health-trade-fulfillment-service-33625864450-1-1     Container started
+32m         Normal    Pulled                         pod/version-trade-fulfillment-service-33625864450-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+32m         Normal    Created                        pod/version-trade-fulfillment-service-33625864450-1      Container created
+32m         Normal    Started                        pod/version-trade-fulfillment-service-33625864450-1      Container started
+32m         Normal    Started                        pod/health-engagement-platform-service-33625864450-1-1   Container started
+32m         Normal    Created                        pod/health-engagement-platform-service-33625864450-1-1   Container created
+32m         Normal    Pulled                         pod/health-engagement-platform-service-33625864450-1-1   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+31m         Normal    Pulled                         pod/version-engagement-platform-service-33625864450-1    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+31m         Normal    Started                        pod/version-engagement-platform-service-33625864450-1    Container started
+31m         Normal    Created                        pod/version-engagement-platform-service-33625864450-1    Container created
+31m         Normal    SuccessfulRescale              horizontalpodautoscaler/merchant-catalog-service         New size: 2; reason: cpu resource utilization (percentage of request) above target
+31m         Normal    Started                        pod/merchant-catalog-service-5d6858cd97-54cfb            Container started
+31m         Normal    Pulled                         pod/merchant-catalog-service-5d6858cd97-54cfb            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+31m         Normal    SuccessfulCreate               replicaset/merchant-catalog-service-5d6858cd97           Created pod: merchant-catalog-service-5d6858cd97-54cfb
+31m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-5d6858cd97 from 1 to 2
+31m         Normal    Created                        pod/merchant-catalog-service-5d6858cd97-54cfb            Container created
+31m         Normal    Started                        pod/merchant-catalog-service-5d6858cd97-54cfb            Container started
+31m         Normal    Pulled                         pod/merchant-catalog-service-5d6858cd97-54cfb            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" already present on machine and can be accessed by the pod
+31m         Normal    Created                        pod/merchant-catalog-service-5d6858cd97-54cfb            Container created
+31m         Warning   Unhealthy                      pod/merchant-catalog-service-5d6858cd97-54cfb            Startup probe failed: Get "http://10.42.0.155:8082/actuator/health": dial tcp 10.42.0.155:8082: connect: connection refused
+31m         Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 2; reason: cpu resource utilization (percentage of request) above target
+31m         Normal    Created                        pod/api-gateway-67454f875f-2jlxk                         Container created
+31m         Normal    Pulled                         pod/api-gateway-67454f875f-2jlxk                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" already present on machine and can be accessed by the pod
+31m         Normal    SuccessfulCreate               replicaset/api-gateway-67454f875f                        Created pod: api-gateway-67454f875f-2jlxk
+31m         Normal    Started                        pod/api-gateway-67454f875f-2jlxk                         Container started
+30m         Warning   Unhealthy                      pod/api-gateway-67454f875f-2jlxk                         Startup probe failed: Get "http://10.42.0.156:8080/actuator/health": dial tcp 10.42.0.156:8080: connect: connection refused
+29m         Normal    Killing                        pod/merchant-catalog-service-5d6858cd97-54cfb            Stopping container merchant-catalog-service
+29m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-5d6858cd97 from 2 to 1
+29m         Normal    SuccessfulDelete               replicaset/merchant-catalog-service-5d6858cd97           Deleted pod: merchant-catalog-service-5d6858cd97-54cfb
+29m         Normal    ScalingReplicaSet              deployment/api-gateway                                   (combined from similar events): Scaled down replica set api-gateway-67454f875f from 2 to 1
+29m         Normal    SuccessfulDelete               replicaset/api-gateway-67454f875f                        Deleted pod: api-gateway-67454f875f-2jlxk
+29m         Normal    Killing                        pod/api-gateway-67454f875f-2jlxk                         Stopping container api-gateway
+29m         Warning   Unhealthy                      pod/api-gateway-67454f875f-2jlxk                         Readiness probe failed: Get "http://10.42.0.156:8080/actuator/health": dial tcp 10.42.0.156:8080: connect: connection refused
+18m         Normal    SuccessfulDelete               statefulset/mysql                                        Delete Pod mysql-0 in StatefulSet mysql successful
+18m         Normal    Killing                        pod/mysql-0                                              Stopping container mysql
+18m         Normal    SuccessfulCreate               statefulset/mysql                                        Create Pod mysql-0 in StatefulSet mysql successful
+18m         Normal    Pulling                        pod/mysql-0                                              Pulling image "ghcr.io/puaa-team/aituan/mysql:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+18m         Normal    Created                        pod/mysql-0                                              Container created
+18m         Normal    Started                        pod/mysql-0                                              Container started
+18m         Normal    Pulled                         pod/mysql-0                                              Successfully pulled image "ghcr.io/puaa-team/aituan/mysql:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 4.631s (4.631s including waiting). Image size: 233592656 bytes.
+17m         Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-b94c4db85           Created pod: trade-fulfillment-service-b94c4db85-t9npq
+17m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-b94c4db85 from 1 to 2
+17m         Normal    Started                        pod/trade-fulfillment-service-b94c4db85-t9npq            Container started
+17m         Normal    Pulled                         pod/trade-fulfillment-service-b94c4db85-t9npq            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+17m         Normal    Created                        pod/trade-fulfillment-service-b94c4db85-t9npq            Container created
+17m         Normal    Started                        pod/trade-fulfillment-service-b94c4db85-t9npq            Container started
+17m         Normal    Pulled                         pod/trade-fulfillment-service-b94c4db85-t9npq            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-1798c0939a2598e378dd3d2058096fa4f91b60d6" already present on machine and can be accessed by the pod
+17m         Normal    Created                        pod/trade-fulfillment-service-b94c4db85-t9npq            Container created
+17m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled up replica set aituan-web-59b75c5cfd from 0 to 1
+17m         Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-q9pxn
+17m         Normal    Pulling                        pod/aituan-web-59b75c5cfd-r6znv                          Pulling image "ghcr.io/puaa-team/aituan/web:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled up replica set api-gateway-7ddddc4f8f from 0 to 1
+17m         Normal    SuccessfulCreate               replicaset/aituan-web-59b75c5cfd                         Created pod: aituan-web-59b75c5cfd-r6znv
+17m         Normal    Pulling                        pod/api-gateway-7ddddc4f8f-q9pxn                         Pulling image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Warning   Unhealthy                      pod/engagement-platform-service-57c9877df4-xxt4j         Readiness probe failed: Get "http://10.42.0.140:8084/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+17m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-zflnb         Container created
+17m         Warning   Unhealthy                      pod/trade-fulfillment-service-b94c4db85-t9npq            Startup probe failed: Get "http://10.42.0.158:8083/actuator/health": dial tcp 10.42.0.158:8083: connect: connection refused
+17m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-8648977489 from 0 to 1
+17m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-zflnb         Container started
+17m         Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-86jz5
+17m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-zflnb
+17m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-7b6df4855b from 0 to 1
+17m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-zflnb         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+17m         Warning   Unhealthy                      pod/merchant-catalog-service-5d6858cd97-qgnk6            Readiness probe failed: Get "http://10.42.0.142:8082/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+17m         Warning   Unhealthy                      pod/identity-asset-service-54fddb66c9-cdgcw              Readiness probe failed: Get "http://10.42.0.141:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+17m         Normal    Pulling                        pod/engagement-platform-service-7b6df4855b-zflnb         Pulling image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-568bf45885 from 0 to 1
+17m         Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-m9l55
+17m         Normal    Pulled                         pod/identity-asset-service-8648977489-86jz5              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+17m         Normal    Created                        pod/identity-asset-service-8648977489-86jz5              Container created
+17m         Normal    Started                        pod/identity-asset-service-8648977489-86jz5              Container started
+17m         Normal    Pulled                         pod/merchant-catalog-service-568bf45885-m9l55            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+17m         Normal    Pulling                        pod/identity-asset-service-8648977489-86jz5              Pulling image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Normal    Started                        pod/merchant-catalog-service-568bf45885-m9l55            Container started
+17m         Normal    Created                        pod/merchant-catalog-service-568bf45885-m9l55            Container created
+17m         Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-b94c4db85           Deleted pod: trade-fulfillment-service-b94c4db85-t9npq
+17m         Normal    Killing                        pod/trade-fulfillment-service-b94c4db85-t9npq            Stopping container trade-fulfillment-service
+17m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-b94c4db85 from 2 to 1
+17m         Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-kzg2h
+17m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-57cc4f96c from 0 to 1
+17m         Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-kzg2h            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+17m         Warning   Unhealthy                      pod/trade-fulfillment-service-b94c4db85-8vgkg            Readiness probe failed: Get "http://10.42.0.143:8083/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+17m         Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-kzg2h            Container created
+17m         Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-kzg2h            Container started
+17m         Normal    Pulling                        pod/trade-fulfillment-service-57cc4f96c-kzg2h            Pulling image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Normal    Pulling                        pod/merchant-catalog-service-568bf45885-m9l55            Pulling image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4"
+17m         Normal    Started                        pod/aituan-web-59b75c5cfd-r6znv                          Container started
+17m         Normal    Pulled                         pod/aituan-web-59b75c5cfd-r6znv                          Successfully pulled image "ghcr.io/puaa-team/aituan/web:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 6.733s (6.734s including waiting). Image size: 34352886 bytes.
+17m         Normal    Created                        pod/aituan-web-59b75c5cfd-r6znv                          Container created
+17m         Normal    Created                        pod/api-gateway-7ddddc4f8f-q9pxn                         Container created
+17m         Normal    Started                        pod/api-gateway-7ddddc4f8f-q9pxn                         Container started
+17m         Normal    Pulled                         pod/api-gateway-7ddddc4f8f-q9pxn                         Successfully pulled image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 9.31s (9.31s including waiting). Image size: 127093614 bytes.
+17m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-zflnb         Successfully pulled image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 13.097s (13.097s including waiting). Image size: 130689311 bytes.
+17m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-zflnb         Container created
+17m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-zflnb         Container started
+17m         Normal    UpdatedLoadBalancer            service/web                                              Updated LoadBalancer with new IPs: [172.17.5.100] -> [172.17.5.100]
+17m         Normal    Killing                        pod/aituan-web-9db46b55c-z89pk                           Stopping container web
+17m         Normal    ScalingReplicaSet              deployment/aituan-web                                    Scaled down replica set aituan-web-9db46b55c from 1 to 0
+17m         Normal    SuccessfulDelete               replicaset/aituan-web-9db46b55c                          Deleted pod: aituan-web-9db46b55c-z89pk
+17m         Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-kzg2h            Successfully pulled image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 15.607s (15.607s including waiting). Image size: 123123505 bytes.
+17m         Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-kzg2h            Container created
+17m         Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-kzg2h            Container started
+17m         Normal    Created                        pod/identity-asset-service-8648977489-86jz5              Container created
+17m         Normal    Pulled                         pod/identity-asset-service-8648977489-86jz5              Successfully pulled image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 18.239s (18.24s including waiting). Image size: 131474439 bytes.
+17m         Normal    Started                        pod/identity-asset-service-8648977489-86jz5              Container started
+17m         Normal    Pulled                         pod/merchant-catalog-service-568bf45885-m9l55            Successfully pulled image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" in 24.049s (24.049s including waiting). Image size: 130636869 bytes.
+17m         Normal    Created                        pod/merchant-catalog-service-568bf45885-m9l55            Container created
+17m         Normal    Started                        pod/merchant-catalog-service-568bf45885-m9l55            Container started
+17m         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-q9pxn                         Startup probe failed: Get "http://10.42.0.160:8080/actuator/health": dial tcp 10.42.0.160:8080: connect: connection refused
+17m         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-zflnb         Startup probe failed: Get "http://10.42.0.161:8084/actuator/health": dial tcp 10.42.0.161:8084: connect: connection refused
+17m         Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-kzg2h            Startup probe failed: Get "http://10.42.0.164:8083/actuator/health": dial tcp 10.42.0.164:8083: connect: connection refused
+17m         Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-57c9877df4 from 1 to 0
+17m         Normal    Killing                        pod/api-gateway-67454f875f-x74n8                         Stopping container api-gateway
+17m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-67454f875f from 1 to 0
+17m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-57c9877df4        Deleted pod: engagement-platform-service-57c9877df4-xxt4j
+17m         Normal    Killing                        pod/engagement-platform-service-57c9877df4-xxt4j         Stopping container engagement-platform-service
+17m         Normal    SuccessfulDelete               replicaset/api-gateway-67454f875f                        Deleted pod: api-gateway-67454f875f-x74n8
+16m         Warning   Unhealthy                      pod/api-gateway-67454f875f-x74n8                         Readiness probe failed: Get "http://10.42.0.139:8080/actuator/health": dial tcp 10.42.0.139:8080: connect: connection refused
+16m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-b94c4db85 from 1 to 0
+16m         Normal    Killing                        pod/trade-fulfillment-service-b94c4db85-8vgkg            Stopping container trade-fulfillment-service
+16m         Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-b94c4db85           Deleted pod: trade-fulfillment-service-b94c4db85-8vgkg
+16m         Warning   Unhealthy                      pod/identity-asset-service-8648977489-86jz5              Startup probe failed: Get "http://10.42.0.162:8081/actuator/health": dial tcp 10.42.0.162:8081: connect: connection refused
+16m         Normal    SuccessfulDelete               replicaset/identity-asset-service-54fddb66c9             Deleted pod: identity-asset-service-54fddb66c9-cdgcw
+16m         Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-54fddb66c9 from 1 to 0
+16m         Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-m9l55            Startup probe failed: Get "http://10.42.0.163:8082/actuator/health": dial tcp 10.42.0.163:8082: connect: connection refused
+16m         Normal    Killing                        pod/identity-asset-service-54fddb66c9-cdgcw              Stopping container identity-asset-service
+16m         Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-5d6858cd97 from 1 to 0
+16m         Normal    SuccessfulDelete               replicaset/merchant-catalog-service-5d6858cd97           Deleted pod: merchant-catalog-service-5d6858cd97-qgnk6
+16m         Normal    Killing                        pod/merchant-catalog-service-5d6858cd97-qgnk6            Stopping container merchant-catalog-service
+16m         Warning   FailedGetResourceMetric        horizontalpodautoscaler/engagement-platform-service      failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedGetResourceMetric        horizontalpodautoscaler/api-gateway                      failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/engagement-platform-service      invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/api-gateway                      invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/identity-asset-service           invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedGetResourceMetric        horizontalpodautoscaler/identity-asset-service           failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedGetResourceMetric        horizontalpodautoscaler/merchant-catalog-service         failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/merchant-catalog-service         invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedComputeMetricsReplicas   horizontalpodautoscaler/trade-fulfillment-service        invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Warning   FailedGetResourceMetric        horizontalpodautoscaler/trade-fulfillment-service        failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+16m         Normal    Started                        pod/health-api-gateway-33627149918-1-1                   Container started
+16m         Normal    Created                        pod/health-api-gateway-33627149918-1-1                   Container created
+16m         Normal    Pulled                         pod/health-api-gateway-33627149918-1-1                   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+16m         Normal    Pulled                         pod/version-api-gateway-33627149918-1                    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+16m         Normal    Created                        pod/version-api-gateway-33627149918-1                    Container created
+16m         Normal    Started                        pod/version-api-gateway-33627149918-1                    Container started
+16m         Normal    Started                        pod/health-identity-asset-service-33627149918-1-1        Container started
+16m         Normal    Pulled                         pod/health-identity-asset-service-33627149918-1-1        Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+16m         Normal    Created                        pod/health-identity-asset-service-33627149918-1-1        Container created
+16m         Normal    Created                        pod/version-identity-asset-service-33627149918-1         Container created
+16m         Normal    Pulled                         pod/version-identity-asset-service-33627149918-1         Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+16m         Normal    Started                        pod/version-identity-asset-service-33627149918-1         Container started
+15m         Normal    Created                        pod/health-merchant-catalog-service-33627149918-1-1      Container created
+15m         Normal    Started                        pod/health-merchant-catalog-service-33627149918-1-1      Container started
+15m         Normal    Pulled                         pod/health-merchant-catalog-service-33627149918-1-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Normal    Pulled                         pod/version-merchant-catalog-service-33627149918-1       Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Normal    Started                        pod/version-merchant-catalog-service-33627149918-1       Container started
+15m         Normal    Created                        pod/version-merchant-catalog-service-33627149918-1       Container created
+15m         Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-mh6bz
+15m         Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-8jmc2
+15m         Normal    Created                        pod/api-gateway-7ddddc4f8f-8jmc2                         Container created
+15m         Normal    Pulled                         pod/api-gateway-7ddddc4f8f-mh6bz                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+15m         Normal    Created                        pod/api-gateway-7ddddc4f8f-mh6bz                         Container created
+15m         Normal    Started                        pod/api-gateway-7ddddc4f8f-mh6bz                         Container started
+15m         Normal    Pulled                         pod/api-gateway-7ddddc4f8f-8jmc2                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+15m         Normal    Started                        pod/api-gateway-7ddddc4f8f-8jmc2                         Container started
+15m         Normal    Pulled                         pod/health-trade-fulfillment-service-33627149918-1-1     Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Normal    Started                        pod/health-trade-fulfillment-service-33627149918-1-1     Container started
+15m         Normal    Created                        pod/health-trade-fulfillment-service-33627149918-1-1     Container created
+15m         Normal    Started                        pod/version-trade-fulfillment-service-33627149918-1      Container started
+15m         Normal    Created                        pod/version-trade-fulfillment-service-33627149918-1      Container created
+15m         Normal    Pulled                         pod/version-trade-fulfillment-service-33627149918-1      Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Normal    Created                        pod/health-engagement-platform-service-33627149918-1-1   Container created
+15m         Normal    Started                        pod/health-engagement-platform-service-33627149918-1-1   Container started
+15m         Normal    Pulled                         pod/health-engagement-platform-service-33627149918-1-1   Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Normal    Started                        pod/version-engagement-platform-service-33627149918-1    Container started
+15m         Normal    Created                        pod/version-engagement-platform-service-33627149918-1    Container created
+15m         Normal    Pulled                         pod/version-engagement-platform-service-33627149918-1    Container image "curlimages/curl:8.10.1" already present on machine and can be accessed by the pod
+15m         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-8jmc2                         Startup probe failed: Get "http://10.42.0.172:8080/actuator/health": dial tcp 10.42.0.172:8080: connect: connection refused
+15m         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-mh6bz                         Startup probe failed: Get "http://10.42.0.171:8080/actuator/health": dial tcp 10.42.0.171:8080: connect: connection refused
+15m         Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-57cc4f96c from 1 to 2
+15m         Normal    SuccessfulRescale              horizontalpodautoscaler/trade-fulfillment-service        New size: 2; reason: cpu resource utilization (percentage of request) above target
+15m         Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-9bwqw
+15m         Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container created
+15m         Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container started
+15m         Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container started
+15m         Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container created
+15m         Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+15m         Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-9bwqw            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+15m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-5h89f
+15m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-5h89f         Container started
+15m         Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-2sb8h
+15m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-5h89f         Container started
+15m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-2sb8h         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+15m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-5h89f         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+15m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-5h89f         Container created
+15m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-5h89f         Container created
+15m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-5h89f         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+15m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-2sb8h         Container created
+15m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-2sb8h         Container started
+15m         Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-2sb8h         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+15m         Normal    Created                        pod/engagement-platform-service-7b6df4855b-2sb8h         Container created
+15m         Normal    Started                        pod/engagement-platform-service-7b6df4855b-2sb8h         Container started
+15m         Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-9bwqw            Startup probe failed: Get "http://10.42.0.177:8083/actuator/health": dial tcp 10.42.0.177:8083: connect: connection refused
+14m         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-5h89f         Startup probe failed: Get "http://10.42.0.178:8084/actuator/health": dial tcp 10.42.0.178:8084: connect: connection refused
+14m         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-2sb8h         Startup probe failed: Get "http://10.42.0.179:8084/actuator/health": dial tcp 10.42.0.179:8084: connect: connection refused
+13m         Normal    Killing                        pod/trade-fulfillment-service-57cc4f96c-9bwqw            Stopping container trade-fulfillment-service
+13m         Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-57cc4f96c           Deleted pod: trade-fulfillment-service-57cc4f96c-9bwqw
+12m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-7b6df4855b        Deleted pod: engagement-platform-service-7b6df4855b-5h89f
+12m         Normal    SuccessfulDelete               replicaset/api-gateway-7ddddc4f8f                        Deleted pod: api-gateway-7ddddc4f8f-mh6bz
+12m         Normal    Killing                        pod/api-gateway-7ddddc4f8f-8jmc2                         Stopping container api-gateway
+12m         Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-7ddddc4f8f from 3 to 1
+12m         Normal    Killing                        pod/api-gateway-7ddddc4f8f-mh6bz                         Stopping container api-gateway
+12m         Normal    Killing                        pod/engagement-platform-service-7b6df4855b-5h89f         Stopping container engagement-platform-service
+12m         Normal    SuccessfulDelete               replicaset/api-gateway-7ddddc4f8f                        Deleted pod: api-gateway-7ddddc4f8f-8jmc2
+12m         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-mh6bz                         Readiness probe failed: Get "http://10.42.0.171:8080/actuator/health": dial tcp 10.42.0.171:8080: connect: connection refused
+12m         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-8jmc2                         Readiness probe failed: Get "http://10.42.0.172:8080/actuator/health": dial tcp 10.42.0.172:8080: connect: connection refused
+11m         Normal    SuccessfulDelete               replicaset/engagement-platform-service-7b6df4855b        Deleted pod: engagement-platform-service-7b6df4855b-2sb8h
+11m         Normal    Killing                        pod/engagement-platform-service-7b6df4855b-2sb8h         Stopping container engagement-platform-service
+10m         Normal    SuccessfulCreate               job/aituan-hpa-load-1788350998                           Created pod: aituan-hpa-load-1788350998-clh4w
+10m         Normal    Pulled                         pod/aituan-hpa-load-1788350998-clh4w                     Container image "node:24-alpine" already present on machine and can be accessed by the pod
+10m         Normal    Created                        pod/aituan-hpa-load-1788350998-clh4w                     Container created
+10m         Normal    Started                        pod/aituan-hpa-load-1788350998-clh4w                     Container started
+9m48s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-pzvks
+9m48s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-6fzd4
+9m48s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-pzvks            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m47s       Normal    Created                        pod/merchant-catalog-service-568bf45885-6fzd4            Container created
+9m47s       Normal    Started                        pod/merchant-catalog-service-568bf45885-6fzd4            Container started
+9m47s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-6fzd4            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m47s       Normal    Created                        pod/merchant-catalog-service-568bf45885-pzvks            Container created
+9m47s       Normal    Created                        pod/merchant-catalog-service-568bf45885-6fzd4            Container created
+9m47s       Normal    Started                        pod/merchant-catalog-service-568bf45885-pzvks            Container started
+9m47s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-pzvks            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m47s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-6fzd4            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m47s       Normal    Created                        pod/merchant-catalog-service-568bf45885-pzvks            Container created
+9m46s       Normal    Started                        pod/merchant-catalog-service-568bf45885-pzvks            Container started
+9m46s       Normal    Started                        pod/merchant-catalog-service-568bf45885-6fzd4            Container started
+9m34s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-zwk58
+9m34s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-ldmqm
+9m33s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-gbrsc
+9m33s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-tffdj
+9m33s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-s575d
+9m33s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-6dr48
+9m32s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-ldmqm                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m32s       Normal    Started                        pod/api-gateway-7ddddc4f8f-ldmqm                         Container started
+9m32s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-6dr48         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m32s       Normal    Started                        pod/api-gateway-7ddddc4f8f-zwk58                         Container started
+9m32s       Normal    Created                        pod/api-gateway-7ddddc4f8f-zwk58                         Container created
+9m32s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-zwk58                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m32s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-6dr48         Container created
+9m32s       Normal    Created                        pod/api-gateway-7ddddc4f8f-ldmqm                         Container created
+9m32s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-s575d         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m31s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-cmvxf
+9m31s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-6dr48         Container started
+9m31s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-6dr48         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m31s       Normal    Pulled                         pod/identity-asset-service-8648977489-gbrsc              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m31s       Normal    Created                        pod/identity-asset-service-8648977489-gbrsc              Container created
+9m31s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-s575d         Container created
+9m31s       Normal    Pulled                         pod/identity-asset-service-8648977489-tffdj              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m31s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-s575d         Container started
+9m31s       Normal    Started                        pod/identity-asset-service-8648977489-gbrsc              Container started
+9m31s       Normal    Pulled                         pod/identity-asset-service-8648977489-gbrsc              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m31s       Normal    Started                        pod/identity-asset-service-8648977489-tffdj              Container started
+9m31s       Normal    Created                        pod/identity-asset-service-8648977489-tffdj              Container created
+9m31s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-xdjb7
+9m31s       Normal    Pulled                         pod/identity-asset-service-8648977489-tffdj              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m31s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-s575d         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m30s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-s575d         Container started
+9m30s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-s575d         Container created
+9m30s       Normal    Started                        pod/identity-asset-service-8648977489-gbrsc              Container started
+9m30s       Normal    Created                        pod/identity-asset-service-8648977489-gbrsc              Container created
+9m30s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-6dr48         Container created
+9m30s       Normal    Created                        pod/identity-asset-service-8648977489-tffdj              Container created
+9m30s       Normal    Started                        pod/identity-asset-service-8648977489-tffdj              Container started
+9m30s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-6dr48         Container started
+9m29s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container started
+9m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m29s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container created
+9m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m29s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container created
+9m29s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container started
+9m28s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container created
+9m28s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-xdjb7            Container started
+9m28s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container created
+9m28s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-cmvxf            Container started
+9m19s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-79wtx
+9m18s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-wxtjh
+9m18s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-fhj5l
+9m18s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-f9z8f
+9m17s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-f9z8f            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m17s       Normal    Created                        pod/api-gateway-7ddddc4f8f-79wtx                         Container created
+9m17s       Normal    Created                        pod/merchant-catalog-service-568bf45885-f9z8f            Container created
+9m17s       Normal    Created                        pod/identity-asset-service-8648977489-wxtjh              Container created
+9m17s       Normal    Started                        pod/api-gateway-7ddddc4f8f-79wtx                         Container started
+9m17s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-fhj5l         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m17s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-79wtx                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m17s       Normal    Pulled                         pod/identity-asset-service-8648977489-wxtjh              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m17s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-fhj5l         Container created
+9m16s       Normal    Started                        pod/identity-asset-service-8648977489-wxtjh              Container started
+9m16s       Normal    Started                        pod/merchant-catalog-service-568bf45885-f9z8f            Container started
+9m16s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-lp8w6
+9m16s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-fhj5l         Container started
+9m15s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-fhj5l         Container started
+9m15s       Normal    Created                        pod/identity-asset-service-8648977489-wxtjh              Container created
+9m15s       Normal    Pulled                         pod/identity-asset-service-8648977489-wxtjh              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m15s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+9m15s       Normal    Started                        pod/merchant-catalog-service-568bf45885-f9z8f            Container started
+9m15s       Normal    Created                        pod/merchant-catalog-service-568bf45885-f9z8f            Container created
+9m15s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container created
+9m15s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-f9z8f            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m15s       Normal    Started                        pod/identity-asset-service-8648977489-wxtjh              Container started
+9m15s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-fhj5l         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m15s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container started
+9m15s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-fhj5l         Container created
+9m14s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container created
+9m14s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container started
+9m14s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-lp8w6            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+9m8s        Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-6fzd4            Startup probe failed: Get "http://10.42.0.182:8082/actuator/health": dial tcp 10.42.0.182:8082: connect: connection refused
+9m8s        Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-pzvks            Startup probe failed: Get "http://10.42.0.181:8082/actuator/health": dial tcp 10.42.0.181:8082: connect: connection refused
+8m20s       Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-cmvxf            Startup probe failed: Get "http://10.42.0.190:8083/actuator/health": dial tcp 10.42.0.190:8083: connect: connection refused
+8m20s       Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-xdjb7            Startup probe failed: Get "http://10.42.0.189:8083/actuator/health": dial tcp 10.42.0.189:8083: connect: connection refused
+8m17s       Warning   Unhealthy                      pod/identity-asset-service-8648977489-tffdj              Startup probe failed: Get "http://10.42.0.187:8081/actuator/health": dial tcp 10.42.0.187:8081: connect: connection refused
+8m13s       Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-6dr48         Startup probe failed: Get "http://10.42.0.185:8084/actuator/health": dial tcp 10.42.0.185:8084: connect: connection refused
+8m12s       Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-s575d         Startup probe failed: Get "http://10.42.0.186:8084/actuator/health": dial tcp 10.42.0.186:8084: connect: connection refused
+8m12s       Warning   Unhealthy                      pod/identity-asset-service-8648977489-gbrsc              Startup probe failed: Get "http://10.42.0.188:8081/actuator/health": dial tcp 10.42.0.188:8081: connect: connection refused
+8m6s        Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-lp8w6            Startup probe failed: Get "http://10.42.0.195:8083/actuator/health": dial tcp 10.42.0.195:8083: connect: connection refused
+8m3s        Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-zwk58                         Startup probe failed: Get "http://10.42.0.183:8080/actuator/health": dial tcp 10.42.0.183:8080: connect: connection refused
+8m3s        Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-ldmqm                         Startup probe failed: Get "http://10.42.0.184:8080/actuator/health": dial tcp 10.42.0.184:8080: connect: connection refused
+8m3s        Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-fhj5l         Startup probe failed: Get "http://10.42.0.192:8084/actuator/health": dial tcp 10.42.0.192:8084: connect: connection refused
+8m2s        Warning   Unhealthy                      pod/identity-asset-service-8648977489-wxtjh              Startup probe failed: Get "http://10.42.0.194:8081/actuator/health": dial tcp 10.42.0.194:8081: connect: connection refused
+8m2s        Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-f9z8f            Startup probe failed: Get "http://10.42.0.193:8082/actuator/health": dial tcp 10.42.0.193:8082: connect: connection refused
+7m58s       Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-79wtx                         Startup probe failed: Get "http://10.42.0.191:8080/actuator/health": dial tcp 10.42.0.191:8080: connect: connection refused
+7m52s       Warning   Unhealthy                      pod/identity-asset-service-8648977489-tffdj              Readiness probe failed: Get "http://10.42.0.187:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+7m1s        Normal    Completed                      job/aituan-hpa-load-1788350998                           Job completed
+4m48s       Normal    SuccessfulDelete               replicaset/api-gateway-7ddddc4f8f                        Deleted pod: api-gateway-7ddddc4f8f-79wtx
+4m48s       Normal    SuccessfulDelete               replicaset/engagement-platform-service-7b6df4855b        Deleted pod: engagement-platform-service-7b6df4855b-s575d
+4m48s       Normal    Killing                        pod/api-gateway-7ddddc4f8f-79wtx                         Stopping container api-gateway
+4m48s       Normal    Killing                        pod/engagement-platform-service-7b6df4855b-s575d         Stopping container engagement-platform-service
+4m48s       Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 3; reason: All metrics below target
+4m48s       Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-7ddddc4f8f from 4 to 3
+4m48s       Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-7b6df4855b from 4 to 3
+4m48s       Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 3; reason: All metrics below target
+4m46s       Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-79wtx                         Readiness probe failed: Get "http://10.42.0.191:8080/actuator/health": dial tcp 10.42.0.191:8080: connect: connection refused
+4m33s       Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-7ddddc4f8f from 3 to 2
+4m33s       Normal    SuccessfulDelete               replicaset/merchant-catalog-service-568bf45885           Deleted pod: merchant-catalog-service-568bf45885-pzvks
+4m33s       Normal    SuccessfulDelete               replicaset/api-gateway-7ddddc4f8f                        Deleted pod: api-gateway-7ddddc4f8f-zwk58
+4m33s       Normal    Killing                        pod/merchant-catalog-service-568bf45885-f9z8f            Stopping container merchant-catalog-service
+4m33s       Normal    SuccessfulDelete               replicaset/merchant-catalog-service-568bf45885           Deleted pod: merchant-catalog-service-568bf45885-f9z8f
+4m33s       Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-568bf45885 from 4 to 2
+4m33s       Normal    Killing                        pod/engagement-platform-service-7b6df4855b-6dr48         Stopping container engagement-platform-service
+4m33s       Normal    SuccessfulRescale              horizontalpodautoscaler/merchant-catalog-service         New size: 2; reason: All metrics below target
+4m33s       Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 2; reason: All metrics below target
+4m33s       Normal    SuccessfulDelete               replicaset/engagement-platform-service-7b6df4855b        Deleted pod: engagement-platform-service-7b6df4855b-6dr48
+4m33s       Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-7b6df4855b from 3 to 2
+4m33s       Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 2; reason: All metrics below target
+4m33s       Normal    Killing                        pod/api-gateway-7ddddc4f8f-zwk58                         Stopping container api-gateway
+4m33s       Normal    Killing                        pod/merchant-catalog-service-568bf45885-pzvks            Stopping container merchant-catalog-service
+4m32s       Normal    SuccessfulDelete               replicaset/identity-asset-service-8648977489             Deleted pod: identity-asset-service-8648977489-gbrsc
+4m32s       Normal    Killing                        pod/identity-asset-service-8648977489-gbrsc              Stopping container identity-asset-service
+4m32s       Normal    SuccessfulDelete               replicaset/identity-asset-service-8648977489             Deleted pod: identity-asset-service-8648977489-wxtjh
+4m32s       Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-8648977489 from 4 to 2
+4m32s       Normal    SuccessfulRescale              horizontalpodautoscaler/identity-asset-service           New size: 2; reason: All metrics below target
+4m32s       Normal    Killing                        pod/identity-asset-service-8648977489-wxtjh              Stopping container identity-asset-service
+4m31s       Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-57cc4f96c from 4 to 2
+4m31s       Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-57cc4f96c           Deleted pod: trade-fulfillment-service-57cc4f96c-xdjb7
+4m31s       Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-57cc4f96c           Deleted pod: trade-fulfillment-service-57cc4f96c-cmvxf
+4m31s       Normal    Killing                        pod/trade-fulfillment-service-57cc4f96c-cmvxf            Stopping container trade-fulfillment-service
+4m31s       Normal    Killing                        pod/trade-fulfillment-service-57cc4f96c-xdjb7            Stopping container trade-fulfillment-service
+4m31s       Normal    SuccessfulRescale              horizontalpodautoscaler/trade-fulfillment-service        New size: 2; reason: All metrics below target
+4m18s       Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 1; reason: All metrics below target
+4m18s       Normal    SuccessfulDelete               replicaset/engagement-platform-service-7b6df4855b        Deleted pod: engagement-platform-service-7b6df4855b-fhj5l
+4m18s       Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled down replica set engagement-platform-service-7b6df4855b from 2 to 1
+4m18s       Normal    Killing                        pod/engagement-platform-service-7b6df4855b-fhj5l         Stopping container engagement-platform-service
+4m3s        Normal    Killing                        pod/api-gateway-7ddddc4f8f-ldmqm                         Stopping container api-gateway
+4m3s        Normal    SuccessfulDelete               replicaset/merchant-catalog-service-568bf45885           Deleted pod: merchant-catalog-service-568bf45885-6fzd4
+4m3s        Normal    Killing                        pod/merchant-catalog-service-568bf45885-6fzd4            Stopping container merchant-catalog-service
+4m3s        Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled down replica set merchant-catalog-service-568bf45885 from 2 to 1
+4m3s        Normal    SuccessfulDelete               replicaset/api-gateway-7ddddc4f8f                        Deleted pod: api-gateway-7ddddc4f8f-ldmqm
+4m3s        Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled down replica set api-gateway-7ddddc4f8f from 2 to 1
+4m3s        Normal    SuccessfulRescale              horizontalpodautoscaler/merchant-catalog-service         New size: 1; reason: All metrics below target
+4m3s        Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 1; reason: All metrics below target
+4m2s        Normal    Killing                        pod/identity-asset-service-8648977489-tffdj              Stopping container identity-asset-service
+4m2s        Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled down replica set identity-asset-service-8648977489 from 2 to 1
+4m2s        Normal    SuccessfulDelete               replicaset/identity-asset-service-8648977489             Deleted pod: identity-asset-service-8648977489-tffdj
+4m2s        Normal    SuccessfulRescale              horizontalpodautoscaler/identity-asset-service           New size: 1; reason: All metrics below target
+4m1s        Normal    SuccessfulDelete               replicaset/trade-fulfillment-service-57cc4f96c           Deleted pod: trade-fulfillment-service-57cc4f96c-lp8w6
+4m1s        Normal    SuccessfulRescale              horizontalpodautoscaler/trade-fulfillment-service        New size: 1; reason: All metrics below target
+4m1s        Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled down replica set trade-fulfillment-service-57cc4f96c from 2 to 1
+4m1s        Normal    Killing                        pod/trade-fulfillment-service-57cc4f96c-lp8w6            Stopping container trade-fulfillment-service
+3m12s       Normal    SuccessfulCreate               job/aituan-hpa-load-1788351408                           Created pod: aituan-hpa-load-1788351408-v66s9
+3m11s       Normal    Pulled                         pod/aituan-hpa-load-1788351408-v66s9                     Container image "node:24-alpine" already present on machine and can be accessed by the pod
+3m11s       Normal    Started                        pod/aituan-hpa-load-1788351408-v66s9                     Container started
+3m11s       Normal    Created                        pod/aituan-hpa-load-1788351408-v66s9                     Container created
+2m48s       Normal    SuccessfulRescale              horizontalpodautoscaler/merchant-catalog-service         New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m48s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-t646w
+2m48s       Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-568bf45885 from 1 to 3
+2m48s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-mjkjh
+2m47s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-mjkjh            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m47s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-t2s5t
+2m47s       Normal    Created                        pod/merchant-catalog-service-568bf45885-t646w            Container created
+2m47s       Normal    SuccessfulRescale              horizontalpodautoscaler/identity-asset-service           New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m47s       Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-8648977489 from 1 to 3
+2m47s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-rnsgx
+2m47s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-t646w            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m46s       Normal    Started                        pod/identity-asset-service-8648977489-t2s5t              Container started
+2m46s       Normal    Created                        pod/merchant-catalog-service-568bf45885-mjkjh            Container created
+2m46s       Normal    Started                        pod/identity-asset-service-8648977489-rnsgx              Container started
+2m46s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-mjkjh            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m46s       Normal    Pulled                         pod/identity-asset-service-8648977489-rnsgx              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m46s       Normal    Started                        pod/merchant-catalog-service-568bf45885-mjkjh            Container started
+2m46s       Normal    Started                        pod/merchant-catalog-service-568bf45885-t646w            Container started
+2m46s       Normal    Pulled                         pod/identity-asset-service-8648977489-t2s5t              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m46s       Normal    Created                        pod/identity-asset-service-8648977489-t2s5t              Container created
+2m46s       Normal    Created                        pod/identity-asset-service-8648977489-rnsgx              Container created
+2m46s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-t646w            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m45s       Normal    Started                        pod/merchant-catalog-service-568bf45885-t646w            Container started
+2m45s       Normal    Started                        pod/merchant-catalog-service-568bf45885-mjkjh            Container started
+2m45s       Normal    Created                        pod/merchant-catalog-service-568bf45885-t646w            Container created
+2m45s       Normal    Created                        pod/identity-asset-service-8648977489-rnsgx              Container created
+2m45s       Normal    Pulled                         pod/identity-asset-service-8648977489-t2s5t              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m45s       Normal    Created                        pod/merchant-catalog-service-568bf45885-mjkjh            Container created
+2m45s       Normal    Created                        pod/identity-asset-service-8648977489-t2s5t              Container created
+2m45s       Normal    Pulled                         pod/identity-asset-service-8648977489-rnsgx              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m44s       Normal    Started                        pod/identity-asset-service-8648977489-rnsgx              Container started
+2m44s       Normal    Started                        pod/identity-asset-service-8648977489-t2s5t              Container started
+2m33s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-g4qzm
+2m33s       Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m33s       Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-7b6df4855b from 1 to 3
+2m33s       Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m33s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-x6qmd
+2m33s       Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled up replica set api-gateway-7ddddc4f8f from 1 to 3
+2m33s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-tbghr
+2m33s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-d9fq4
+2m32s       Normal    ScalingReplicaSet              deployment/identity-asset-service                        Scaled up replica set identity-asset-service-8648977489 from 3 to 4
+2m32s       Normal    SuccessfulCreate               replicaset/identity-asset-service-8648977489             Created pod: identity-asset-service-8648977489-lbk6h
+2m32s       Normal    Started                        pod/api-gateway-7ddddc4f8f-x6qmd                         Container started
+2m32s       Normal    ScalingReplicaSet              deployment/merchant-catalog-service                      Scaled up replica set merchant-catalog-service-568bf45885 from 3 to 4
+2m32s       Normal    SuccessfulRescale              horizontalpodautoscaler/identity-asset-service           New size: 4; reason: cpu resource utilization (percentage of request) above target
+2m32s       Normal    SuccessfulRescale              horizontalpodautoscaler/merchant-catalog-service         New size: 4; reason: cpu resource utilization (percentage of request) above target
+2m32s       Normal    SuccessfulCreate               replicaset/merchant-catalog-service-568bf45885           Created pod: merchant-catalog-service-568bf45885-cpr7h
+2m32s       Normal    Created                        pod/api-gateway-7ddddc4f8f-x6qmd                         Container created
+2m32s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-x6qmd                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m32s       Normal    Created                        pod/api-gateway-7ddddc4f8f-tbghr                         Container created
+2m32s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-tbghr                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m31s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-d9fq4         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m31s       Normal    Created                        pod/identity-asset-service-8648977489-lbk6h              Container created
+2m31s       Normal    Created                        pod/merchant-catalog-service-568bf45885-cpr7h            Container created
+2m31s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-d9fq4         Container started
+2m31s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-g4qzm         Container created
+2m31s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-g4qzm         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m31s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-g4qzm         Container started
+2m31s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-cpr7h            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m31s       Normal    Started                        pod/merchant-catalog-service-568bf45885-cpr7h            Container started
+2m31s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-d9fq4         Container created
+2m31s       Normal    Started                        pod/api-gateway-7ddddc4f8f-tbghr                         Container started
+2m31s       Normal    Started                        pod/identity-asset-service-8648977489-lbk6h              Container started
+2m31s       Normal    Pulled                         pod/identity-asset-service-8648977489-lbk6h              Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m30s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-g4qzm         Container started
+2m30s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-g4qzm         Container created
+2m30s       Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-57cc4f96c from 1 to 3
+2m30s       Normal    Pulled                         pod/merchant-catalog-service-568bf45885-cpr7h            Container image "ghcr.io/puaa-team/aituan/merchant-catalog-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m30s       Normal    Created                        pod/merchant-catalog-service-568bf45885-cpr7h            Container created
+2m30s       Normal    Started                        pod/merchant-catalog-service-568bf45885-cpr7h            Container started
+2m30s       Normal    SuccessfulRescale              horizontalpodautoscaler/trade-fulfillment-service        New size: 3; reason: cpu resource utilization (percentage of request) above target
+2m30s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-d9fq4         Container created
+2m30s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-d9fq4         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m30s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-hqfvj
+2m30s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-d9fq4         Container started
+2m30s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-5pr7c
+2m30s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-g4qzm         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m29s       Normal    Pulled                         pod/identity-asset-service-8648977489-lbk6h              Container image "ghcr.io/puaa-team/aituan/identity-asset-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m29s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container created
+2m29s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m29s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container created
+2m29s       Normal    Started                        pod/identity-asset-service-8648977489-lbk6h              Container started
+2m29s       Normal    Created                        pod/identity-asset-service-8648977489-lbk6h              Container created
+2m29s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container started
+2m28s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container started
+2m27s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m27s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container started
+2m27s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m27s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container created
+2m27s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-5pr7c            Container created
+2m27s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-hqfvj            Container started
+2m18s       Normal    SuccessfulRescale              horizontalpodautoscaler/api-gateway                      New size: 4; reason: cpu resource utilization (percentage of request) above target
+2m18s       Normal    SuccessfulCreate               replicaset/api-gateway-7ddddc4f8f                        Created pod: api-gateway-7ddddc4f8f-wwjh2
+2m18s       Normal    ScalingReplicaSet              deployment/engagement-platform-service                   Scaled up replica set engagement-platform-service-7b6df4855b from 3 to 4
+2m18s       Normal    SuccessfulRescale              horizontalpodautoscaler/engagement-platform-service      New size: 4; reason: cpu resource utilization (percentage of request) above target
+2m18s       Normal    ScalingReplicaSet              deployment/api-gateway                                   Scaled up replica set api-gateway-7ddddc4f8f from 3 to 4
+2m18s       Normal    SuccessfulCreate               replicaset/engagement-platform-service-7b6df4855b        Created pod: engagement-platform-service-7b6df4855b-mcbpd
+2m17s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-mcbpd         Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m17s       Normal    Pulled                         pod/api-gateway-7ddddc4f8f-wwjh2                         Container image "ghcr.io/puaa-team/aituan/api-gateway:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m17s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-mcbpd         Container created
+2m17s       Normal    Started                        pod/api-gateway-7ddddc4f8f-wwjh2                         Container started
+2m17s       Normal    Created                        pod/api-gateway-7ddddc4f8f-wwjh2                         Container created
+2m16s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-mcbpd         Container started
+2m16s       Normal    Created                        pod/engagement-platform-service-7b6df4855b-mcbpd         Container created
+2m16s       Normal    Started                        pod/engagement-platform-service-7b6df4855b-mcbpd         Container started
+2m16s       Normal    Pulled                         pod/engagement-platform-service-7b6df4855b-mcbpd         Container image "ghcr.io/puaa-team/aituan/engagement-platform-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+2m15s       Normal    SuccessfulCreate               replicaset/trade-fulfillment-service-57cc4f96c           Created pod: trade-fulfillment-service-57cc4f96c-hknrn
+2m15s       Normal    ScalingReplicaSet              deployment/trade-fulfillment-service                     Scaled up replica set trade-fulfillment-service-57cc4f96c from 3 to 4
+2m15s       Normal    SuccessfulRescale              horizontalpodautoscaler/trade-fulfillment-service        New size: 4; reason: cpu resource utilization (percentage of request) above target
+2m14s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-hknrn            Container image "busybox:1.36.1" already present on machine and can be accessed by the pod
+2m14s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-hknrn            Container created
+2m14s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-hknrn            Container started
+2m13s       Normal    Started                        pod/trade-fulfillment-service-57cc4f96c-hknrn            Container started
+2m13s       Normal    Created                        pod/trade-fulfillment-service-57cc4f96c-hknrn            Container created
+2m13s       Normal    Pulled                         pod/trade-fulfillment-service-57cc4f96c-hknrn            Container image "ghcr.io/puaa-team/aituan/trade-fulfillment-service:sha-b8660d3e1a0db9dca0fd4d9d9793fed53e3fb5d4" already present on machine and can be accessed by the pod
+117s        Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-mjkjh            Startup probe failed: Get "http://10.42.0.197:8082/actuator/health": dial tcp 10.42.0.197:8082: connect: connection refused
+112s        Warning   Unhealthy                      pod/identity-asset-service-8648977489-t2s5t              Startup probe failed: Get "http://10.42.0.200:8081/actuator/health": dial tcp 10.42.0.200:8081: connect: connection refused
+112s        Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-t646w            Startup probe failed: Get "http://10.42.0.198:8082/actuator/health": dial tcp 10.42.0.198:8082: connect: connection refused
+112s        Warning   Unhealthy                      pod/identity-asset-service-8648977489-rnsgx              Startup probe failed: Get "http://10.42.0.199:8081/actuator/health": dial tcp 10.42.0.199:8081: connect: connection refused
+92s         Warning   Unhealthy                      pod/identity-asset-service-8648977489-86jz5              Readiness probe failed: Get "http://10.42.0.162:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+91s         Warning   Unhealthy                      pod/identity-asset-service-8648977489-rnsgx              Readiness probe failed: Get "http://10.42.0.199:8081/actuator/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+85s         Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-hqfvj            Startup probe failed: Get "http://10.42.0.208:8083/actuator/health": dial tcp 10.42.0.208:8083: connect: connection refused
+85s         Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-5pr7c            Startup probe failed: Get "http://10.42.0.207:8083/actuator/health": dial tcp 10.42.0.207:8083: connect: connection refused
+82s         Warning   Unhealthy                      pod/merchant-catalog-service-568bf45885-cpr7h            Startup probe failed: Get "http://10.42.0.204:8082/actuator/health": dial tcp 10.42.0.204:8082: connect: connection refused
+81s         Warning   Unhealthy                      pod/identity-asset-service-8648977489-lbk6h              Startup probe failed: Get "http://10.42.0.206:8081/actuator/health": dial tcp 10.42.0.206:8081: connect: connection refused
+77s         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-g4qzm         Startup probe failed: Get "http://10.42.0.205:8084/actuator/health": dial tcp 10.42.0.205:8084: connect: connection refused
+77s         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-d9fq4         Startup probe failed: Get "http://10.42.0.203:8084/actuator/health": dial tcp 10.42.0.203:8084: connect: connection refused
+75s         Warning   Unhealthy                      pod/trade-fulfillment-service-57cc4f96c-hknrn            Startup probe failed: Get "http://10.42.0.211:8083/actuator/health": dial tcp 10.42.0.211:8083: connect: connection refused
+73s         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-x6qmd                         Startup probe failed: Get "http://10.42.0.202:8080/actuator/health": dial tcp 10.42.0.202:8080: connect: connection refused
+73s         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-tbghr                         Startup probe failed: Get "http://10.42.0.201:8080/actuator/health": dial tcp 10.42.0.201:8080: connect: connection refused
+68s         Warning   Unhealthy                      pod/api-gateway-7ddddc4f8f-wwjh2                         Startup probe failed: Get "http://10.42.0.209:8080/actuator/health": dial tcp 10.42.0.209:8080: connect: connection refused
+67s         Warning   Unhealthy                      pod/engagement-platform-service-7b6df4855b-mcbpd         Startup probe failed: Get "http://10.42.0.210:8084/actuator/health": dial tcp 10.42.0.210:8084: connect: connection refused

@@ -1,0 +1,153 @@
+Name:                                                  api-gateway
+Namespace:                                             aituan
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 02 Sep 2026 18:37:57 +0800
+Reference:                                             Deployment/api-gateway
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  91% (45m) / 50%
+Min replicas:                                          1
+Max replicas:                                          4
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 120 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 50  Period: 30 seconds
+Deployment pods:       4 current / 4 desired
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooManyReplicas   the desired replica count is more than the maximum replica count
+
+
+Name:                                                  engagement-platform-service
+Namespace:                                             aituan
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 02 Sep 2026 18:37:58 +0800
+Reference:                                             Deployment/engagement-platform-service
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  128% (96m) / 50%
+Min replicas:                                          1
+Max replicas:                                          4
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 120 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 50  Period: 30 seconds
+Deployment pods:       4 current / 4 desired
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooManyReplicas   the desired replica count is more than the maximum replica count
+
+
+Name:                                                  identity-asset-service
+Namespace:                                             aituan
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 02 Sep 2026 18:37:58 +0800
+Reference:                                             Deployment/identity-asset-service
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  313% (234m) / 50%
+Min replicas:                                          1
+Max replicas:                                          4
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 120 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 50  Period: 30 seconds
+Deployment pods:       4 current / 4 desired
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooManyReplicas   the desired replica count is more than the maximum replica count
+
+
+Name:                                                  merchant-catalog-service
+Namespace:                                             aituan
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 02 Sep 2026 15:07:01 +0800
+Reference:                                             Deployment/merchant-catalog-service
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  239% (179m) / 50%
+Min replicas:                                          1
+Max replicas:                                          4
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 120 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 50  Period: 30 seconds
+Deployment pods:       4 current / 4 desired
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooManyReplicas   the desired replica count is more than the maximum replica count
+
+
+Name:                                                  trade-fulfillment-service
+Namespace:                                             aituan
+Labels:                                                <none>
+Annotations:                                           <none>
+CreationTimestamp:                                     Wed, 02 Sep 2026 18:38:00 +0800
+Reference:                                             Deployment/trade-fulfillment-service
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  284% (213m) / 50%
+Min replicas:                                          1
+Max replicas:                                          4
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 100  Period: 15 seconds
+      - Type: Pods     Value: 2    Period: 15 seconds
+  Scale Down:
+    Stabilization Window: 120 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Percent  Value: 50  Period: 30 seconds
+Deployment pods:       4 current / 4 desired
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooManyReplicas   the desired replica count is more than the maximum replica count

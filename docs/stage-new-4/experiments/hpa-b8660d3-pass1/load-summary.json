@@ -1,0 +1,75 @@
+{
+  "startedAt": "2026-09-02T12:16:54.675Z",
+  "endedAt": "2026-09-02T12:19:55.078Z",
+  "elapsedSeconds": 180.403,
+  "config": {
+    "origin": "http://api-gateway:8080",
+    "durationSeconds": 180,
+    "concurrency": 40,
+    "requestTimeoutMs": 5000,
+    "account": "demo_user",
+    "targetCount": 4
+  },
+  "overall": {
+    "requests": 20726,
+    "successes": 20532,
+    "errors": 194,
+    "errorRate": 0.009360223873395735,
+    "throughputRps": 114.88722471355798,
+    "averageMs": 347.4040500820232,
+    "p50Ms": 76.672,
+    "p95Ms": 1466.216,
+    "p99Ms": 2519.467,
+    "maxMs": 5008.375
+  },
+  "byTarget": {
+    "identity-asset-service": {
+      "requests": 5182,
+      "successes": 5147,
+      "errors": 35,
+      "errorRate": 0.006754148977228869,
+      "throughputRps": 28.724577750924322,
+      "averageMs": 583.9602879197226,
+      "p50Ms": 435.183,
+      "p95Ms": 1573.123,
+      "p99Ms": 3081.842,
+      "maxMs": 5008.375
+    },
+    "merchant-catalog-service": {
+      "requests": 5182,
+      "successes": 5023,
+      "errors": 159,
+      "errorRate": 0.030683133925125436,
+      "throughputRps": 28.724577750924322,
+      "averageMs": 758.9533220764174,
+      "p50Ms": 551.261,
+      "p95Ms": 2068.611,
+      "p99Ms": 2975.796,
+      "maxMs": 5000.693
+    },
+    "trade-fulfillment-service": {
+      "requests": 5181,
+      "successes": 5181,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 28.71903460585467,
+      "averageMs": 22.682227948272537,
+      "p50Ms": 16.363,
+      "p95Ms": 61.618,
+      "p99Ms": 110.349,
+      "maxMs": 616.774
+    },
+    "engagement-platform-service": {
+      "requests": 5181,
+      "successes": 5181,
+      "errors": 0,
+      "errorRate": 0,
+      "throughputRps": 28.71903460585467,
+      "averageMs": 23.895269639065802,
+      "p50Ms": 17.111,
+      "p95Ms": 62.774,
+      "p99Ms": 119.187,
+      "maxMs": 1690.113
+    }
+  }
+}

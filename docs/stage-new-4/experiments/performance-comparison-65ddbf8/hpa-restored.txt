@@ -1,0 +1,6 @@
+NAME                          REFERENCE                                TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+api-gateway                   Deployment/api-gateway                   cpu: 204%/50%   1         4         1          3h15m
+engagement-platform-service   Deployment/engagement-platform-service   cpu: 2%/50%     1         4         1          3h15m
+identity-asset-service        Deployment/identity-asset-service        cpu: 2%/50%     1         4         1          3h15m
+merchant-catalog-service      Deployment/merchant-catalog-service      cpu: 422%/50%   1         4         1          6h46m
+trade-fulfillment-service     Deployment/trade-fulfillment-service     cpu: 2%/50%     1         4         1          3h15m

@@ -1,0 +1,37 @@
+{
+  "capturedAt": "2026-09-02T13:48:12.801Z",
+  "dataset": "database/microservices/merchant/seeds/R__seed_merchant_catalog_demo.sql（复制到隔离单体 schema）",
+  "scenariosPath": "performance/run/scenarios.json",
+  "targets": [
+    {
+      "label": "monolith",
+      "baseUrl": "http://performance-monolith:8080"
+    },
+    {
+      "label": "microservices",
+      "baseUrl": "http://api-gateway:8080"
+    }
+  ],
+  "runs": 3,
+  "concurrency": 50,
+  "requestsPerRun": 15000,
+  "timeoutMs": 5000,
+  "warmupRequests": 1000,
+  "resourceIntervalMs": 500,
+  "cooldownMs": 10000,
+  "pids": {
+    "monolith": [
+      245584,
+      215671
+    ],
+    "microservices": [
+      217174,
+      217646,
+      217561,
+      217811,
+      217735,
+      215671
+    ]
+  },
+  "procRoot": "/host-proc"
+}
